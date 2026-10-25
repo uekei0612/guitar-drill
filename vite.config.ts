@@ -8,5 +8,5 @@ export default defineConfig({
   plugins: [preact()],
   // dev サーバーには NPM の TCP 転送経由（almalinux-dev.ukuenokei.duckdns.org:8008）でも入る
   server: { strictPort: true, allowedHosts: ["almalinux-dev.ukuenokei.duckdns.org"] },
-  test: { include: ["src/**/*.test.ts"] },
+  test: { include: ["src/**/*.test.{ts,tsx}"] },
 });

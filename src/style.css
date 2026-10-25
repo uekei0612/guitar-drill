@@ -39,3 +39,111 @@ main {
   font-size: 0.8rem;
   padding: 2px 8px;
 }
+
+/* 指板図 */
+:root {
+  --fb-board: #f3e6d0;
+  --fb-wire: #9c8f7a;
+  --fb-nut: #3b3326;
+  --fb-string: #6b6252;
+  --fb-inlay: #d9c7a6;
+  --fb-root: var(--accent);
+  --fb-tone: #1f2937;
+  --fb-on-dot: #fff;
+  --fb-ok: #15803d;
+  --fb-wrong: #b91c1c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fb-board: #2a241c;
+    --fb-wire: #6d6252;
+    --fb-nut: #d8ccb6;
+    --fb-string: #a99d88;
+    --fb-inlay: #4a3f30;
+    --fb-tone: #e5e7eb;
+    --fb-on-dot: #111;
+    --fb-ok: #4ade80;
+    --fb-wrong: #f87171;
+  }
+}
+.fretboard {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.fb-board {
+  fill: var(--fb-board);
+}
+.fb-wire {
+  stroke: var(--fb-wire);
+  stroke-width: 2;
+}
+.fb-nut {
+  stroke: var(--fb-nut);
+  stroke-width: 5;
+}
+.fb-string {
+  stroke: var(--fb-string);
+}
+.fb-inlay {
+  fill: var(--fb-inlay);
+}
+.fb-fretno {
+  fill: var(--muted);
+  font-size: 12px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.fb-mark text {
+  font-size: 13px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--fb-on-dot);
+}
+.fb-mark--root circle {
+  fill: var(--fb-root);
+}
+.fb-mark--tone circle {
+  fill: var(--fb-tone);
+}
+.fb-mark--hint circle {
+  fill: var(--fb-tone);
+  opacity: 0.25;
+}
+.fb-mark--hint text {
+  fill: var(--fg);
+}
+.fb-mark--target circle {
+  fill: var(--bg);
+  stroke: var(--fb-root);
+  stroke-width: 3;
+}
+.fb-mark--target text {
+  fill: var(--fb-root);
+}
+.fb-mark--ok circle {
+  fill: var(--fb-ok);
+}
+.fb-mark--wrong circle {
+  fill: var(--fb-wrong);
+}
+.fb-selected {
+  fill: none;
+  stroke: var(--fb-root);
+  stroke-width: 3;
+  stroke-dasharray: 4 3;
+}
+.fb-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.fb-hit:focus-visible {
+  outline: none;
+  stroke: var(--fb-root);
+  stroke-width: 2;
+}

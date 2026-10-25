@@ -20,8 +20,9 @@ export interface Mark {
   readonly pos: Position;
   /** 点の中の文字（R、♭3、F♯ など） */
   readonly label?: string;
-  /** root = ルート、tone = そのほかの音、target = 問われている点、hint = 薄く出す参考の点 */
-  readonly kind: "root" | "tone" | "target" | "hint";
+  /** root = ルート、tone = そのほかの音、target = 問われている点、hint = 薄く出す参考の点、
+      ok / wrong = 答え合わせ（正しく押した点／押し間違えた点） */
+  readonly kind: "root" | "tone" | "target" | "hint" | "ok" | "wrong";
 }
 
 /** 問題や解説に出す指板図 */
