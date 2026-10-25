@@ -51,6 +51,8 @@ export interface Layout {
   readonly wires: readonly (Line & { readonly nut: boolean })[];
   readonly inlays: readonly Point[];
   readonly fretLabels: readonly (Point & { readonly fret: number })[];
+  /** 弦の番号（縦向きのときだけ、指板の下に。縦向きは弦の並びが見た目で分かりにくい） */
+  readonly stringLabels: readonly (Point & { readonly string: number })[];
   /** 点の半径 */
   readonly r: number;
   cellAt(pos: Position): Cell | undefined;
@@ -142,17 +144,22 @@ export function layout(
       fretLabels.push({ ...pt(alongMid(a), horizontal ? across0 + strings * AC + LABEL / 2 : LABEL / 2), fret: f });
   }
 
+  const stringLabels = horizontal
+    ? []
+    : Array.from({ length: strings }, (_, s) => ({ ...pt(alongEnd + LABEL / 2, acrossMid(s)), string: s + 1 }));
+
   const byKey = new Map(cells.map(c => [`${c.pos.string}:${c.pos.fret}`, c]));
   return {
     orientation,
     width: horizontal ? alongEnd + PAD : across0 + strings * AC + PAD,
-    height: horizontal ? across0 + strings * AC + LABEL : alongEnd + PAD,
+    height: horizontal ? across0 + strings * AC + LABEL : alongEnd + LABEL,
     cells,
     board,
     strings: stringLines,
     wires,
     inlays,
     fretLabels,
+    stringLabels,
     r: Math.min(AL, AC) * 0.36,
     cellAt: pos => byKey.get(`${pos.string}:${pos.fret}`),
   };
