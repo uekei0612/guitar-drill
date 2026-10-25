@@ -73,7 +73,7 @@ export function Fretboard({
     <svg
       class={`fretboard fretboard--${L.orientation}`}
       viewBox={`0 0 ${L.width} ${L.height}`}
-      style={{ maxWidth: `${L.width * 1.25}px` }}
+      style={{ maxWidth: `${L.width}px` }}
       role={onTap ? "group" : "img"}
       aria-label={label}
     >

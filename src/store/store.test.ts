@@ -61,6 +61,16 @@ describe("Store", () => {
     expect(new Store(kv).data.items).toEqual({ "a/b": stat });
   });
 
+  it("変更を通知する", () => {
+    const s = new Store(memoryStorage());
+    let n = 0;
+    const off = s.subscribe(() => n++);
+    s.update(d => d);
+    off();
+    s.update(d => d);
+    expect(n).toBe(1);
+  });
+
   it("保存値が JSON として壊れていても落ちない", () => {
     const kv = memoryStorage();
     kv.setItem(STORAGE_KEY, "{oops");

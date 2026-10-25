@@ -1,0 +1,144 @@
+import { useState } from "preact/hooks";
+import { store, useData } from "../../state";
+import { SESSION_SIZES, type Settings as S, type Theme, emptyData, parseUrl } from "../../store/schema";
+import { exportJson, importJson } from "../../store/store";
+import { TUNINGS, fmt } from "../../theory";
+import { href } from "../route";
+
+const THEMES: { id: Theme; label: string }[] = [
+  { id: "system", label: "端末に合わせる" },
+  { id: "light", label: "明るい" },
+  { id: "dark", label: "暗い" },
+];
+
+const set = (patch: Partial<S>) => store.update(d => ({ ...d, settings: { ...d.settings, ...patch } }));
+
+function download(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function Settings() {
+  const { settings: st, items } = useData();
+  const [url, setUrl] = useState(st.guitarChartUrl);
+  const [msg, setMsg] = useState("");
+  const count = Object.keys(items).length;
+
+  async function onImport(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    const r = importJson(await file.text());
+    if (!r.ok) return setMsg(r.error);
+    const n = Object.keys(r.data.items).length;
+    if (!confirm(`今の記録（${count} 件）を、ファイルの記録（${n} 件）で置き換えます。よろしいですか？`)) return;
+    store.update(() => r.data);
+    setUrl(r.data.settings.guitarChartUrl);
+    setMsg(`読み込みました（${n} 件）`);
+  }
+
+  return (
+    <>
+      <header class="bar">
+        <a class="bar-link" href={href({ name: "home" })}>
+          ← ホーム
+        </a>
+        <h1 tabIndex={-1}>設定</h1>
+      </header>
+
+      <section class="form">
+        <label class="field">
+          <span>チューニング</span>
+          <select value={st.tuning} onChange={e => set({ tuning: e.currentTarget.value })}>
+            {TUNINGS.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name}（{t.open.map(fmt).join(" ")}）
+              </option>
+            ))}
+          </select>
+        </label>
+        <label class="field check">
+          <input type="checkbox" checked={st.lefty} onChange={e => set({ lefty: e.currentTarget.checked })} />
+          <span>左利きの表示</span>
+        </label>
+        <fieldset class="field">
+          <legend>画面の色</legend>
+          {THEMES.map(t => (
+            <label key={t.id} class="check">
+              <input type="radio" name="theme" checked={st.theme === t.id} onChange={() => set({ theme: t.id })} />
+              <span>{t.label}</span>
+            </label>
+          ))}
+        </fieldset>
+        <label class="field">
+          <span>1 回の問題数</span>
+          <select value={st.sessionSize} onChange={e => set({ sessionSize: Number(e.currentTarget.value) })}>
+            {SESSION_SIZES.map(n => (
+              <option key={n} value={n}>
+                {n} 問
+              </option>
+            ))}
+          </select>
+        </label>
+        <label class="field">
+          <span>guitar_chart の URL</span>
+          <input
+            type="url"
+            inputMode="url"
+            placeholder="https://…（空なら使わない）"
+            value={url}
+            onInput={e => setUrl(e.currentTarget.value)}
+            onBlur={() => {
+              const v = parseUrl(url);
+              set({ guitarChartUrl: v });
+              setUrl(v);
+              if (url.trim() && !v) setMsg("guitar_chart の URL は http(s) で入れてください");
+            }}
+          />
+          <small class="muted">入れると、スケールの問題から guitar_chart の図を開けます。</small>
+        </label>
+      </section>
+
+      <section class="form">
+        <h2>記録（{count} 件）</h2>
+        <p class="muted">
+          Safari とホーム画面のアプリでは記録が別々です。移すときは、片方で書き出してもう片方で読み込みます。
+        </p>
+        {!store.persistent && <p class="ng">この端末では記録を保存できません（プライベートモードなど）。</p>}
+        <div class="actions">
+          <button
+            class="btn"
+            onClick={() =>
+              download(`guitar-drill-${new Date().toISOString().slice(0, 10)}.json`, exportJson(store.data))
+            }
+          >
+            書き出す
+          </button>
+          <label class="btn">
+            読み込む
+            <input class="visually-hidden" type="file" accept="application/json,.json" onChange={onImport} />
+          </label>
+          <button
+            class="btn danger"
+            onClick={() => {
+              if (confirm(`記録（${count} 件）をすべて消します。設定は残ります。よろしいですか？`)) {
+                store.update(d => ({ ...emptyData(), settings: d.settings }));
+                setMsg("記録を消しました");
+              }
+            }}
+          >
+            記録を消す
+          </button>
+        </div>
+        <p class="feedback" role="status">
+          {msg}
+        </p>
+      </section>
+    </>
+  );
+}

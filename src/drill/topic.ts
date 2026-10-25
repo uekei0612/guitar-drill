@@ -91,6 +91,8 @@ export interface Topic<S = Record<string, never>> {
   readonly settings?: TopicSettingsDef<S>;
   /** 覚える単位。並び順は「先に覚えるもの」順（未出題のものはこの順に出す） */
   items(ctx: Context<S>): ItemId[];
+  /** item を人が読む名前（結果画面の「苦手」に出す。例：「6弦 5f」「C メジャーの Ⅴ」） */
+  itemLabel(item: ItemId, ctx: Context<S>): string;
   question(item: ItemId, ctx: Context<S>, rng: Rng): Question;
   /** 参考ページ（覚え方・一覧） */
   readonly reference?: ComponentType<{ ctx: Context<S> }>;
