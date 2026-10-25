@@ -63,6 +63,7 @@ describe("checkTopic", () => {
 
   it("登録した分野は ID が重複せず、どの問題も壊れていない", () => {
     expect(new Set(TOPICS.map(t => t.id)).size).toBe(TOPICS.length);
-    for (const t of TOPICS) expect(checkTopic(t, { ...ctx, settings: t.settings?.defaults ?? {} })).toEqual([]);
+    // 分野ごとの詳しい検査は各分野のテストで回すので、ここは既定の設定で軽く
+    for (const t of TOPICS) expect(checkTopic(t, { ...ctx, settings: t.settings?.defaults ?? {} }, 5)).toEqual([]);
   });
 });
