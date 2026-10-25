@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { checkTopic } from "../../drill/check";
 import { seeded } from "../../drill/rng";
 import { STANDARD } from "../../theory";
-import { type TriadSettings, triads } from ".";
+import { triads } from ".";
+
+type TriadSettings = { dim: boolean; aug: boolean; sus: boolean };
 
 const ctx = (s: Partial<TriadSettings> = {}) => ({
   common: { tuning: STANDARD, lefty: false },
@@ -15,8 +17,8 @@ describe("トライアドの構成音", () => {
   });
 
   it("既定はメジャーとマイナーだけ、設定で型が増える", () => {
-    expect(triads.items(ctx())).toHaveLength(2 * 12 * 2);
-    expect(triads.items(ctx({ dim: true, aug: true, sus: true }))).toHaveLength(6 * 12 * 2);
+    expect(triads.items(ctx())).toHaveLength(2 * 12 * 3);
+    expect(triads.items(ctx({ dim: true, aug: true, sus: true }))).toHaveLength(6 * 12 * 3);
     expect(triads.items(ctx())[0]).toBe("maj:C:tones");
   });
 
