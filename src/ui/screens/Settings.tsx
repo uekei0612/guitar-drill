@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
-import { store, useData } from "../../state";
+import { commonOf, store, useData } from "../../state";
+import { TOPICS } from "../../topics";
 import { SESSION_SIZES, type Settings as S, type Theme, emptyData, parseUrl } from "../../store/schema";
 import { exportJson, importJson } from "../../store/store";
 import { TUNINGS, fmt } from "../../theory";
@@ -103,6 +104,20 @@ export function Settings() {
           <small class="muted">入れると、スケールの問題から guitar_chart の図を開けます。</small>
         </label>
       </section>
+
+      {TOPICS.filter(t => t.settings?.view).map(t => {
+        const View = t.settings!.view!;
+        return (
+          <section key={t.id} class="form" aria-labelledby={`ts-${t.id}`}>
+            <h2 id={`ts-${t.id}`}>{t.title}</h2>
+            <View
+              value={t.settings!.parse(st.topics[t.id])}
+              common={commonOf(st)}
+              onChange={v => set({ topics: { ...st.topics, [t.id]: v } })}
+            />
+          </section>
+        );
+      })}
 
       <section class="form">
         <h2>記録（{count} 件）</h2>
