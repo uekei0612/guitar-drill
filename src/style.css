@@ -424,3 +424,13 @@ input[type="url"] {
   flex-wrap: wrap;
   gap: 0 16px;
 }
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pager h2 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
