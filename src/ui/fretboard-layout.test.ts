@@ -13,7 +13,7 @@ describe("layout", () => {
 
   it("360px 幅（余白 16px ずつ）で 12 フレットまで、1 マス 44px 以上", () => {
     const L = layout(6, full, false);
-    const scale = Math.min(1.25, 328 / L.width);
+    const scale = Math.min(1, 328 / L.width);
     for (const c of L.cells) {
       expect(c.w * scale).toBeGreaterThanOrEqual(44);
       expect(c.h * scale).toBeGreaterThanOrEqual(44);
@@ -23,7 +23,7 @@ describe("layout", () => {
 
   it("ボックスを横向きで出しても 1 マス 44px 以上", () => {
     const L = layout(6, { minFret: 4, maxFret: 9 }, false);
-    const scale = Math.min(1.25, 328 / L.width);
+    const scale = Math.min(1, 328 / L.width);
     for (const c of L.cells) expect(Math.min(c.w, c.h) * scale).toBeGreaterThanOrEqual(44);
   });
 

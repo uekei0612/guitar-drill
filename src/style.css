@@ -5,6 +5,7 @@
   --accent: #c2410c;
   --line: #ddd;
   --surface: #f6f6f6;
+  --on-accent: #fff;
   --ok: #15803d;
   --ng: #b91c1c;
   font-family:
@@ -45,6 +46,7 @@ main {
     --accent: #fb923c;
     --line: #333;
     --surface: #1e1e1e;
+    --on-accent: #111;
     --ok: #4ade80;
     --ng: #f87171;
     --fb-board: #2a241c;
@@ -66,6 +68,7 @@ main {
   --accent: #fb923c;
   --line: #333;
   --surface: #1e1e1e;
+  --on-accent: #111;
   --ok: #4ade80;
   --ng: #f87171;
   --fb-board: #2a241c;
@@ -247,7 +250,7 @@ input:focus-visible {
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .btn.danger {
   color: var(--ng);
@@ -314,6 +317,9 @@ input:focus-visible {
 .prompt {
   font-size: 1.1rem;
 }
+.prompt:focus {
+  outline: none;
+}
 .choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -379,4 +385,14 @@ input[type="url"] {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+.ref-table {
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+.ref-table th,
+.ref-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 16px 6px 0;
+  text-align: left;
 }

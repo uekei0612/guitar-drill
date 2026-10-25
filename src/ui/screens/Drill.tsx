@@ -37,6 +37,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const [result, setResult] = useState<{ ok: boolean; response: Response } | null>(null);
   const [taps, setTaps] = useState<Position[]>([]);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const promptRef = useRef<HTMLParagraphElement>(null);
 
   function newSession(): Session {
     const d = st.data;
@@ -55,9 +56,13 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     [session.index, session.queue],
   );
 
+  // 答えたら「次へ」に、次の問題に進んだら問題文に（キーボードと読み上げで続けて解けるように）
   useEffect(() => {
     if (result) nextRef.current?.focus();
   }, [result]);
+  useEffect(() => {
+    if (session.index > 0) promptRef.current?.focus();
+  }, [session.index]);
 
   function submit(response: Response) {
     if (!q || result) return;
@@ -131,7 +136,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         </span>
       </header>
       <section class="question">
-        <p class="prompt">{q.prompt.text}</p>
+        <p class="prompt" ref={promptRef} tabIndex={-1}>
+          {q.prompt.text}
+        </p>
         {(board || a.kind === "tap") && (
           <Fretboard
             tuning={ctx.common.tuning}
