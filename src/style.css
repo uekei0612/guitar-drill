@@ -419,3 +419,8 @@ input[type="url"] {
 .toast span {
   flex: 1 1 10em;
 }
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}

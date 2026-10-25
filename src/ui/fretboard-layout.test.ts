@@ -50,10 +50,13 @@ describe("layout", () => {
     expect(L.wires.filter(w => w.nut)).toHaveLength(1);
     expect(L.inlays).toHaveLength(4 + 2);
     expect(L.fretLabels.map(f => f.fret)).toEqual([3, 5, 7, 9, 12]);
+    expect(L.stringLabels.map(l => l.string)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(L.stringLabels[5]!.x).toBeLessThan(L.stringLabels[0]!.x);
     const B = layout(6, box, false);
     expect(B.wires.filter(w => w.nut)).toHaveLength(0);
     expect(B.wires).toHaveLength(5);
     expect(B.fretLabels.map(f => f.fret)).toEqual([5, 7]);
+    expect(B.stringLabels).toEqual([]);
   });
 
   it("点はすべて図の中", () => {

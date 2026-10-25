@@ -76,6 +76,8 @@ export interface TopicSettingsDef<S> {
   readonly defaults: S;
   /** 保存値を検証して返す。読めない値は既定値に戻す */
   parse(raw: unknown): S;
+  /** 設定画面に出す部品（無ければ設定画面には出さない） */
+  readonly view?: ComponentType<{ value: S; onChange: (v: S) => void; common: CommonSettings }>;
 }
 
 export interface Context<S> {

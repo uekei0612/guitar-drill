@@ -100,6 +100,11 @@ export function Fretboard({
           {f.fret}
         </text>
       ))}
+      {L.stringLabels.map(l => (
+        <text key={`sl${l.string}`} class="fb-fretno" x={l.x} y={l.y} aria-hidden="true">
+          {l.string}
+        </text>
+      ))}
       {marks.map(m => {
         const c = L.cellAt(m.pos);
         if (!c) return null;
