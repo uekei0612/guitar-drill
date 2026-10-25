@@ -7,6 +7,7 @@ import { Drill } from "./ui/screens/Drill";
 import { Home } from "./ui/screens/Home";
 import { Reference } from "./ui/screens/Reference";
 import { Settings } from "./ui/screens/Settings";
+import { UpdatePrompt } from "./ui/UpdatePrompt";
 
 export function App() {
   const route = useRoute();
@@ -39,6 +40,7 @@ export function App() {
         </div>
       )}
       <main>{screen}</main>
+      <UpdatePrompt />
     </>
   );
 }
