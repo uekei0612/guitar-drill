@@ -26,7 +26,9 @@ body {
 main {
   max-width: 40rem;
   margin: 0 auto;
-  padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
+  /* ホーム画面版はノッチ・ホームバーの下まで描くので、安全域の分を空ける */
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(80px, calc(env(safe-area-inset-bottom) + 80px)) max(16px, env(safe-area-inset-left));
 }
 /* 開発版の目印（本番では出さない） */
 .env-banner {
@@ -395,4 +397,25 @@ input[type="url"] {
   border-bottom: 1px solid var(--line);
   padding: 6px 16px 6px 0;
   text-align: left;
+}
+
+/* 更新の知らせ */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(40rem, calc(100% - 32px));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+}
+.toast span {
+  flex: 1 1 10em;
 }
