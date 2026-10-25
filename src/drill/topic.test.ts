@@ -50,7 +50,14 @@ describe("checkTopic", () => {
       answer: { kind: "choice", options: ["A", "A"], correct: "B" },
     };
     expect(problemsOf(bad, ctx)).toHaveLength(3);
-    const topic: Topic = { id: "t", level: "beginner", title: "t", items: () => ["x", "x"], question: () => bad };
+    const topic: Topic = {
+      id: "t",
+      level: "beginner",
+      title: "t",
+      items: () => ["x", "x"],
+      itemLabel: x => x,
+      question: () => bad,
+    };
     expect(checkTopic(topic, ctx, 1).length).toBeGreaterThan(0);
   });
 

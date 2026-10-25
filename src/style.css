@@ -3,20 +3,16 @@
   --fg: #1a1a1a;
   --muted: #666;
   --accent: #c2410c;
+  --line: #ddd;
+  --surface: #f6f6f6;
+  --ok: #15803d;
+  --ng: #b91c1c;
   font-family:
     system-ui,
     -apple-system,
     "Hiragino Sans",
     sans-serif;
   color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121212;
-    --fg: #eee;
-    --muted: #aaa;
-    --accent: #fb923c;
-  }
 }
 * {
   box-sizing: border-box;
@@ -40,6 +36,53 @@ main {
   padding: 2px 8px;
 }
 
+/* 暗色：OS の設定に従う。設定画面で明色／暗色に固定したときは data-theme が勝つ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121212;
+    --fg: #eee;
+    --muted: #aaa;
+    --accent: #fb923c;
+    --line: #333;
+    --surface: #1e1e1e;
+    --ok: #4ade80;
+    --ng: #f87171;
+    --fb-board: #2a241c;
+    --fb-wire: #6d6252;
+    --fb-nut: #d8ccb6;
+    --fb-string: #a99d88;
+    --fb-inlay: #4a3f30;
+    --fb-tone: #e5e7eb;
+    --fb-on-dot: #111;
+    --fb-ok: #4ade80;
+    --fb-wrong: #f87171;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121212;
+  --fg: #eee;
+  --muted: #aaa;
+  --accent: #fb923c;
+  --line: #333;
+  --surface: #1e1e1e;
+  --ok: #4ade80;
+  --ng: #f87171;
+  --fb-board: #2a241c;
+  --fb-wire: #6d6252;
+  --fb-nut: #d8ccb6;
+  --fb-string: #a99d88;
+  --fb-inlay: #4a3f30;
+  --fb-tone: #e5e7eb;
+  --fb-on-dot: #111;
+  --fb-ok: #4ade80;
+  --fb-wrong: #f87171;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 /* 指板図 */
 :root {
   --fb-board: #f3e6d0;
@@ -52,19 +95,6 @@ main {
   --fb-on-dot: #fff;
   --fb-ok: #15803d;
   --fb-wrong: #b91c1c;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fb-board: #2a241c;
-    --fb-wire: #6d6252;
-    --fb-nut: #d8ccb6;
-    --fb-string: #a99d88;
-    --fb-inlay: #4a3f30;
-    --fb-tone: #e5e7eb;
-    --fb-on-dot: #111;
-    --fb-ok: #4ade80;
-    --fb-wrong: #f87171;
-  }
 }
 .fretboard {
   display: block;
@@ -146,4 +176,207 @@ main {
   outline: none;
   stroke: var(--fb-root);
   stroke-width: 2;
+}
+
+/* 画面の共通部品 */
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+h1:focus {
+  outline: none;
+}
+h2 {
+  font-size: 1rem;
+  margin: 24px 0 8px;
+}
+a {
+  color: var(--accent);
+}
+.muted {
+  color: var(--muted);
+}
+.ok {
+  color: var(--ok);
+}
+.ng {
+  color: var(--ng);
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  flex-wrap: wrap;
+}
+.bar h1 {
+  flex: 1;
+  min-width: 0;
+}
+.bar-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+}
+.progress {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.danger {
+  color: var(--ng);
+}
+.btn:disabled {
+  cursor: default;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.topics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.topic {
+  display: flex;
+  gap: 8px;
+}
+.topic-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+  text-decoration: none;
+}
+.topic-title {
+  grid-column: 1 / -1;
+}
+.meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.meter-bar {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.topic-pct {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.topic-ref {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  min-width: 44px;
+}
+.prompt {
+  font-size: 1.1rem;
+}
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 16px 0;
+}
+.choice {
+  font-size: 1.1rem;
+}
+.choice.ok {
+  border-color: var(--ok);
+  box-shadow: inset 0 0 0 2px var(--ok);
+}
+.choice.ng {
+  border-color: var(--ng);
+  box-shadow: inset 0 0 0 2px var(--ng);
+}
+.feedback p {
+  font-weight: 600;
+  margin: 8px 0;
+}
+.score {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.form {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.check input {
+  width: 22px;
+  height: 22px;
+}
+select,
+input[type="url"] {
+  min-height: 44px;
+  font: inherit;
+  font-size: 16px; /* iOS で入力時に拡大されないように */
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

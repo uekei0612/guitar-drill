@@ -31,6 +31,7 @@ export function browserStorage(): KeyValue | null {
 export class Store {
   #data: SaveData;
   readonly #kv: KeyValue;
+  readonly #listeners = new Set<() => void>();
   /** 保存できているか（false ならメモリだけ。画面で知らせる） */
   persistent: boolean;
 
@@ -61,7 +62,14 @@ export class Store {
     } catch {
       this.persistent = false;
     }
+    for (const l of this.#listeners) l();
     return this.#data;
+  }
+
+  /** 変更の通知を受ける。戻り値で解除する */
+  subscribe(l: () => void): () => void {
+    this.#listeners.add(l);
+    return () => void this.#listeners.delete(l);
   }
 }
 
