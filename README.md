@@ -6,4 +6,13 @@
 - 設計：[docs/design.md](docs/design.md)
 - 前身の diatonic-drill から引き継ぐもの：[docs/reference-diatonic-drill.md](docs/reference-diatonic-drill.md)
 
-開発中。
+## 開発
+
+dev VM の Node は 16 で Vite が動かないので、Node 22 のコンテナで動かす。
+
+```sh
+docker compose up -d     # http://almalinux-dev.ukuenokei.duckdns.org:8008/guitar-drill/
+docker compose run --rm dev npm run check   # 型検査・整形・テスト・ビルド
+```
+
+画面上部のオレンジの帯は開発版の印で、本番（GitHub Pages）では出ない。
