@@ -231,11 +231,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           }
         : undefined;
   // 答えたあとの縦長の図（12 フレットまでなど）は、縮めると読めなくなるので解説を横に並べる
-  const tallBoard =
-    !!result &&
+  const tallShape =
     !!shown &&
     (shown.orientation ?? chooseOrientation(shown.range)) === "vertical" &&
     shown.range.maxFret - shown.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
+  const tallBoard = !!result && tallShape;
   const tall = tallBoard && !stack;
   // 横に並べたときと下に置いたときで、図が大きくなるほうを選ぶ（横に並べた状態で測ってから一度だけ決める）
   if (tall && shown && boardBox) {
@@ -260,6 +260,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     } else if (questionScale.current?.index === session.index && questionScale.current.key === key)
       scale = Math.min(scale, questionScale.current.k);
   }
+  // 選択肢と答えの欄を重ねて高さを取るのは、画面いっぱいに描くとき（縦長の図は答えたあと並びが変わるので除く）
+  const dock = fill && !tallShape;
   const correctText = a.kind === "choice" ? a.correct : a.correct.map(posLabel).join("、");
   const picked = result?.response.kind === "choice" ? result.response.value : undefined;
   const feedback = !result
@@ -323,49 +325,60 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             {tall && q.explanation && <p class="side-explain">{q.explanation.text}</p>}
           </div>
         )}
-        {a.kind === "choice" && !result && (
-          <div class={`choices${a.options.some(o => o.length > 10) ? " wide" : ""}`} role="group" aria-label="選択肢">
-            {a.options.map(o => (
-              <button key={o} class="btn choice" onClick={() => submit({ kind: "choice", value: o })}>
-                {o}
-              </button>
-            ))}
-          </div>
-        )}
-        {a.kind === "tap" && a.mode === "all" && !result && (
-          <div class="actions">
-            <button class="btn primary" onClick={() => submit({ kind: "tap", positions: taps })}>
-              答え合わせ（{taps.length}）
-            </button>
-          </div>
-        )}
       </section>
-      <div class="feedback" aria-live="assertive">
-        {result && (
-          <p class={result.ok ? "ok" : "ng"}>
-            {feedback}
-            {!result.ok && a.kind === "tap" && <span class="sr-only">（{correctText}）</span>}
-          </p>
-        )}
-      </div>
-      {result && (
-        <>
-          <section class="explain">
-            {q.explanation && !tall && <p>{q.explanation.text}</p>}
-            {q.chart && <ChartLink chart={q.chart} />}
-          </section>
-          <div class="actions next-bar">
-            <button ref={nextRef} class="btn primary" onClick={next}>
-              次へ
-            </button>
-            {q.sound && (
-              <button class="btn" onClick={() => playMidi(q.sound!.notes, q.sound!)}>
-                ♪ 音を聴く
-              </button>
+      {/* 選択肢（答える前）と、正誤・解説・「次へ」（答えたあと）は同じ場所に重ねて置き、高いほうの高さを
+          最初から取っておく。図の枠が答える前後で同じになり、答えても図が動かない */}
+      <div class={`dock${dock ? " stacked" : ""}`}>
+        {(!result || dock) && (
+          <div class={`dock-q${result ? " off" : ""}`} aria-hidden={result ? true : undefined}>
+            {a.kind === "choice" && (
+              <div
+                class={`choices${a.options.some(o => o.length > 10) ? " wide" : ""}`}
+                role="group"
+                aria-label="選択肢"
+              >
+                {a.options.map(o => (
+                  <button key={o} class="btn choice" onClick={() => submit({ kind: "choice", value: o })}>
+                    {o}
+                  </button>
+                ))}
+              </div>
+            )}
+            {a.kind === "tap" && a.mode === "all" && (
+              <div class="actions">
+                <button class="btn primary" onClick={() => submit({ kind: "tap", positions: taps })}>
+                  答え合わせ（{taps.length}）
+                </button>
+              </div>
             )}
           </div>
-        </>
-      )}
+        )}
+        {(result || dock) && (
+          <div class={`dock-a${result ? "" : " off"}`} aria-hidden={result ? undefined : true}>
+            <p class={`feedback-line ${result ? (result.ok ? "ok" : "ng") : ""}`} aria-hidden="true">
+              {feedback ?? "\u3000"}
+            </p>
+            <section class="explain">
+              {q.explanation && !tall && <p>{q.explanation.text}</p>}
+              {q.chart && <ChartLink chart={q.chart} />}
+            </section>
+            <div class="actions next-bar">
+              <button ref={nextRef} class="btn primary" onClick={next}>
+                次へ
+              </button>
+              {q.sound && (
+                <button class="btn" onClick={() => playMidi(q.sound!.notes, q.sound!)}>
+                  ♪ 音を聴く
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* 正誤の読み上げ（見た目の行は上の feedback-line） */}
+      <div class="feedback sr-only" aria-live="assertive">
+        {result && `${feedback}${!result.ok && a.kind === "tap" ? `（${correctText}）` : ""}`}
+      </div>
     </div>
   );
 }
