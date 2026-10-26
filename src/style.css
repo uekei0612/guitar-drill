@@ -434,3 +434,29 @@ input[type="url"] {
   text-align: center;
   margin: 0;
 }
+.circle5 {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+.c5-ring {
+  fill: none;
+  stroke: var(--line);
+}
+.circle5 text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--fg);
+}
+.c5-major {
+  font-size: 17px;
+  font-weight: 600;
+}
+.c5-minor {
+  font-size: 13px;
+}
+.c5-sig {
+  font-size: 10px;
+  fill: var(--muted) !important;
+}
