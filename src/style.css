@@ -502,10 +502,12 @@ input[type="url"] {
 }
 
 /* 更新の知らせ */
+/* 知らせは画面の上に出す（下にはドリルの「次へ」を固定しているので、重ねると押せなくなる） */
 .toast {
   position: fixed;
   left: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  top: max(8px, env(safe-area-inset-top));
+  z-index: 10;
   transform: translateX(-50%);
   width: min(40rem, calc(100% - 32px));
   display: flex;
