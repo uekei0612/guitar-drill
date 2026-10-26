@@ -74,4 +74,33 @@ describe("Fretboard", () => {
     expect(pressed.map(h => h.getAttribute("aria-label"))).toEqual(["3弦 7フレット"]);
     expect(el.querySelectorAll(".fb-selected")).toHaveLength(1);
   });
+
+  it("押せる弦・フレットを絞ると、ほかのマスは押せず薄く出る", () => {
+    const el = root();
+    render(
+      <Fretboard
+        tuning={STANDARD}
+        range={{ minFret: 0, maxFret: 3 }}
+        label="開放弦"
+        onTap={() => {}}
+        tapStrings={[6, 5]}
+        tapFrets={{ minFret: 0, maxFret: 0 }}
+      />,
+      el,
+    );
+    expect([...el.querySelectorAll(".fb-hit")].map(h => h.getAttribute("aria-label"))).toEqual([
+      "5弦 開放",
+      "6弦 開放",
+    ]);
+    expect(el.querySelectorAll(".fb-string.off")).toHaveLength(4);
+    expect(el.querySelectorAll(".fb-off")).toHaveLength(1);
+  });
+
+  it("横向きの図にも弦の番号を書く", () => {
+    const el = root();
+    render(<Fretboard tuning={STANDARD} range={{ minFret: 3, maxFret: 7 }} label="5 フレット" />, el);
+    expect([...el.querySelectorAll(".fb-fretno")].map(t => t.textContent)).toEqual(
+      expect.arrayContaining(["1", "2", "3", "4", "5", "6"]),
+    );
+  });
 });

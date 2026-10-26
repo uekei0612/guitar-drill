@@ -22,7 +22,11 @@ export interface FretboardProps {
   readonly bands?: readonly Band[];
   /** カポのフレット（0 なら無し） */
   readonly capo?: number;
-  /** 弦ごとの札（1 弦から。開放弦の音名など）。渡すと横向きでもヘッド側に出す */
+  /** 押せる弦（無ければ全部）。ほかの弦は薄く出す */
+  readonly tapStrings?: readonly number[];
+  /** 押せるフレット（無ければ range 全部）。ほかのフレットは薄く覆う */
+  readonly tapFrets?: FretRange;
+  /** 弦ごとの札（1 弦から。開放弦の音名など）。無ければ弦の番号を書く */
   readonly stringNames?: readonly string[];
 }
 
@@ -70,25 +74,33 @@ export function Fretboard({
   bands = [],
   capo = 0,
   stringNames,
+  tapStrings,
+  tapFrets,
 }: FretboardProps) {
-  const L = layout(stringCount(tuning), range, lefty, orientation ?? chooseOrientation(range), {
-    headLabels: !!stringNames,
-  });
+  const L = layout(stringCount(tuning), range, lefty, orientation ?? chooseOrientation(range));
+  const canTap = (p: Position) =>
+    (!tapStrings || tapStrings.includes(p.string)) &&
+    (!tapFrets || (p.fret >= tapFrets.minFret && p.fret <= tapFrets.maxFret));
+  const hits = L.cells.filter(c => canTap(c.pos));
+  // 押せないフレットを覆う帯（押せる範囲の手前と先）
+  const offSpans = tapFrets
+    ? [L.span(range.minFret, tapFrets.minFret - 1), L.span(tapFrets.maxFret + 1, range.maxFret)].filter(r => !!r)
+    : [];
   const capoCells = capo > 0 ? L.cells.filter(c => c.pos.fret === capo) : [];
   const [focus, setFocus] = useState(0);
   const refs = useRef<(SVGRectElement | null)[]>([]);
 
   const onKey = (i: number, e: KeyboardEvent) => {
-    const cell = L.cells[i]!;
+    const cell = hits[i]!;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onTap?.(cell.pos);
       return;
     }
-    const next = neighbor(L.cells, cell, e.key);
+    const next = neighbor(hits, cell, e.key);
     if (!next) return;
     e.preventDefault();
-    const j = L.cells.indexOf(next);
+    const j = hits.indexOf(next);
     setFocus(j);
     refs.current[j]?.focus();
   };
@@ -126,13 +138,16 @@ export function Fretboard({
       {L.strings.map((s, i) => (
         <line
           key={`s${i}`}
-          class="fb-string"
+          class={`fb-string${tapStrings && !tapStrings.includes(i + 1) ? " off" : ""}`}
           x1={s.a.x}
           y1={s.a.y}
           x2={s.b.x}
           y2={s.b.y}
           style={{ strokeWidth: 1 + i * 0.3 }}
         />
+      ))}
+      {offSpans.map((r, i) => (
+        <rect key={`off${i}`} class="fb-off" x={r.x} y={r.y} width={r.w} height={r.h} aria-hidden="true" />
       ))}
       {capoCells.length > 0 && (
         <line
@@ -188,7 +203,7 @@ export function Fretboard({
         ) : null;
       })}
       {onTap &&
-        L.cells.map((c, i) => (
+        hits.map((c, i) => (
           <rect
             key={`h${i}`}
             ref={el => void (refs.current[i] = el)}

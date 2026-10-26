@@ -17,6 +17,9 @@ export function problemsOf(q: Question, ctx: Context<unknown>): string[] {
   } else {
     if (!a.correct.length) out.push("タップの正解が空");
     if (!a.correct.every(inBoard(a, ctx.common.tuning))) out.push("タップの正解が指板の範囲外");
+    if (a.strings && !a.correct.every(p => a.strings!.includes(p.string))) out.push("タップの正解が押せない弦にある");
+    if (a.frets && !a.correct.every(inBoard({ range: a.frets }, ctx.common.tuning)))
+      out.push("タップの正解が押せないフレットにある");
   }
   for (const b of [q.prompt.board, q.explanation?.board])
     if (b && !b.marks.every(m => inBoard(b, ctx.common.tuning)(m.pos))) out.push("指板図の点が範囲外");
