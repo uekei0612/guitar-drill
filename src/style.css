@@ -473,3 +473,125 @@ input[type="url"] {
 .ref-list dd {
   margin: 2px 0 0;
 }
+
+/* チャート：ボックスの帯とカポ */
+.fb-band rect {
+  fill-opacity: 0.16;
+  stroke: none;
+}
+.fb-band text {
+  font-size: 11px;
+  font-weight: 700;
+  dominant-baseline: hanging;
+}
+.fb-band.selected rect {
+  fill-opacity: 0.24;
+  stroke-width: 2;
+}
+.fb-band.dimmed {
+  opacity: 0.35;
+}
+.fb-band--0 rect,
+.fb-band--0 text {
+  fill: #1976d2;
+  stroke: #1976d2;
+}
+.fb-band--1 rect,
+.fb-band--1 text {
+  fill: #388e3c;
+  stroke: #388e3c;
+}
+.fb-band--2 rect,
+.fb-band--2 text {
+  fill: #ef6c00;
+  stroke: #ef6c00;
+}
+.fb-band--3 rect,
+.fb-band--3 text {
+  fill: #7b1fa2;
+  stroke: #7b1fa2;
+}
+.fb-band--4 rect,
+.fb-band--4 text {
+  fill: #00838f;
+  stroke: #00838f;
+}
+.fb-band text {
+  stroke: none;
+}
+.fb-capo {
+  stroke: rgb(90 90 90 / 0.35);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+.fb-stringname {
+  fill: var(--fg);
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* チャート */
+main.wide {
+  max-width: 72rem;
+}
+.small {
+  font-size: 0.85rem;
+}
+.chart-entry {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--fg);
+  text-decoration: none;
+}
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+.row3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 12px;
+}
+fieldset:disabled {
+  opacity: 0.5;
+}
+.chart-meta {
+  margin: 16px 0 4px;
+}
+.box-select {
+  gap: 8px;
+  margin: 8px 0;
+}
+.box-btn--0 {
+  border-color: #1976d2;
+}
+.box-btn--1 {
+  border-color: #388e3c;
+}
+.box-btn--2 {
+  border-color: #ef6c00;
+}
+.box-btn--3 {
+  border-color: #7b1fa2;
+}
+.box-btn--4 {
+  border-color: #00838f;
+}
+.chart-board {
+  margin: 8px 0;
+}
+/* 長い選択肢（チューニング名など）で select が画面より広がらないように */
+select {
+  max-width: 100%;
+  min-width: 0;
+}
+.row3 > .field {
+  min-width: 0;
+}

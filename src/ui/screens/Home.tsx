@@ -15,6 +15,10 @@ export function Home({ now = Date.now() }: { now?: number }) {
           設定
         </a>
       </header>
+      <a class="chart-entry" href={href({ name: "chart", query: "" })}>
+        <span class="topic-title">チャート</span>
+        <span class="muted small">スケール・アルペジオを指板で見る、PDF の資料にする</span>
+      </a>
       {LEVELS.map(level => {
         const topics = TOPICS.filter(t => t.level === level.id);
         return (
