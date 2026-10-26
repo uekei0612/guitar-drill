@@ -7,6 +7,7 @@ import { contextOf, store, useData } from "../../state";
 import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
+import { MAX_HORIZONTAL_FRETS, chooseOrientation } from "../fretboard-layout";
 import { ChartLink } from "../ChartLink";
 import { playMidi } from "../../chart/audio";
 import { href } from "../route";
@@ -63,7 +64,10 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     if (result) nextRef.current?.focus();
   }, [result]);
   useEffect(() => {
-    if (session.index > 0) promptRef.current?.focus();
+    if (session.index > 0) {
+      window.scrollTo(0, 0);
+      promptRef.current?.focus({ preventScroll: true });
+    }
   }, [session.index]);
 
   function submit(response: Response) {
@@ -147,9 +151,48 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const a = q.answer;
   const board = q.prompt.board;
   const tapping = a.kind === "tap" && !result;
-  const shownMarks =
-    a.kind === "tap" && result ? [...(board?.marks ?? []), ...tapMarks(a.correct, taps)] : board?.marks;
+  // 答えたあとは図を 1 枚にする：解説の図があればそれに置き換え、押したところを重ねる
+  // （問題の図と解説の図を縦に並べるとスマホで画面に収まらないため）
+  const ex = result ? q.explanation?.board : undefined;
+  const shown =
+    result && ex
+      ? {
+          range: a.kind === "tap" ? a.range : ex.range,
+          orientation: ex.orientation ?? (a.kind === "tap" ? a.orientation : board?.orientation),
+          muted: ex.muted,
+          barres: ex.barres,
+          marks:
+            a.kind === "tap"
+              ? [
+                  ...ex.marks,
+                  ...taps.filter(t => !a.correct.some(c => same(c, t))).map(p => ({ pos: p, kind: "wrong" as const })),
+                ]
+              : ex.marks,
+        }
+      : board || a.kind === "tap"
+        ? {
+            range: a.kind === "tap" ? a.range : board!.range,
+            orientation: (a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation,
+            muted: board?.muted,
+            barres: board?.barres,
+            marks: a.kind === "tap" && result ? [...(board?.marks ?? []), ...tapMarks(a.correct, taps)] : board?.marks,
+          }
+        : undefined;
+  // 答えたあとの縦長の図（12 フレットまでなど）は、縮めると読めなくなるので解説を横に並べる
+  const tall =
+    !!result &&
+    !!shown &&
+    (shown.orientation ?? chooseOrientation(shown.range)) === "vertical" &&
+    shown.range.maxFret - shown.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
   const correctText = a.kind === "choice" ? a.correct : a.correct.map(posLabel).join("、");
+  const picked = result?.response.kind === "choice" ? result.response.value : undefined;
+  const feedback = !result
+    ? undefined
+    : result.ok
+      ? `正解：${a.kind === "choice" ? a.correct : "全部合っています"}`
+      : a.kind === "choice"
+        ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
+        : `不正解：正解は図の点${taps.some(t => !a.correct.some(c => same(c, t))) ? "（赤は押し間違い）" : ""}`;
 
   return (
     <>
@@ -162,56 +205,50 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {session.index + 1}/{session.queue.length}
         </span>
       </header>
-      <section class="question">
+      <section class={`question${result ? " answered" : ""}${tall ? " tall" : ""}`}>
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
         </p>
-        {(board || a.kind === "tap") && (
-          <Fretboard
-            tuning={ctx.common.tuning}
-            lefty={ctx.common.lefty}
-            range={a.kind === "tap" ? a.range : board!.range}
-            orientation={(a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation}
-            muted={board?.muted}
-            barres={board?.barres}
-            label={q.prompt.text}
-            marks={shownMarks}
-            selected={tapping ? taps : []}
-            tapStrings={a.kind === "tap" ? a.strings : undefined}
-            tapFrets={a.kind === "tap" ? a.frets : undefined}
-            onTap={
-              tapping
-                ? p => {
-                    if (a.mode === "any") {
-                      setTaps([p]);
-                      submit({ kind: "tap", positions: [p] });
-                    } else
-                      setTaps(ts =>
-                        ts.some(t => same(t, p))
-                          ? ts.filter(t => !same(t, p))
-                          : [...(a.onePerString ? ts.filter(t => t.string !== p.string) : ts), p],
-                      );
-                  }
-                : undefined
-            }
-          />
+        {shown && (
+          <div class="board-wrap">
+            <Fretboard
+              tuning={ctx.common.tuning}
+              lefty={ctx.common.lefty}
+              {...shown}
+              label={result && q.explanation ? q.explanation.text : q.prompt.text}
+              selected={
+                result && ex && a.kind === "choice"
+                  ? (board?.marks ?? []).filter(m => m.kind === "target").map(m => m.pos)
+                  : taps
+              }
+              tapStrings={tapping && a.kind === "tap" ? a.strings : undefined}
+              tapFrets={tapping && a.kind === "tap" ? a.frets : undefined}
+              onTap={
+                tapping
+                  ? p => {
+                      if (a.mode === "any") {
+                        setTaps([p]);
+                        submit({ kind: "tap", positions: [p] });
+                      } else
+                        setTaps(ts =>
+                          ts.some(t => same(t, p))
+                            ? ts.filter(t => !same(t, p))
+                            : [...(a.onePerString ? ts.filter(t => t.string !== p.string) : ts), p],
+                        );
+                    }
+                  : undefined
+              }
+            />
+            {tall && q.explanation && <p class="side-explain">{q.explanation.text}</p>}
+          </div>
         )}
-        {a.kind === "choice" && (
+        {a.kind === "choice" && !result && (
           <div class={`choices${a.options.some(o => o.length > 10) ? " wide" : ""}`} role="group" aria-label="選択肢">
-            {a.options.map(o => {
-              const picked = result?.response.kind === "choice" && result.response.value === o;
-              const cls = result ? (o === a.correct ? "ok" : picked ? "ng" : "") : "";
-              return (
-                <button
-                  key={o}
-                  class={`btn choice ${cls}`}
-                  disabled={!!result}
-                  onClick={() => submit({ kind: "choice", value: o })}
-                >
-                  {o}
-                </button>
-              );
-            })}
+            {a.options.map(o => (
+              <button key={o} class="btn choice" onClick={() => submit({ kind: "choice", value: o })}>
+                {o}
+              </button>
+            ))}
           </div>
         )}
         {a.kind === "tap" && a.mode === "all" && !result && (
@@ -223,29 +260,20 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         )}
       </section>
       <div class="feedback" aria-live="assertive">
-        {result && <p class={result.ok ? "ok" : "ng"}>{result.ok ? "正解" : `不正解：正解は ${correctText}`}</p>}
+        {result && (
+          <p class={result.ok ? "ok" : "ng"}>
+            {feedback}
+            {!result.ok && a.kind === "tap" && <span class="sr-only">（{correctText}）</span>}
+          </p>
+        )}
       </div>
       {result && (
-        <section class="explain">
-          {q.explanation && (
-            <>
-              <p>{q.explanation.text}</p>
-              {q.explanation.board && (
-                <Fretboard
-                  tuning={ctx.common.tuning}
-                  lefty={ctx.common.lefty}
-                  range={q.explanation.board.range}
-                  orientation={q.explanation.board.orientation}
-                  muted={q.explanation.board.muted}
-                  barres={q.explanation.board.barres}
-                  label={q.explanation.text}
-                  marks={q.explanation.board.marks}
-                />
-              )}
-            </>
-          )}
-          {q.chart && <ChartLink chart={q.chart} />}
-          <div class="actions">
+        <>
+          <section class="explain">
+            {q.explanation && !tall && <p>{q.explanation.text}</p>}
+            {q.chart && <ChartLink chart={q.chart} />}
+          </section>
+          <div class="actions next-bar">
             <button ref={nextRef} class="btn primary" onClick={next}>
               次へ
             </button>
@@ -255,7 +283,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               </button>
             )}
           </div>
-        </section>
+        </>
       )}
     </>
   );

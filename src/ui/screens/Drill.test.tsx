@@ -55,7 +55,11 @@ describe("Drill", () => {
         // 最初の 1 問だけわざと間違える
         await click(button(el, missed ? id : id === "a" ? "b" : "a"));
         if (!missed) {
-          expect(el.querySelector(".feedback")!.textContent).toBe(`不正解：正解は ${id}`);
+          const wrong = id === "a" ? "b" : "a";
+          expect(el.querySelector(".feedback")!.textContent).toBe(`不正解：あなたの答え ${wrong} ／ 正解 ${id}`);
+          // 答えたあとは選択肢をしまい、「次へ」を出す（スマホで 1 画面に収める）
+          expect(el.querySelectorAll(".choice")).toHaveLength(0);
+          expect(el.querySelector(".next-bar button")!.textContent).toBe("次へ");
           expect(el.querySelector(".explain")!.textContent).toContain(`${id} だから`);
           missed = true;
         }
