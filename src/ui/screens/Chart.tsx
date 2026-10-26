@@ -2,11 +2,13 @@
    状態は URL（#/chart?…、guitar_chart と同じパラメーター）に持つので、リロードやリンクで同じ図に戻る。 */
 import { useEffect, useState } from "preact/hooks";
 import { playAscending } from "../../chart/audio";
+import { buildPdfPages, pageCount, pdfFileName, pdfPlan } from "../../chart/pdf/build";
 import { boxesForOpen } from "../../chart/boxes";
 import { CHART_ARPEGGIOS, CHART_SCALES, CHROMATIC_DEGREES } from "../../chart/registry";
 import {
   type ChartState,
   DEFAULT_CHART,
+  KEYS_PER_PAGE,
   MAX_CAPO,
   NOTE_NAMES,
   addLowString,
@@ -23,7 +25,8 @@ import type { Mark } from "../../drill/topic";
 import { useData } from "../../state";
 import { type Position, degree, degreeLabel, mod, pcAt, stringCount } from "../../theory";
 import { type Band, Fretboard, posLabel } from "../Fretboard";
-import { exportSvgPng, shareUrl } from "../export-image";
+import { downloadBlob, exportSvgPng, shareUrl } from "../export-image";
+import { PdfPreview } from "../PdfPreview";
 import { href } from "../route";
 import { TuningOptions } from "./Settings";
 
@@ -79,6 +82,8 @@ export function Chart({ query }: { query: string }) {
   );
   const wide = useWide();
   const [msg, setMsg] = useState("");
+  const [preview, setPreview] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   // 状態を URL に書く（履歴は増やさない）
   useEffect(() => {
@@ -355,6 +360,94 @@ export function Chart({ query }: { query: string }) {
         <p class="muted small">
           指板をタップすると構成音を足し引きできます（カスタムになります）。キーは上の「キー」で変えます。
         </p>
+      </section>
+
+      <section class="form" aria-labelledby="pdf-h">
+        <h2 id="pdf-h">PDF の資料</h2>
+        <p class="muted small">
+          上の設定（スケール・キー・チューニング・カポ）で A4 横の資料を作ります。資料の文字は英語です。
+        </p>
+        <fieldset class="field">
+          <legend>含めるセクション</legend>
+          {chart.kind === "scale" && hasBoxes && (
+            <label class="check">
+              <input
+                type="checkbox"
+                checked={s.includeBoxes}
+                onChange={e => set({ includeBoxes: e.currentTarget.checked })}
+              />
+              <span>ボックス図（5 パターン）</span>
+            </label>
+          )}
+          <label class="check">
+            <input
+              type="checkbox"
+              checked={s.includeDegrees}
+              onChange={e => set({ includeDegrees: e.currentTarget.checked })}
+            />
+            <span>度数付き全指板（キー {noteName(s.root, s.flat)}）</span>
+          </label>
+          <label class="check">
+            <input
+              type="checkbox"
+              checked={s.includeAllKeys}
+              onChange={e => set({ includeAllKeys: e.currentTarget.checked })}
+            />
+            <span>全 12 キー</span>
+          </label>
+          <label class="field">
+            <span>1 ページあたりのキー数</span>
+            <select
+              value={s.keysPerPage}
+              disabled={!s.includeAllKeys}
+              onChange={e => set({ keysPerPage: Number(e.currentTarget.value) })}
+            >
+              {KEYS_PER_PAGE.map(k => (
+                <option key={k} value={k}>
+                  {k} キー（{Math.ceil(12 / k)} ページ）
+                </option>
+              ))}
+            </select>
+          </label>
+        </fieldset>
+        {(() => {
+          const plan = pdfPlan(s);
+          const none = !plan.boxes && !plan.degrees && !plan.allKeys;
+          const make = async (open: boolean) => {
+            setPdfBusy(true);
+            try {
+              const { renderPdf } = await import("../../chart/pdf/render-pdf");
+              const blob = await renderPdf(buildPdfPages(s));
+              if (open) {
+                const url = URL.createObjectURL(blob);
+                if (!window.open(url, "_blank"))
+                  setMsg("新しいタブを開けませんでした（ポップアップを許可してください）");
+                setTimeout(() => URL.revokeObjectURL(url), 60_000);
+              } else downloadBlob(blob, pdfFileName(s));
+            } catch (e) {
+              setMsg(`PDF を作れませんでした：${(e as Error).message}`);
+            } finally {
+              setPdfBusy(false);
+            }
+          };
+          return (
+            <>
+              {none && <p class="ng">少なくとも 1 つのセクションを選んでください。</p>}
+              <div class="actions">
+                <button class="btn" disabled={none} aria-expanded={preview} onClick={() => setPreview(v => !v)}>
+                  {preview ? "プレビューを閉じる" : `プレビュー（${pageCount(s)} ページ）`}
+                </button>
+                <button class="btn primary" disabled={none || pdfBusy} onClick={() => void make(false)}>
+                  {pdfBusy ? "作成中…" : "PDF をダウンロード"}
+                </button>
+                <button class="btn" disabled={none || pdfBusy} onClick={() => void make(true)}>
+                  開いて印刷
+                </button>
+              </div>
+              {preview && !none && <PdfPreview pages={buildPdfPages(s)} />}
+            </>
+          );
+        })()}
       </section>
     </>
   );

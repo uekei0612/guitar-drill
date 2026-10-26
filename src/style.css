@@ -595,3 +595,17 @@ select {
 .row3 > .field {
   min-width: 0;
 }
+.pdf-pages {
+  display: grid;
+  gap: 16px;
+}
+.pdf-pages figure {
+  margin: 0;
+}
+.pdf-page {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+}
