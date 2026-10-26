@@ -41,7 +41,7 @@ describe("スケールのボックス", () => {
   it("どの形式でも、解説の図の音で答えると正解になる", () => {
     for (let n = 0; n < 60; n++) {
       const q = scaleBoxes.question("minor_pentatonic:9:1", ctx(), seeded(n));
-      expect(q.guitarChart).toEqual({ scale: "minor_pentatonic", rootPc: 9, box: 1, flat: false });
+      expect(q.chart).toEqual({ scale: "minor_pentatonic", rootPc: 9, box: 1, flat: false });
       const marks = q.explanation!.board!.marks;
       if (q.answer.kind === "choice") {
         const target = q.prompt.board!.marks.find(m => m.kind === "target")!;

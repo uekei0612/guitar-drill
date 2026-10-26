@@ -11,8 +11,6 @@ export interface Settings {
   readonly tuning: string;
   readonly lefty: boolean;
   readonly theme: Theme;
-  /** guitar_chart の URL（空なら「guitar_chart で開く」を出さない） */
-  readonly guitarChartUrl: string;
   /** 1 セッションの問題数 */
   readonly sessionSize: number;
   /** 分野ごとの設定。中身は分野の settings.parse で検証してから使う */
@@ -32,7 +30,6 @@ export const DEFAULT_SETTINGS: Settings = {
   tuning: "standard",
   lefty: false,
   theme: "system",
-  guitarChartUrl: "",
   sessionSize: 20,
   topics: {},
 };
@@ -44,17 +41,6 @@ const isObj = (x: unknown): x is Obj => typeof x === "object" && x !== null && !
 const num = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
 const int = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
 
-/** http(s) の URL だけ通す（javascript: などを設定経由で埋め込ませない） */
-export function parseUrl(x: unknown): string {
-  if (typeof x !== "string" || !x.trim()) return "";
-  try {
-    const u = new URL(x.trim());
-    return u.protocol === "http:" || u.protocol === "https:" ? u.href : "";
-  } catch {
-    return "";
-  }
-}
-
 export function parseSettings(raw: unknown): Settings {
   const r = isObj(raw) ? raw : {};
   const d = DEFAULT_SETTINGS;
@@ -62,7 +48,6 @@ export function parseSettings(raw: unknown): Settings {
     tuning: TUNINGS.some(t => t.id === r.tuning) ? (r.tuning as string) : d.tuning,
     lefty: typeof r.lefty === "boolean" ? r.lefty : d.lefty,
     theme: r.theme === "light" || r.theme === "dark" || r.theme === "system" ? r.theme : d.theme,
-    guitarChartUrl: parseUrl(r.guitarChartUrl),
     sessionSize: (SESSION_SIZES as readonly unknown[]).includes(r.sessionSize)
       ? (r.sessionSize as number)
       : d.sessionSize,
