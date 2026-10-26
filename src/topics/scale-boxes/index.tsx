@@ -1,23 +1,14 @@
 /* 分野：スケールのボックス（guitar_chart 連携）。guitar_chart で見て覚え、ここで覚えたか確かめる。
-   スケールの度数とボックスの位置は guitar_chart から取り込んだもの（src/data/guitar-chart.json）を使い、
-   印刷した資料と同じ形で出題する。item はスケール × ルート × ボックスで、形式は毎回選ぶ：
+   スケールの度数とボックスの位置はチャート（src/chart。旧 guitar_chart）と同じ計算を使い、
+   チャートの図や PDF と同じ形で出題する。item はスケール × ルート × ボックスで、形式は毎回選ぶ：
    - ボックスの中の点を示して「何度？」（4択）
    - 「ボックスの R を全部タップ」
    - 「このボックスで抜けている音をタップ」 */
 import { pick, shuffle } from "../../drill/rng";
 import type { Mark, Question, Topic } from "../../drill/topic";
-import { type FretSpan, GUITAR_CHART, boxesOf } from "../../data/guitar-chart";
-import {
-  type Position,
-  type ScaleId,
-  type Tuning,
-  SCALES,
-  degree,
-  degreeLabel,
-  mod,
-  pcAt,
-  stringCount,
-} from "../../theory";
+import { type FretSpan, boxesFor } from "../../chart/boxes";
+import { CHART_SCALES, scaleChart } from "../../chart/registry";
+import { type Position, type Tuning, degree, degreeLabel, mod, pcAt, stringCount } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import { GuitarChartLink } from "../../ui/GuitarChartLink";
 
@@ -29,9 +20,7 @@ export interface ScaleBoxSettings {
 }
 
 /** ボックスのあるスケール（guitar_chart の並び順） */
-export const BOX_SCALES = Object.entries(GUITAR_CHART.scales)
-  .filter(([, s]) => s.has_boxes)
-  .map(([id]) => id);
+export const BOX_SCALES = CHART_SCALES.filter(c => c.boxRanges.length).map(c => c.id);
 
 const DEFAULTS: ScaleBoxSettings = { scales: ["minor_pentatonic"], roots: [9] };
 
@@ -44,8 +33,10 @@ function parse(raw: unknown): ScaleBoxSettings {
   return { scales: scales.length ? scales : DEFAULTS.scales, roots: roots.length ? roots : DEFAULTS.roots };
 }
 
-const scaleName = (id: string) => SCALES[id as ScaleId]?.name ?? GUITAR_CHART.scales[id]!.name;
-const isMinorish = (id: string) => Object.values(GUITAR_CHART.scales[id]!.degree_labels).includes("b3");
+const scaleName = (id: string) => scaleChart(id)!.name;
+const isMinorish = (id: string) => scaleChart(id)!.degrees.includes("b3");
+/** スケール・チューニング・ルートのボックス（チャートと同じ計算） */
+const boxesOf = (scale: string, t: Tuning, rootPc: number) => boxesFor(scaleChart(scale)!, rootPc, t);
 /** ルートの表記。短 3 度を含むスケールは C♯・G♯、それ以外は D♭・A♭ */
 const MAJOR_NAMES = ["C", "D♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
 const MINOR_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A", "B♭", "B"];
@@ -62,7 +53,8 @@ export interface BoxNote {
 
 /** ボックスの中のスケールの音（guitar_chart と同じく lo〜hi フレットを含む） */
 export function boxNotes(t: Tuning, scale: string, rootPc: number, span: FretSpan): BoxNote[] {
-  const labels = GUITAR_CHART.scales[scale]!.degree_labels;
+  const c = scaleChart(scale)!;
+  const labels: Record<string, string> = Object.fromEntries(c.intervals.map((iv, i) => [String(iv), c.degrees[i]!]));
   const out: BoxNote[] = [];
   for (let string = 1; string <= stringCount(t); string++)
     for (let fret = span[0]; fret <= span[1]; fret++) {
@@ -131,7 +123,7 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
 
   items({ common: { tuning: t }, settings }) {
     return settings.scales.flatMap(scale =>
-      settings.roots.flatMap(p => (boxesOf(scale, t.id, p) ?? []).map((_, i) => `${scale}:${p}:${i + 1}`)),
+      settings.roots.flatMap(p => boxesOf(scale, t, p).map((_, i) => `${scale}:${p}:${i + 1}`)),
     );
   },
 
@@ -142,7 +134,7 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
 
   question(id, { common: { tuning: t } }, rng): Question {
     const { scale, rootPc, box } = parseItem(id);
-    const span = playable(boxesOf(scale, t.id, rootPc)![box - 1]!);
+    const span = playable(boxesOf(scale, t, rootPc)[box - 1]!);
     const range = { minFret: span[0], maxFret: span[1] };
     const notes = boxNotes(t, scale, rootPc, span);
     const title = `${rootName(scale, rootPc)} ${scaleName(scale)} ボックス ${box}`;
@@ -201,11 +193,11 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
     const t = ctx.common.tuning;
     const scale = ctx.settings.scales[0]!;
     const rootPc = ctx.settings.roots[0]!;
-    const spans = (boxesOf(scale, t.id, rootPc) ?? []).map(playable);
+    const spans = boxesOf(scale, t, rootPc).map(playable);
     const title = `${rootName(scale, rootPc)} ${scaleName(scale)}`;
     return (
       <>
-        <p>{title}のボックス（設定で選んだ最初のスケールとキー）。度数とボックスの位置は guitar_chart の資料と同じ。</p>
+        <p>{title}のボックス（設定で選んだ最初のスケールとキー）。度数とボックスの位置はチャートと同じ。</p>
         <GuitarChartLink chart={{ scale, rootPc, flat: rootName(scale, rootPc).includes("♭") }} />
         <dl class="ref-list">
           {spans.map((span, i) => (

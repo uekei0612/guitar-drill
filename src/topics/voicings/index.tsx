@@ -145,14 +145,20 @@ const rangeOf = (ps: readonly Position[]) => {
 
 const symbolOf = (type: string) => chordType(type).symbol;
 
+/** ルートを置くフレットの候補 */
+const ROOT_FRETS = Array.from({ length: 9 }, (_, i) => i + 2);
+
 export const voicings: Topic = {
   id: "voicings",
   level: "advanced",
   title: "ボイシングの型",
 
+  // 変則チューニングでは届く範囲に音が無い形があるので、ルートをどこに置いても作れない組み合わせは出さない
   items: ({ common: { tuning: t } }) =>
     VOICINGS.filter(v => v.strings.every(s => s <= stringCount(t))).flatMap(v =>
-      v.types.flatMap(type => [`${v.id}:${type}:fill`, `${v.id}:${type}:name`]),
+      v.types
+        .filter(type => ROOT_FRETS.some(f => shapeOf(t, v, type, f)))
+        .flatMap(type => [`${v.id}:${type}:fill`, `${v.id}:${type}:name`]),
     ),
 
   itemLabel(id) {
@@ -164,10 +170,7 @@ export const voicings: Topic = {
     const [vid, type, kind] = id.split(":") as [string, string, "fill" | "name"];
     const v = byId.get(vid)!;
     // ルートは 2〜10 フレットから、形が作れる位置を選ぶ
-    const frets = shuffle(
-      rng,
-      Array.from({ length: 9 }, (_, i) => i + 2),
-    );
+    const frets = shuffle(rng, ROOT_FRETS);
     let shape: Shape | undefined,
       rootFret = 0;
     for (const f of frets)

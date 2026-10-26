@@ -79,6 +79,26 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     setTaps([]);
   }
 
+  if (!session.queue.length)
+    return (
+      <>
+        <header class="bar">
+          <a class="bar-link" href={href({ name: "home" })}>
+            ← ホーム
+          </a>
+          <h1 tabIndex={-1}>{topic.title}</h1>
+        </header>
+        <p>
+          今のチューニング（{ctx.common.tuning.name}）では出せる問題がありません。設定でチューニングを変えてください。
+        </p>
+        <div class="actions">
+          <a class="btn" href={href({ name: "settings" })}>
+            設定へ
+          </a>
+        </div>
+      </>
+    );
+
   if (isFinished(session) || !q) {
     const sum = summarize(session);
     const pct = sum.total ? Math.round((sum.correct / sum.total) * 100) : 0;
