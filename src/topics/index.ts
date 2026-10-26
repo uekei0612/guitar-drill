@@ -2,6 +2,7 @@
 import type { AnyTopic } from "../drill/topic";
 import { circleOfFifths } from "./circle-of-fifths";
 import { diatonic } from "./diatonic";
+import { dominantScales } from "./dominant-scales";
 import { fretNotes } from "./fret-notes";
 import { intervals } from "./intervals";
 import { modes } from "./modes";
@@ -22,6 +23,7 @@ export const TOPICS: readonly AnyTopic[] = [
   progressions,
   modes,
   tensions,
+  dominantScales,
 ];
 
 export const topicById = (id: string): AnyTopic | undefined => TOPICS.find(t => t.id === id);

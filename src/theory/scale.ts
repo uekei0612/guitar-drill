@@ -14,7 +14,11 @@ export type ScaleId =
   | "locrian"
   | "major_pentatonic"
   | "minor_pentatonic"
-  | "minor_blues";
+  | "minor_blues"
+  | "altered"
+  | "phrygian_dominant"
+  | "combination_diminished"
+  | "lydian_dominant";
 
 export interface ScaleDef {
   readonly id: ScaleId;
@@ -36,6 +40,15 @@ const defs: ScaleDef[] = [
   { id: "major_pentatonic", name: "メジャーペンタトニック", degrees: ["R", "2", "3", "5", "6"] },
   { id: "minor_pentatonic", name: "マイナーペンタトニック", degrees: ["R", "b3", "4", "5", "b7"] },
   { id: "minor_blues", name: "マイナーブルース", degrees: ["R", "b3", "4", "b5", "5", "b7"] },
+  // ドミナント 7th の上で使うスケール。テンションの書き方（♭9・♯11・♭13）で持つ
+  { id: "altered", name: "オルタード", degrees: ["R", "b9", "#9", "3", "#11", "b13", "b7"] },
+  { id: "phrygian_dominant", name: "HMP5↓", degrees: ["R", "b9", "3", "4", "5", "b13", "b7"] },
+  {
+    id: "combination_diminished",
+    name: "コンビネーション・ディミニッシュ",
+    degrees: ["R", "b9", "#9", "3", "#11", "5", "13", "b7"],
+  },
+  { id: "lydian_dominant", name: "リディアン ♭7", degrees: ["R", "9", "3", "#11", "5", "13", "b7"] },
 ];
 
 export const SCALES = Object.fromEntries(defs.map(d => [d.id, d])) as Readonly<Record<ScaleId, ScaleDef>>;

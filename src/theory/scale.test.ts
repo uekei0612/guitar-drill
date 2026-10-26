@@ -18,12 +18,18 @@ describe("scale", () => {
     expect(names("major_pentatonic", "C")).toBe("C D E G A");
     expect(names("minor_pentatonic", "A")).toBe("A C D E G");
     expect(names("minor_blues", "A")).toBe("A C D Eb E G");
+    expect(names("altered", "G")).toBe("G Ab A# B C# Eb F");
+    expect(names("phrygian_dominant", "E")).toBe("E F G# A B C D");
+    expect(names("combination_diminished", "C")).toBe("C Db D# E F# G A Bb");
+    expect(names("lydian_dominant", "F")).toBe("F G A B C D Eb");
   });
 
   it("7 音のスケールはどのルートでも 7 つの文字を 1 回ずつ使う", () => {
     const roots = ["C", "G", "D", "A", "E", "B", "F#", "C#", "F", "Bb", "Eb", "Ab", "Db", "Gb"];
+    // ドミナントのスケール（オルタードなど）は ♭9 と ♯9 が同じ文字になるので除く
+    const dominant = ["altered", "phrygian_dominant", "combination_diminished", "lydian_dominant"];
     for (const def of Object.values(SCALES))
-      if (def.degrees.length === 7)
+      if (def.degrees.length === 7 && !dominant.includes(def.id))
         for (const r of roots) {
           const ns = scaleNotes(def.id, note(r));
           expect(new Set(ns.map(n => n.letter)).size, `${def.id} ${r}`).toBe(7);
