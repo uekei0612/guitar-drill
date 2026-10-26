@@ -1,5 +1,9 @@
 /* 新しい版の知らせ。切り替えは利用者が押したときだけ（ドリルの途中で勝手に再読み込みしない）。 */
+import { useEffect } from "preact/hooks";
 import { useRegisterSW } from "virtual:pwa-register/preact";
+
+/** 「オフラインでも使えるように」は知らせるだけなので、この時間で自分で消す */
+const OFFLINE_NOTICE_MS = 4000;
 
 /** 更新を確かめる間隔 */
 const CHECK_MS = 60 * 60 * 1000;
@@ -23,6 +27,12 @@ export function UpdatePrompt() {
       });
     },
   });
+
+  useEffect(() => {
+    if (!offlineReady) return;
+    const id = setTimeout(() => setOfflineReady(false), OFFLINE_NOTICE_MS);
+    return () => clearTimeout(id);
+  }, [offlineReady]);
 
   if (needRefresh)
     return (
