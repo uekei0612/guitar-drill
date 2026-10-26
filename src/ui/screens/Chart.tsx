@@ -1,6 +1,7 @@
 /* チャート（旧 guitar_chart）。スケール・アルペジオ・カスタムを指板で見て、ボックスを確かめ、PDF にする。
    状態は URL（#/chart?…、guitar_chart と同じパラメーター）に持つので、リロードやリンクで同じ図に戻る。 */
 import { useEffect, useState } from "preact/hooks";
+import { playAscending } from "../../chart/audio";
 import { boxesForOpen } from "../../chart/boxes";
 import { CHART_ARPEGGIOS, CHART_SCALES, CHROMATIC_DEGREES } from "../../chart/registry";
 import {
@@ -22,6 +23,7 @@ import type { Mark } from "../../drill/topic";
 import { useData } from "../../state";
 import { type Position, degree, degreeLabel, mod, pcAt, stringCount } from "../../theory";
 import { type Band, Fretboard, posLabel } from "../Fretboard";
+import { exportSvgPng, shareUrl } from "../export-image";
 import { href } from "../route";
 import { TuningOptions } from "./Settings";
 
@@ -76,6 +78,7 @@ export function Chart({ query }: { query: string }) {
     fromParams(new URLSearchParams(query), { ...DEFAULT_CHART, lefty: settings.lefty }),
   );
   const wide = useWide();
+  const [msg, setMsg] = useState("");
 
   // 状態を URL に書く（履歴は増やさない）
   useEffect(() => {
@@ -304,6 +307,29 @@ export function Chart({ query }: { query: string }) {
             ))}
           </div>
         )}
+        <div class="actions chart-actions">
+          <button class="btn" onClick={() => playAscending(chart.intervals, s.root)}>
+            ▶ 試聴
+          </button>
+          <button
+            class="btn"
+            onClick={() => {
+              const svg = document.querySelector<SVGSVGElement>(".chart-board svg");
+              if (svg)
+                exportSvgPng(svg, `${chart.nameEn} - ${noteName(s.root, s.flat)}.png`).catch((e: Error) =>
+                  setMsg(e.message),
+                );
+            }}
+          >
+            画像保存
+          </button>
+          <button class="btn" onClick={() => void shareUrl(`${chart.name} ${noteName(s.root, s.flat)}`).then(setMsg)}>
+            リンクを共有
+          </button>
+          <span class="muted small" role="status">
+            {msg}
+          </span>
+        </div>
         <div class="chart-board">
           <Fretboard
             tuning={t}
