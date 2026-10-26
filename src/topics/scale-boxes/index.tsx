@@ -6,11 +6,11 @@
    - 「このボックスで抜けている音をタップ」 */
 import { pick, shuffle } from "../../drill/rng";
 import type { Mark, Question, Topic } from "../../drill/topic";
-import { type FretSpan, boxesFor } from "../../chart/boxes";
+import { type FretSpan, boxesFor, playableSpan } from "../../chart/boxes";
 import { CHART_SCALES, scaleChart } from "../../chart/registry";
 import { type Position, type Tuning, degree, degreeLabel, mod, pcAt, stringCount } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
-import { GuitarChartLink } from "../../ui/GuitarChartLink";
+import { ChartLink } from "../../ui/ChartLink";
 
 export interface ScaleBoxSettings {
   /** guitar_chart のスケールの ID */
@@ -43,7 +43,7 @@ const MINOR_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A
 const rootName = (scale: string, p: number) => (isMinorish(scale) ? MINOR_NAMES : MAJOR_NAMES)[p]!;
 
 /** 高すぎるボックスは 1 オクターブ下の同じ形にする（15 フレットより上は弾きにくく、図も長くなる） */
-const playable = ([lo, hi]: FretSpan): FretSpan => (hi > 15 && lo >= 12 ? [lo - 12, hi - 12] : [lo, hi]);
+const playable = playableSpan;
 
 export interface BoxNote {
   readonly pos: Position;
@@ -142,7 +142,7 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
     const base = {
       item: id,
       explanation: { text: `${title}（${span[0]}〜${span[1]} フレット）`, board: { range, marks: toMarks(notes) } },
-      guitarChart: { scale, rootPc, box, flat: rootName(scale, rootPc).includes("♭") },
+      chart: { scale, rootPc, box, flat: rootName(scale, rootPc).includes("♭") },
     };
     // ボックスに R が無いことは無いが、念のため「何度？」に寄せる
     const kind = pick(rng, roots.length ? (["deg", "roots", "missing"] as const) : (["deg", "missing"] as const));
@@ -198,7 +198,7 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
     return (
       <>
         <p>{title}のボックス（設定で選んだ最初のスケールとキー）。度数とボックスの位置はチャートと同じ。</p>
-        <GuitarChartLink chart={{ scale, rootPc, flat: rootName(scale, rootPc).includes("♭") }} />
+        <ChartLink chart={{ scale, rootPc, flat: rootName(scale, rootPc).includes("♭") }} />
         <dl class="ref-list">
           {spans.map((span, i) => (
             <div key={i}>

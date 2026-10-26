@@ -1,7 +1,7 @@
 import { useState } from "preact/hooks";
 import { commonOf, store, useData } from "../../state";
 import { TOPICS } from "../../topics";
-import { SESSION_SIZES, type Settings as S, type Theme, emptyData, parseUrl } from "../../store/schema";
+import { SESSION_SIZES, type Settings as S, type Theme, emptyData } from "../../store/schema";
 import { exportJson, importJson } from "../../store/store";
 import { TUNINGS, fmt } from "../../theory";
 import { href } from "../route";
@@ -43,7 +43,6 @@ export function TuningOptions() {
 
 export function Settings() {
   const { settings: st, items } = useData();
-  const [url, setUrl] = useState(st.guitarChartUrl);
   const [msg, setMsg] = useState("");
   const count = Object.keys(items).length;
 
@@ -57,7 +56,6 @@ export function Settings() {
     const n = Object.keys(r.data.items).length;
     if (!confirm(`今の記録（${count} 件）を、ファイルの記録（${n} 件）で置き換えます。よろしいですか？`)) return;
     store.update(() => r.data);
-    setUrl(r.data.settings.guitarChartUrl);
     setMsg(`読み込みました（${n} 件）`);
   }
 
@@ -99,23 +97,6 @@ export function Settings() {
               </option>
             ))}
           </select>
-        </label>
-        <label class="field">
-          <span>guitar_chart の URL</span>
-          <input
-            type="url"
-            inputMode="url"
-            placeholder="https://…（空なら使わない）"
-            value={url}
-            onInput={e => setUrl(e.currentTarget.value)}
-            onBlur={() => {
-              const v = parseUrl(url);
-              set({ guitarChartUrl: v });
-              setUrl(v);
-              if (url.trim() && !v) setMsg("guitar_chart の URL は http(s) で入れてください");
-            }}
-          />
-          <small class="muted">入れると、スケールの問題から guitar_chart の図を開けます。</small>
         </label>
       </section>
 

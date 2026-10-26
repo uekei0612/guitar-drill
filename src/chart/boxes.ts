@@ -40,6 +40,10 @@ export function computeBoxRanges(
   return boxes;
 }
 
+/** 高すぎるボックスは 1 オクターブ下の同じ形にする（15 フレットより上は弾きにくく、チャートの指板にも出ない）。
+    ドリルの出題とチャートの表示で同じ規則を使い、ボックスの位置を揃える */
+export const playableSpan = ([lo, hi]: FretSpan): FretSpan => (hi > 15 && lo >= 12 ? [lo - 12, hi - 12] : [lo, hi]);
+
 /** チャートのボックス（指板のボックス表示・ドリル用）。ボックスの無いチャートは空 */
 export function boxesFor(chart: ChartDef, rootPc: number, tuning: Tuning): FretSpan[] {
   if (!chart.boxRanges.length) return [];

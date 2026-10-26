@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { review } from "../drill/schedule";
-import { DEFAULT_SETTINGS, VERSION, emptyData, parseData, parseSettings, parseStat, parseUrl } from "./schema";
+import { DEFAULT_SETTINGS, VERSION, emptyData, parseData, parseSettings, parseStat } from "./schema";
 import { STORAGE_KEY, Store, exportJson, importJson, memoryStorage } from "./store";
 
 const T0 = Date.UTC(2026, 9, 25);
@@ -36,14 +36,6 @@ describe("schema", () => {
       items: { "fret-notes/6-5": stat, "fret-notes/x": { ease: 1 }, "no-slash": stat },
     });
     expect(d.items).toEqual({ "fret-notes/6-5": stat });
-  });
-
-  it("guitar_chart の URL は http(s) だけ", () => {
-    expect(parseUrl("https://guitar-chart.example/")).toBe("https://guitar-chart.example/");
-    expect(parseUrl(" http://h:8002 ")).toBe("http://h:8002/");
-    expect(parseUrl("javascript:alert(1)")).toBe("");
-    expect(parseUrl("not a url")).toBe("");
-    expect(parseUrl(3)).toBe("");
   });
 
   it("版が無い・古い値でも今の版で返す", () => {

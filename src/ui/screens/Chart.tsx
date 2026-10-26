@@ -3,7 +3,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { playAscending } from "../../chart/audio";
 import { buildPdfPages, pageCount, pdfFileName, pdfPlan } from "../../chart/pdf/build";
-import { boxesForOpen } from "../../chart/boxes";
+import { boxesForOpen, playableSpan } from "../../chart/boxes";
 import { CHART_ARPEGGIOS, CHART_SCALES, CHROMATIC_DEGREES } from "../../chart/registry";
 import {
   type ChartState,
@@ -58,7 +58,7 @@ export interface ChartDots {
 export function chartDots(s: ChartState): ChartDots {
   const chart = chartOf(s);
   const t = tuningOf(s);
-  const boxes = s.caged && chart.kind === "scale" ? boxesForOpen(chart, s.root, tuningPcs(s)) : [];
+  const boxes = s.caged && chart.kind === "scale" ? boxesForOpen(chart, s.root, tuningPcs(s)).map(playableSpan) : [];
   const iso = s.box != null ? boxes[s.box - 1] : undefined;
   const marks: Mark[] = [];
   for (let string = 1; string <= stringCount(t); string++)

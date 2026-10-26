@@ -2,7 +2,7 @@
    出題エンジンと記録は変えない。 */
 import type { ComponentType } from "preact";
 import type { FretRange, Position, Tuning } from "../theory";
-import type { GuitarChartRef } from "./guitar-chart-link";
+import type { ChartRef } from "../chart/link";
 import type { Rng } from "./rng";
 
 export type Level = "beginner" | "intermediate" | "advanced";
@@ -60,8 +60,8 @@ export interface Question {
   readonly answer: Answer;
   /** 答えのあとに出す解説 */
   readonly explanation?: Prompt;
-  /** 解説から開く guitar_chart の図（設定に URL があるときだけリンクを出す） */
-  readonly guitarChart?: GuitarChartRef;
+  /** 解説から開くチャートの図 */
+  readonly chart?: ChartRef;
 }
 
 export type Response =
