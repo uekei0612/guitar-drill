@@ -253,9 +253,13 @@ a {
   flex: 1;
   min-width: 0;
 }
-/* ドリル中は見出しを少し小さく（「ダイアトニックコード」が狭い画面でも 1 行に収まる） */
+/* ドリル中は見出しを少し小さく、長い名前（「セカンダリードミナントと裏コード」）は文字数で縮めて 1 行に収める。
+   170px は「← やめる」と「1/20」と隙間のぶん */
 .drill-screen .bar h1 {
-  font-size: 1.1rem;
+  font-size: clamp(0.8rem, calc((100vw - 170px) / var(--len, 10)), 1.1rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: 1.25;
 }
 .bar-link {

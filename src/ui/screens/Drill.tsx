@@ -144,7 +144,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           <a class="bar-link" href={href({ name: "home" })}>
             ← ホーム
           </a>
-          <h1 tabIndex={-1}>{topic.title}</h1>
+          <h1 tabIndex={-1} style={{ "--len": topic.title.length }}>
+            {topic.title}
+          </h1>
         </header>
         <p>
           今のチューニング（{ctx.common.tuning.name}）では出せる問題がありません。設定でチューニングを変えてください。
@@ -166,7 +168,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           <a class="bar-link" href={href({ name: "home" })}>
             ← ホーム
           </a>
-          <h1 tabIndex={-1}>{topic.title}</h1>
+          <h1 tabIndex={-1} style={{ "--len": topic.title.length }}>
+            {topic.title}
+          </h1>
         </header>
         <section class="result" aria-live="polite">
           <h2>結果</h2>
@@ -283,7 +287,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         <a class="bar-link" href={href({ name: "home" })}>
           ← やめる
         </a>
-        <h1 tabIndex={-1}>{topic.title}</h1>
+        <h1 tabIndex={-1} style={{ "--len": topic.title.length }}>
+          {topic.title}
+        </h1>
         <span class="progress" aria-label={`${session.index + 1} 問目 / ${session.queue.length} 問`}>
           {session.index + 1}/{session.queue.length}
         </span>

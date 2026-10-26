@@ -82,6 +82,13 @@ export function voiced(rootPc: number, pcs: readonly number[]): number[] {
   return [bass, ...upper];
 }
 
+/** スケールを上行で鳴らす音：ルートを E3〜D♯4 に置き、1 オクターブ上のルートまで。
+    テンションの書き方（♭9・♯11）は 1 オクターブ内に畳む */
+export function scaleMidis(rootPc: number, semis: readonly number[]): number[] {
+  const r = 52 + mod(rootPc - 4, 12);
+  return [...[...new Set(semis.map(s => mod(s, 12)))].sort((a, b) => a - b).map(s => r + s), r + 12];
+}
+
 /** コードを 1 つずつ順に鳴らす（進行） */
 export function playChords(chords: readonly (readonly number[])[]): void {
   const c = audioCtx();

@@ -1,22 +1,57 @@
 /* 分野：ドミナントで使うスケール。オルタード、HMP5↓、コンビネーション・ディミニッシュ、リディアン ♭7 の
    構成音・度数と、どの状況で使うか。比べる基準としてミクソリディアンも選択肢に混ぜる。 */
+import { scaleMidis } from "../../chart/audio";
 import { pick, shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
-import { type ScaleId, SCALES, degree, degreeLabel, fmt, note, scaleNotes } from "../../theory";
+import {
+  type Note,
+  type ScaleId,
+  SCALES,
+  degree,
+  degreeLabel,
+  fmt,
+  mod,
+  note,
+  pc,
+  scaleIntervals,
+  scaleNotes,
+  semitones,
+  transpose,
+} from "../../theory";
 
 interface DomScale {
   readonly id: ScaleId;
   /** 使う場面 */
   readonly use: string;
+  /** 覚え方（ルートの 7th コードに対して） */
+  readonly how: (root: Note) => string;
 }
 
 export const DOMINANT_SCALES: readonly DomScale[] = [
-  { id: "altered", use: "Ⅴ7 → Ⅰ で、♭9・♯9・♯11・♭13 を全部使って強く解決したいとき" },
-  { id: "phrygian_dominant", use: "マイナーキーの Ⅴ7（Ⅴ7 → Ⅰm）" },
-  { id: "combination_diminished", use: "Ⅴ7 で ♭9・♯9・♯11 と、ナチュラルの 13 を使いたいとき" },
-  { id: "lydian_dominant", use: "解決しない 7th（Ⅳ7・♭Ⅶ7・裏コード）" },
+  {
+    id: "altered",
+    use: "Ⅴ7 → Ⅰ で、♭9・♯9・♯11・♭13 を全部使って強く解決したいとき",
+    how: r => `ルートの半音上の ${fmt(transpose(r, degree("b2")))} メロディックマイナーを ${fmt(r)} から`,
+  },
+  {
+    id: "phrygian_dominant",
+    use: "マイナーキーの Ⅴ7（Ⅴ7 → Ⅰm）",
+    how: r => `解決先の ${fmt(transpose(r, degree("4")))} ハーモニックマイナーを 5 番目の ${fmt(r)} から（名前の由来）`,
+  },
+  {
+    id: "combination_diminished",
+    use: "Ⅴ7 で ♭9・♯9・♯11 と、ナチュラルの 13 を使いたいとき",
+    how: () => "ルートから 半音・全音・半音・全音 … を繰り返す 8 音",
+  },
+  {
+    id: "lydian_dominant",
+    use: "解決しない 7th（Ⅳ7・♭Ⅶ7・裏コード）",
+    how: r =>
+      `5 度上の ${fmt(transpose(r, degree("5")))} メロディックマイナーを ${fmt(r)} から（リディアンの 7 を ♭7 に）`,
+  },
 ];
 const MIXO: ScaleId = "mixolydian";
+const MIXO_SEMIS = new Set(scaleIntervals(MIXO).map(iv => mod(semitones(iv), 12)));
 const byId = new Map(DOMINANT_SCALES.map(d => [d.id, d]));
 
 const ROOTS = ["C", "D", "E", "F", "G", "A", "B", "Bb", "Eb", "Ab"];
@@ -59,12 +94,22 @@ export const dominantScales: Topic = {
       rootsFor(sid).filter(r => others.every(o => rootsFor(o).includes(r))),
     );
     const chord = `${fmt(note(root))}7`;
-    const explanation = { text: `${nameOf(sid)}：${degreesOf(sid)}／${chord} なら ${tonesOf(sid, root)}／${d.use}` };
+    const r = note(root);
+    const explanation = {
+      text: [`${nameOf(sid)}：${d.how(r)}`, `使いどころ：${d.use}`].join("\n"),
+      strip: scaleNotes(sid, r).map((n, i) => {
+        const iv = scaleIntervals(sid)[i]!;
+        return { label: fmt(n), sub: degreeLabel(iv), current: !MIXO_SEMIS.has(mod(semitones(iv), 12)) };
+      }),
+      stripLabel: `${chord} の上の${nameOf(sid)}（強調はミクソリディアンと違う音）`,
+    };
+    const sound = { notes: scaleMidis(pc(r), scaleIntervals(sid).map(semitones)) };
     const choice = (text: string, correct: string, candidates: string[]): Question => ({
       item: id,
       prompt: { text },
       answer: { kind: "choice", options: shuffle(rng, fill(correct, candidates)), correct },
       explanation,
+      sound,
     });
     switch (kind) {
       case "degrees":
@@ -101,6 +146,7 @@ export const dominantScales: Topic = {
             <dt>{nameOf(d.id)}</dt>
             <dd>{degreesOf(d.id)}</dd>
             <dd class="muted">G7：{tonesOf(d.id, "G")}</dd>
+            <dd class="muted">{d.how(note("G"))}</dd>
             <dd class="muted">{d.use}</dd>
           </div>
         ))}

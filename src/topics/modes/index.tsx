@@ -1,8 +1,21 @@
 /* 分野：モードの特性音。チャーチモード 7 種の構成音、特性音（ドリアンの 6、リディアンの ♯4 …）、
    どのコードの上で使うか（メジャーキーのどの度数から始まるか）。 */
+import { scaleMidis } from "../../chart/audio";
 import { pick, shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
-import { type ScaleId, SCALES, degree, degreeLabel, fmt, note, noteId, scaleNotes } from "../../theory";
+import {
+  type ScaleId,
+  SCALES,
+  degree,
+  degreeLabel,
+  fmt,
+  note,
+  noteId,
+  pc,
+  scaleIntervals,
+  scaleNotes,
+  semitones,
+} from "../../theory";
 
 interface Mode {
   readonly id: ScaleId;
@@ -34,6 +47,20 @@ const rootsFor = (m: Mode) =>
   ROOTS.filter(r => !scaleNotes(m.id, note(r)).some(n => ["Cb", "Fb", "E#", "B#"].includes(noteId(n))));
 
 const tonesOf = (m: Mode, root: string) => scaleNotes(m.id, note(root)).map(fmt).join(" ");
+/** 明るい順（隣とは 1 音だけ違い、右へ行くほど ♭ が 1 つ増える） */
+export const BRIGHTNESS: readonly ScaleId[] = [
+  "lydian",
+  "major",
+  "mixolydian",
+  "dorian",
+  "natural_minor",
+  "phrygian",
+  "locrian",
+];
+
+/** 元のメジャーキーの主音（D ドリアンなら C）。モードの音を index だけ戻ったところ */
+export const parentOf = (m: Mode, root: string) => fmt(scaleNotes(m.id, note(root))[(7 - m.index) % 7]!);
+
 const degreesOf = (m: Mode) => SCALES[m.id].degrees.map(d => degreeLabel(degree(d))).join(" ");
 
 type Kind = "tones" | "name" | "char" | "chord";
@@ -78,16 +105,31 @@ export const modes: Topic = {
         Math.min(Math.abs(b.index - m.index), 7 - Math.abs(b.index - m.index)),
     );
     const others = [...shuffle(rng, neighbors.slice(0, 4)), ...shuffle(rng, neighbors.slice(4))];
+    const ns = scaleNotes(m.id, note(root));
+    const parent = parentOf(m, root);
     const explanation = {
-      text: `${rootName} ${m.name}：${tonesOf(m, root)}（${degreesOf(m)}）／メジャーキーの ${m.chord} から始まる${
-        m.char ? `／${m.char.vs}との違いは ${degreeLabel(degree(m.char.degree))}` : ""
-      }`,
+      text: [
+        m.index === 0
+          ? `${rootName} ${m.name}：${rootName} メジャースケールそのもの（${m.chord} の上）`
+          : `${rootName} ${m.name}：${parent} メジャーの音を ${rootName}（${m.index + 1} 番目＝${m.chord}）から並べたもの`,
+        m.char
+          ? `${m.char.vs}との違いは ${degreeLabel(degree(m.char.degree))}（強調の札）。明るい順で隣のモードとは 1 音だけ違う`
+          : `${m.name}は比べる基準。明るい順で隣のモードとは 1 音だけ違う`,
+      ].join("\n"),
+      strip: ns.map((n, i) => ({
+        label: fmt(n),
+        sub: degreeLabel(degree(SCALES[m.id].degrees[i]!)),
+        current: !!m.char && SCALES[m.id].degrees[i] === m.char.degree,
+      })),
+      stripLabel: `${rootName} ${m.name}の音と度数`,
     };
+    const sound = { notes: scaleMidis(pc(note(root)), scaleIntervals(m.id).map(semitones)) };
     const choice = (text: string, correct: string, candidates: string[]): Question => ({
       item: id,
       prompt: { text },
       answer: { kind: "choice", options: shuffle(rng, fill(correct, candidates)), correct },
       explanation,
+      sound,
     });
     switch (kind) {
       case "tones":
@@ -117,19 +159,26 @@ export const modes: Topic = {
   },
 
   reference: () => (
-    <dl class="ref-list">
-      {MODES.map(m => (
-        <div key={m.id}>
-          <dt>
-            {m.name}（{m.chord}）
-          </dt>
-          <dd>{degreesOf(m)}</dd>
-          <dd class="muted">
-            C {m.name}：{tonesOf(m, "C")}
-            {m.char && `／特性音 ${degreeLabel(degree(m.char.degree))}（${m.char.vs}との違い）`}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <>
+      <p>
+        明るい順：{BRIGHTNESS.map(id => byId.get(id)!.name).join(" → ")}。右へ 1 つ進むごとに 1 音だけ ♭
+        が付く（リディアンの ♯4 → 4、アイオニアンの 7 → ♭7 …）。
+      </p>
+      <p>どれもメジャーキーの音を別の音から並べたもの。D ドリアン ＝ C メジャーの音を D から。</p>
+      <dl class="ref-list">
+        {MODES.map(m => (
+          <div key={m.id}>
+            <dt>
+              {m.name}（{m.chord}）
+            </dt>
+            <dd>{degreesOf(m)}</dd>
+            <dd class="muted">
+              C {m.name}：{tonesOf(m, "C")}
+              {m.char && `／特性音 ${degreeLabel(degree(m.char.degree))}（${m.char.vs}との違い）`}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </>
   ),
 };

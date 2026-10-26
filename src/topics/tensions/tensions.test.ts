@@ -39,4 +39,13 @@ describe("テンションの構成音", () => {
     }
     expect(ask("name:b9").answer).toMatchObject({ correct: "♭9" });
   });
+
+  it("解説は 1 オクターブ下の度数で数え、音はテンションなし→ありの順", () => {
+    const q = ask("note:#11");
+    expect(q.explanation!.text).toMatch(/♯11 は ♯4 度の 1 オクターブ上/);
+    expect(q.sound!.chords).toHaveLength(2);
+    expect(q.sound!.chords![1]!.length).toBe(q.sound!.chords![0]!.length + 1);
+    const a = ask("avail:M7");
+    expect(a.explanation!.strip!.filter(s => s.current).map(s => s.label)).toEqual(["9", "♯11", "13"]);
+  });
 });

@@ -28,4 +28,12 @@ describe("ドミナントで使うスケール", () => {
       for (const o of a.options) expect(o).not.toMatch(/𝄪|𝄫/);
     }
   });
+
+  it("ミクソリディアンと違う音を強調し、覚え方を添える", () => {
+    const q = dominantScales.question("altered:degrees", ctx, seeded(1));
+    expect(q.explanation!.strip!.filter(s => s.current).map(s => s.sub)).toEqual(["♭9", "♯9", "♯11", "♭13"]);
+    expect(q.explanation!.text).toMatch(/メロディックマイナー/);
+    const l = dominantScales.question("lydian_dominant:degrees", ctx, seeded(1));
+    expect(l.explanation!.strip!.filter(s => s.current).map(s => s.sub)).toEqual(["♯11"]);
+  });
 });

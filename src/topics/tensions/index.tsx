@@ -1,7 +1,21 @@
 /* 分野：テンションの構成音。コードの型ごとに使えるテンションと、テンションの音名（4択）。 */
+import { voiced } from "../../chart/audio";
 import { pick, shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
-import { degree, degreeLabel, fmt, intervalBetween, note, noteId, pc, spellings, transpose } from "../../theory";
+import {
+  type Note,
+  chordType,
+  degree,
+  degreeLabel,
+  fmt,
+  intervalBetween,
+  note,
+  noteId,
+  pc,
+  semitones,
+  spellings,
+  transpose,
+} from "../../theory";
 
 /** コードの型ごとに使えるテンション（ジャズ理論の一般的なもの） */
 export const AVAILABLE: readonly {
@@ -33,6 +47,21 @@ const rootsFor = (d: string) => ROOTS.filter(r => Math.abs(transpose(note(r), de
 /** テンションごとに、それを載せる代表のコード */
 const HOST: Record<string, string> = { b9: "7", "9": "7", "#9": "7", "11": "m7", "#11": "M7", b13: "7", "13": "7" };
 const HOST_SYMBOL: Record<string, string> = { "7": "7", m7: "m7", M7: "M7" };
+
+/** 9 → 2、♯11 → ♯4（1 オクターブ下の度数） */
+const lower = (d: string) => {
+  const iv = degree(d);
+  return degreeLabel({ num: iv.num - 7, alt: iv.alt });
+};
+
+/** コードを鳴らしてから、テンションを足して鳴らす */
+function withTension(root: Note, host: string, d: string) {
+  const base = chordType(host).degrees.map(x => pc(root) + semitones(degree(x)));
+  return {
+    notes: [],
+    chords: [voiced(pc(root), base), voiced(pc(root), [...base, pc(root) + semitones(degree(d))])],
+  };
+}
 
 function fill(correct: string, candidates: readonly string[]): string[] {
   const out = [correct];
@@ -81,7 +110,15 @@ export const tensions: Topic = {
           options: shuffle(rng, fill(correct, [...shuffle(rng, variants), ...others])),
           correct,
         },
-        explanation: { text: `${a.symbol}：${correct}${a.note ? `（${a.note}）` : ""}` },
+        explanation: {
+          text: `${a.symbol}：${correct}${a.note ? `\n${a.note}` : ""}`,
+          strip: TENSIONS.map(d => ({
+            label: label(d),
+            sub: fmt(transpose(note("C"), degree(d))),
+            current: a.tensions.includes(d),
+          })),
+          stripLabel: `C${a.symbol} の場合（強調が使えるテンション）`,
+        },
       };
     }
     const host = HOST[x]!;
@@ -89,8 +126,9 @@ export const tensions: Topic = {
     const chord = fmt(root) + HOST_SYMBOL[host];
     const t = transpose(root, degree(x));
     const explanation = {
-      text: `${chord} の ${label(x)} は ${fmt(t)}（ルートから半音 ${(pc(t) - pc(root) + 12) % 12} 個）`,
+      text: `${chord} の ${label(x)} は ${fmt(t)}：${label(x)} は ${lower(x)} 度の 1 オクターブ上なので、${fmt(root)} から ${lower(x)}（半音 ${(pc(t) - pc(root) + 12) % 12}）`,
     };
+    const sound = withTension(root, host, x);
     if (kind === "note") {
       const near = [
         { letter: t.letter, acc: t.acc - 1 },
@@ -116,6 +154,7 @@ export const tensions: Topic = {
           correct,
         },
         explanation,
+        sound,
       };
     }
     // 音 → テンション名（度数は文字で決まるので、綴りから一意に決まる）
@@ -135,7 +174,10 @@ export const tensions: Topic = {
         ),
         correct,
       },
-      explanation: { text: `${explanation.text}。文字の距離が ${got.num} 度なので ${label(x)}` },
+      explanation: {
+        text: `${explanation.text}\n${fmt(root)} から ${fmt(t)} は文字で数えて ${got.num} 度 → テンションの呼び方（+7）で ${label(x)}`,
+      },
+      sound,
     };
   },
 

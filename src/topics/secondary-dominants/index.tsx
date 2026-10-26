@@ -1,5 +1,6 @@
 /* 分野：セカンダリードミナントと裏コード。キーと解決先を示して、そこへ解決するドミナント 7th
    （解決先の 5 度上）と、その裏コード（解決先の半音上）のコード名を答える。 */
+import { voiced } from "../../chart/audio";
 import { shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
 import {
@@ -12,6 +13,7 @@ import {
   keyId,
   keyLabel,
   pc,
+  semitones,
   spellings,
   transpose,
 } from "../../theory";
@@ -25,6 +27,16 @@ const dom = (n: Note) => `${fmt(n)}7`;
 const secondaryRoot = (target: Note) => transpose(target, degree("5"));
 /** 解決先の半音上（文字は 1 つ上：D への裏は E♭7 で D♯7 ではない） */
 const tritoneRoot = (target: Note) => transpose(target, degree("b2"));
+
+/** ドミナント 7th の 3 度と 7 度（裏コードと共有する 2 音） */
+const guideTones = (r: Note) => [transpose(r, degree("3")), transpose(r, degree("b7"))] as const;
+
+const DOM7 = ["R", "3", "5", "b7"].map(d => semitones(degree(d)));
+const domVoiced = (r: Note) =>
+  voiced(
+    pc(r),
+    DOM7.map(s => pc(r) + s),
+  );
 
 const romanOf = (k: Key, i: number) => diatonicChords(k, 3)[i]!.roman;
 
@@ -82,7 +94,27 @@ export const secondaryDominants: Topic = {
       },
       answer: { kind: "choice", options: shuffle(rng, options), correct },
       explanation: {
-        text: `${target.symbol} の 5 度上 ${fmt(sec)} を根音にした ${dom(sec)}（${secName}）。裏コードは減 5 度離れた ${dom(sub)}（${target.symbol} の半音上から解決）`,
+        text: [
+          kind === "sec"
+            ? `${target.symbol} の 5 度上 ${fmt(sec)} を根音にした 7th → ${dom(sec)}（${secName}）`
+            : `${target.symbol} の半音上 ${fmt(sub)} を根音にした 7th → ${dom(sub)}（${dom(sec)} の裏）`,
+          (() => {
+            const [s3, s7] = guideTones(sec),
+              [u3, u7] = guideTones(sub);
+            const same = (a: Note, b: Note) => (fmt(a) === fmt(b) ? fmt(a) : `${fmt(a)}（＝${fmt(b)}）`);
+            return `${dom(sec)} の 3 度 ${fmt(s3)} は ${dom(sub)} の 7 度 ${same(u7, s3)}、7 度 ${fmt(s7)} は 3 度 ${same(u3, s7)}。同じ 2 音を持つので置き換えられる`;
+          })(),
+        ].join("\n"),
+        strip: [
+          { label: dom(sec), sub: secName, current: kind === "sec" },
+          { label: dom(sub), sub: "裏コード", current: kind === "sub" },
+          { label: target.symbol, sub: `解決先 ${target.label}` },
+        ],
+        stripLabel: `どちらも ${target.symbol} へ解決する`,
+      },
+      sound: {
+        notes: [],
+        chords: [domVoiced(correctRoot), voiced(pc(target.root), target.tones.map(pc))],
       },
     };
   },
