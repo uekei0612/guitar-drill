@@ -4,6 +4,7 @@ import { circleOfFifths } from "./circle-of-fifths";
 import { diatonic } from "./diatonic";
 import { fretNotes } from "./fret-notes";
 import { intervals } from "./intervals";
+import { modes } from "./modes";
 import { openStrings } from "./open-strings";
 import { progressions } from "./progressions";
 import { sevenths } from "./sevenths";
@@ -18,6 +19,7 @@ export const TOPICS: readonly AnyTopic[] = [
   sevenths,
   circleOfFifths,
   progressions,
+  modes,
 ];
 
 export const topicById = (id: string): AnyTopic | undefined => TOPICS.find(t => t.id === id);
