@@ -160,7 +160,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           />
         )}
         {a.kind === "choice" && (
-          <div class="choices" role="group" aria-label="選択肢">
+          <div class={`choices${a.options.some(o => o.length > 10) ? " wide" : ""}`} role="group" aria-label="選択肢">
             {a.options.map(o => {
               const picked = result?.response.kind === "choice" && result.response.value === o;
               const cls = result ? (o === a.correct ? "ok" : picked ? "ng" : "") : "";
