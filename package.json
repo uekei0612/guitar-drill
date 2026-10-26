@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run format:check && npm test && npm run build"
+    "check": "npm run typecheck && npm run format:check && npm test && npm run build",
+    "sync:guitar-chart": "node scripts/sync-guitar-chart.mjs"
   },
   "dependencies": {
     "preact": "^11.0.2"
