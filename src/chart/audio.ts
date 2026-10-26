@@ -50,11 +50,20 @@ export function playAscending(intervals: readonly number[], rootPc: number): num
 
 export const midiFrequency = (midi: number): number => 440 * 2 ** ((midi - 69) / 12);
 
-/** MIDI ノート番号の並びを順に鳴らす。chord なら最後に全部を重ねて鳴らす */
-export function playMidi(notes: readonly number[], { chord = false }: { chord?: boolean } = {}): void {
+/** MIDI ノート番号の並びを順に鳴らす。chord なら最後に全部を重ねて鳴らす。
+    strum ならギターをジャランと弾くように、低い音から少しずつずらして重ねる */
+export function playMidi(
+  notes: readonly number[],
+  { chord = false, strum = false }: { chord?: boolean; strum?: boolean } = {},
+): void {
   const c = audioCtx();
   if (!c || !notes.length) return;
   if (c.state === "suspended") void c.resume();
+  if (strum) {
+    const t0 = c.currentTime + 0.06;
+    notes.forEach((m, i) => tone(c, midiFrequency(m), t0 + i * 0.05, 1.6 - i * 0.05));
+    return;
+  }
   const dur = 0.42,
     gap = 0.04;
   let t = c.currentTime + 0.06;

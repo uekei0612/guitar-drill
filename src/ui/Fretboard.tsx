@@ -1,6 +1,6 @@
 /* 指板図。表示・出題（点を示す）・回答（タップ）・解説のすべてで使う。 */
 import { useRef, useState } from "preact/hooks";
-import type { Mark } from "../drill/topic";
+import type { Barre, Mark } from "../drill/topic";
 import { type FretRange, type Position, type Tuning, stringCount } from "../theory";
 import { type Cell, type Orientation, chooseOrientation, layout } from "./fretboard-layout";
 
@@ -26,6 +26,10 @@ export interface FretboardProps {
   readonly tapStrings?: readonly number[];
   /** 押せるフレット（無ければ range 全部）。ほかのフレットは薄く覆う */
   readonly tapFrets?: FretRange;
+  /** 鳴らさない弦（ナットの手前に × を書く） */
+  readonly muted?: readonly number[];
+  /** バレー（指で複数の弦をまとめて押さえる）の帯 */
+  readonly barres?: readonly Barre[];
   /** 弦ごとの札（1 弦から。開放弦の音名など）。無ければ弦の番号を書く */
   readonly stringNames?: readonly string[];
 }
@@ -76,8 +80,12 @@ export function Fretboard({
   stringNames,
   tapStrings,
   tapFrets,
+  muted = [],
+  barres = [],
 }: FretboardProps) {
-  const L = layout(stringCount(tuning), range, lefty, orientation ?? chooseOrientation(range));
+  const L = layout(stringCount(tuning), range, lefty, orientation ?? chooseOrientation(range), {
+    headRow: muted.length > 0,
+  });
   const canTap = (p: Position) =>
     (!tapStrings || tapStrings.includes(p.string)) &&
     (!tapFrets || (p.fret >= tapFrets.minFret && p.fret <= tapFrets.maxFret));
@@ -175,6 +183,30 @@ export function Fretboard({
           {stringNames ? stringNames[l.string - 1] : l.string}
         </text>
       ))}
+      {muted.map(s => {
+        const p = L.headPoint(s);
+        return (
+          <text key={`x${s}`} class="fb-muted" x={p.x} y={p.y} aria-hidden="true">
+            ×
+          </text>
+        );
+      })}
+      {barres.map((b, i) => {
+        const a = L.cellAt({ string: b.low, fret: b.fret }),
+          z = L.cellAt({ string: b.high, fret: b.fret });
+        return a && z ? (
+          <line
+            key={`bar${i}`}
+            class="fb-barre"
+            x1={a.c.x}
+            y1={a.c.y}
+            x2={z.c.x}
+            y2={z.c.y}
+            style={{ strokeWidth: L.r * 1.6 }}
+            aria-hidden="true"
+          />
+        ) : null;
+      })}
       {marks.map(m => {
         const c = L.cellAt(m.pos);
         if (!c) return null;

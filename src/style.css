@@ -124,6 +124,18 @@ main {
 .fb-string {
   stroke: var(--fb-string);
 }
+.fb-muted {
+  fill: var(--muted);
+  font-size: 18px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.fb-barre {
+  stroke: var(--fb-tone);
+  stroke-linecap: round;
+  opacity: 0.85;
+}
 /* 出題していない弦・押せないフレット */
 .fb-string.off {
   opacity: 0.2;
@@ -167,6 +179,21 @@ main {
   stroke-width: 3;
 }
 .fb-mark--target text {
+  fill: var(--fb-root);
+}
+.fb-mark--open circle,
+.fb-mark--openRoot circle {
+  fill: var(--fb-board);
+  stroke: var(--fb-tone);
+  stroke-width: 2.5;
+}
+.fb-mark--openRoot circle {
+  stroke: var(--fb-root);
+}
+.fb-mark--open text {
+  fill: var(--fb-tone);
+}
+.fb-mark--openRoot text {
   fill: var(--fb-root);
 }
 .fb-mark--ok circle {
@@ -619,4 +646,24 @@ select {
   height: auto;
   border: 1px solid var(--line);
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+}
+
+/* コードの押さえ方の一覧 */
+.segmented {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.chord-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.chord-card {
+  margin: 0;
+}
+.chord-card figcaption {
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 4px;
 }
