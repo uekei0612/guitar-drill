@@ -12,6 +12,7 @@ import { secondaryDominants } from "./secondary-dominants";
 import { sevenths } from "./sevenths";
 import { tensions } from "./tensions";
 import { triads } from "./triads";
+import { voicings } from "./voicings";
 
 export const TOPICS: readonly AnyTopic[] = [
   openStrings,
@@ -26,6 +27,7 @@ export const TOPICS: readonly AnyTopic[] = [
   tensions,
   dominantScales,
   secondaryDominants,
+  voicings,
 ];
 
 export const topicById = (id: string): AnyTopic | undefined => TOPICS.find(t => t.id === id);
