@@ -8,6 +8,7 @@ import { modes } from "./modes";
 import { openStrings } from "./open-strings";
 import { progressions } from "./progressions";
 import { sevenths } from "./sevenths";
+import { tensions } from "./tensions";
 import { triads } from "./triads";
 
 export const TOPICS: readonly AnyTopic[] = [
@@ -20,6 +21,7 @@ export const TOPICS: readonly AnyTopic[] = [
   circleOfFifths,
   progressions,
   modes,
+  tensions,
 ];
 
 export const topicById = (id: string): AnyTopic | undefined => TOPICS.find(t => t.id === id);
