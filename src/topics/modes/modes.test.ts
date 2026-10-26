@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkTopic } from "../../drill/check";
 import { seeded } from "../../drill/rng";
 import { STANDARD } from "../../theory";
-import { modes } from ".";
+import { MODES, modes, parentOf } from ".";
 
 const ctx = { common: { tuning: STANDARD, lefty: false }, settings: {} };
 const ask = (id: string) => modes.question(id, ctx, seeded(1));
@@ -29,5 +29,15 @@ describe("モードの特性音", () => {
       expect(new Set(q.answer.correct.split(" ").map(x => x[0])).size).toBe(7);
       expect(q.answer.correct).not.toMatch(/C♭|F♭|E♯|B♯/);
     }
+  });
+
+  it("元のメジャーキーと特性音の札", () => {
+    const m = (id: string) => MODES.find(x => x.id === id)!;
+    expect(parentOf(m("dorian"), "D")).toBe("C");
+    expect(parentOf(m("mixolydian"), "Bb")).toBe("E♭");
+    expect(parentOf(m("locrian"), "B")).toBe("C");
+    const q = ask("lydian:char");
+    expect(q.explanation!.strip!.filter(s => s.current).map(s => s.sub)).toEqual(["♯4"]);
+    expect(q.sound!.notes).toHaveLength(8);
   });
 });

@@ -37,4 +37,14 @@ describe("ボイシングの型", () => {
     expect(a.options).not.toContain("m7(♭5)");
     expect(a.correct).toBe("m7");
   });
+
+  it("解説は作り方と型を決める音、音はジャランと", () => {
+    const q = voicings.question("drop2-5:m7:name", ctx(), seeded(1));
+    expect(q.explanation!.text).toContain("上から 2 番目");
+    expect(q.explanation!.text).toContain("♭3（半音 3）・5（半音 7）・♭7（半音 10）");
+    expect(q.sound!.strum).toBe(true);
+    expect(q.sound!.notes).toHaveLength(4);
+    const s = voicings.question("shell-6a:M7:name", ctx(), seeded(1));
+    expect(s.explanation!.text).toContain("3（半音 4）・7（半音 11）");
+  });
 });

@@ -27,4 +27,12 @@ describe("セカンダリードミナントと裏コード", () => {
     expect(ask("E:5:sub")).toMatchObject({ correct: "D7" });
     expect(ask("Db:2:sec")).toMatchObject({ correct: "C7" });
   });
+
+  it("解説は表と裏と解決先を並べ、裏は 3 度と 7 度の共有を言う", () => {
+    const q = secondaryDominants.question("C:1:sub", ctx, seeded(1));
+    expect(q.explanation!.strip!.map(s => s.label)).toEqual(["A7", "E♭7", "Dm"]);
+    expect(q.explanation!.strip!.find(s => s.current)!.label).toBe("E♭7");
+    expect(q.explanation!.text).toContain("A7 の 3 度 C♯ は E♭7 の 7 度 D♭（＝C♯）、7 度 G は 3 度 G");
+    expect(q.sound!.chords).toHaveLength(2);
+  });
 });

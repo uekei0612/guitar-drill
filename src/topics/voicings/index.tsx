@@ -11,10 +11,11 @@ import {
   degree,
   degreeLabel,
   fmt,
+  midiAt,
   mod,
+  note,
   pcAt,
   semitones,
-  spellings,
   stringCount,
 } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
@@ -100,6 +101,21 @@ export const VOICINGS: readonly Voicing[] = [
 ];
 const byId = new Map(VOICINGS.map(v => [v.id, v]));
 
+/** 形の作り方（id の頭で決まる） */
+const HOW: Record<string, string> = {
+  shell: "R・3・7 の 3 音だけ（5 度を省く）。型は 3 度と 7 度で決まる",
+  drop2: "密集配置 5 7 R 3 の上から 2 番目（R）を 1 オクターブ下げた形",
+  drop3: "密集配置 7 R 3 5 の上から 3 番目（R）を 1 オクターブ下げた形",
+};
+const howOf = (v: Voicing) => HOW[v.id.split("-")[0]!]!;
+
+/** 型を決める音（R 以外。シェルは 5 度を持たない）と半音数 */
+const typeTones = (v: Voicing, type: string) =>
+  chordType(type)
+    .degrees.filter(d => d !== "R" && v.order.some(o => d.replace(/[b#]/g, "") === o))
+    .map(d => `${degreeLabel(degree(d))}（半音 ${semitones(degree(d))}）`)
+    .join("・");
+
 /** 型の度数のうち、その役（3・5・7）にあたるもの（m7 の 3 は ♭3） */
 function degreeFor(type: string, role: "R" | "3" | "5" | "7"): string {
   if (role === "R") return "R";
@@ -143,6 +159,9 @@ const rangeOf = (ps: readonly Position[]) => {
   return { minFret, maxFret: minFret + 5 };
 };
 
+/** コード名で普通に使う根音の綴り（A♯7 ではなく B♭7） */
+const CHORD_ROOTS = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+
 const symbolOf = (type: string) => chordType(type).symbol;
 
 /** ルートを置くフレットの候補 */
@@ -180,7 +199,7 @@ export const voicings: Topic = {
       }
     if (!shape) throw new Error(`${id}: 形が作れない`);
     const range = rangeOf(shape.positions);
-    const rootName = fmt(spellings(pcAt(t, { string: v.strings[0]!, fret: rootFret }))[0]!);
+    const rootName = fmt(note(CHORD_ROOTS[pcAt(t, { string: v.strings[0]!, fret: rootFret })]!));
     const chord = rootName + symbolOf(type);
     const full: Mark[] = shape.positions.map((p, i) => ({
       pos: p,
@@ -188,9 +207,14 @@ export const voicings: Topic = {
       label: shape!.labels[i],
     }));
     const explanation = {
-      text: `${v.name}の ${chord}：低い弦から ${shape.labels.join(" ")}`,
+      text: [
+        `${v.name}の ${chord}：低い弦から ${shape.labels.join(" ")}`,
+        howOf(v),
+        `R から ${typeTones(v, type)} → ${symbolOf(type)}`,
+      ].join("\n"),
       board: { range, marks: full },
     };
+    const sound = { notes: shape.positions.map(p => midiAt(t, p)), strum: true };
     if (kind === "fill")
       return {
         item: id,
@@ -200,6 +224,7 @@ export const voicings: Topic = {
         },
         answer: { kind: "tap", mode: "all", range, correct: shape.positions.slice(1) },
         explanation,
+        sound,
       };
     const correct = symbolOf(type);
     // シェルは m7 と m7(♭5) を形で区別できないので、選択肢はその形で作れる型だけ
@@ -219,6 +244,7 @@ export const voicings: Topic = {
       },
       answer: { kind: "choice", options, correct },
       explanation,
+      sound,
     };
   },
 
@@ -240,6 +266,7 @@ export const voicings: Topic = {
               <div key={v.id}>
                 <dt>{v.name}</dt>
                 <dd class="muted">低い弦から {s.labels.join(" ")}</dd>
+                <dd class="muted">{howOf(v)}</dd>
                 <dd>
                   <Fretboard
                     tuning={t}
