@@ -7,6 +7,7 @@ import { contextOf, store, useData } from "../../state";
 import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
+import { GuitarChartLink } from "../GuitarChartLink";
 import { href } from "../route";
 
 export interface DrillProps {
@@ -204,6 +205,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               )}
             </>
           )}
+          {q.guitarChart && <GuitarChartLink chart={q.guitarChart} />}
           <div class="actions">
             <button ref={nextRef} class="btn primary" onClick={next}>
               次へ
