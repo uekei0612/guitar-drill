@@ -26,6 +26,8 @@ export interface FretboardProps {
   readonly tapStrings?: readonly number[];
   /** 押せるフレット（無ければ range 全部）。ほかのフレットは薄く覆う */
   readonly tapFrets?: FretRange;
+  /** この枠に収まるいちばん大きい大きさで描く（答えたあとの図を画面いっぱいにする） */
+  readonly fit?: { readonly width: number; readonly height: number };
   /** 鳴らさない弦（ナットの手前に × を書く） */
   readonly muted?: readonly number[];
   /** バレー（指で複数の弦をまとめて押さえる）の帯 */
@@ -82,6 +84,7 @@ export function Fretboard({
   tapFrets,
   muted = [],
   barres = [],
+  fit,
 }: FretboardProps) {
   const L = layout(stringCount(tuning), range, lefty, orientation ?? chooseOrientation(range), {
     headRow: muted.length > 0,
@@ -117,7 +120,15 @@ export function Fretboard({
     <svg
       class={`fretboard fretboard--${L.orientation}`}
       viewBox={`0 0 ${L.width} ${L.height}`}
-      style={{ maxWidth: `${L.width}px` }}
+      style={
+        fit
+          ? (() => {
+              // 広げすぎると点と文字だけが大きくなって見づらいので 1.6 倍まで
+              const k = Math.min(fit.width / L.width, fit.height / L.height, 1.6);
+              return { width: `${L.width * k}px`, height: `${L.height * k}px`, maxWidth: "none" };
+            })()
+          : { maxWidth: `${L.width}px` }
+      }
       role={onTap ? "group" : "img"}
       aria-label={label}
     >

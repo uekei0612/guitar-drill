@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { type Rng, randomRng } from "../../drill/rng";
 import { planSession, review } from "../../drill/schedule";
 import { type Session, answer, currentItem, isFinished, startSession, summarize } from "../../drill/session";
@@ -7,7 +7,8 @@ import { contextOf, store, useData } from "../../state";
 import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
-import { MAX_HORIZONTAL_FRETS, chooseOrientation } from "../fretboard-layout";
+import { MAX_HORIZONTAL_FRETS, chooseOrientation, layout } from "../fretboard-layout";
+import { stringCount } from "../../theory";
 import { ChartLink } from "../ChartLink";
 import { playMidi } from "../../chart/audio";
 import { href } from "../route";
@@ -40,6 +41,13 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const [result, setResult] = useState<{ ok: boolean; response: Response } | null>(null);
   const [taps, setTaps] = useState<Position[]>([]);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const screenRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  /** 答えたあと：画面の残りの高さと、図に使える枠 */
+  const [fillHeight, setFillHeight] = useState<number>();
+  const [boardBox, setBoardBox] = useState<{ width: number; height: number }>();
+  /** 縦長の図でも、画面に縦の余裕があれば解説を横に並べず下に置く（そのほうが図が大きい） */
+  const [stack, setStack] = useState(false);
   const promptRef = useRef<HTMLParagraphElement>(null);
 
   function newSession(): Session {
@@ -69,6 +77,39 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       promptRef.current?.focus({ preventScroll: true });
     }
   }, [session.index]);
+
+  // 答えたあとは画面いっぱいに使う：画面の高さから上の位置を引いた分を、この画面の高さにする
+  useLayoutEffect(() => {
+    if (!result) {
+      setFillHeight(undefined);
+      setBoardBox(undefined);
+      setStack(false);
+      return;
+    }
+    const measure = () => {
+      const el = screenRef.current;
+      if (!el) return;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      setFillHeight(Math.floor(vh - el.getBoundingClientRect().top - window.scrollY * 0));
+    };
+    window.scrollTo(0, 0);
+    measure();
+    window.addEventListener("resize", measure);
+    window.visualViewport?.addEventListener("resize", measure);
+    const RO = (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+    const ro = RO
+      ? new RO(() => {
+          const b = boardRef.current;
+          if (b) setBoardBox({ width: b.clientWidth, height: b.clientHeight });
+        })
+      : undefined;
+    if (boardRef.current) ro?.observe(boardRef.current);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.visualViewport?.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
+  }, [result]);
 
   function submit(response: Response) {
     if (!q || result) return;
@@ -179,11 +220,20 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           }
         : undefined;
   // 答えたあとの縦長の図（12 フレットまでなど）は、縮めると読めなくなるので解説を横に並べる
-  const tall =
+  const tallBoard =
     !!result &&
     !!shown &&
     (shown.orientation ?? chooseOrientation(shown.range)) === "vertical" &&
     shown.range.maxFret - shown.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
+  const tall = tallBoard && !stack;
+  // 横に並べたときと下に置いたときで、図が大きくなるほうを選ぶ（横に並べた状態で測ってから一度だけ決める）
+  if (tall && shown && boardBox) {
+    const L = layout(stringCount(ctx.common.tuning), shown.range, ctx.common.lefty, "vertical");
+    const TEXT = 110;
+    const side = Math.min((boardBox.width * 0.6) / L.width, boardBox.height / L.height);
+    const below = Math.min(boardBox.width / L.width, (boardBox.height - TEXT) / L.height);
+    if (below > side) queueMicrotask(() => setStack(true));
+  }
   const correctText = a.kind === "choice" ? a.correct : a.correct.map(posLabel).join("、");
   const picked = result?.response.kind === "choice" ? result.response.value : undefined;
   const feedback = !result
@@ -195,7 +245,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         : `不正解：正解は図の点${taps.some(t => !a.correct.some(c => same(c, t))) ? "（赤は押し間違い）" : ""}`;
 
   return (
-    <>
+    <div
+      ref={screenRef}
+      class={`drill-screen${result ? " fill" : ""}`}
+      style={result && fillHeight ? { height: `${fillHeight}px` } : undefined}
+    >
       <header class="bar">
         <a class="bar-link" href={href({ name: "home" })}>
           ← やめる
@@ -210,11 +264,16 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {q.prompt.text}
         </p>
         {shown && (
-          <div class="board-wrap">
+          <div class="board-wrap" ref={boardRef}>
             <Fretboard
               tuning={ctx.common.tuning}
               lefty={ctx.common.lefty}
               {...shown}
+              fit={
+                result && boardBox
+                  ? { width: tall ? boardBox.width * 0.6 : boardBox.width, height: boardBox.height }
+                  : undefined
+              }
               label={result && q.explanation ? q.explanation.text : q.prompt.text}
               selected={
                 result && ex && a.kind === "choice"
@@ -285,6 +344,6 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
