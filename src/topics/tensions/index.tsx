@@ -5,6 +5,7 @@ import type { Question, Topic } from "../../drill/topic";
 import {
   type Note,
   chordType,
+  mod,
   degree,
   degreeLabel,
   fmt,
@@ -110,6 +111,9 @@ export const tensions: Topic = {
           options: shuffle(rng, fill(correct, [...shuffle(rng, variants), ...others])),
           correct,
         },
+        hint: {
+          text: `${a.symbol} の度数は ${chordType(a.type).degrees.map(label).join(" ")}。テンションは 9・11・13（と ♭♯）。コードの音の半音上に重なる音（♭9 の関係）はぶつかるので避ける`,
+        },
         explanation: {
           text: `${a.symbol}：${correct}${a.note ? `\n${a.note}` : ""}`,
           strip: TENSIONS.map(d => ({
@@ -139,6 +143,9 @@ export const tensions: Topic = {
       return {
         item: id,
         prompt: { text: `${chord} の ${label(x)} の音は？` },
+        hint: {
+          text: `${label(x)} は ${lower(x)} 度の 1 オクターブ上。${fmt(root)} を 1 として文字で ${degree(x).num - 7} つ目に、${lower(x)} 度の高さ（半音 ${mod(semitones(degree(x)), 12)}）になるよう ♯♭ を付ける`,
+        },
         answer: {
           kind: "choice",
           options: shuffle(
@@ -163,6 +170,9 @@ export const tensions: Topic = {
     return {
       item: id,
       prompt: { text: `${chord} の上の ${fmt(t)} は何のテンション？` },
+      hint: {
+        text: `${fmt(root)} を 1 として ${fmt(t)} まで文字で数え、半音の数で ♭♯ を決める。テンションは 1 オクターブ上なので、数えた度数に 7 を足す`,
+      },
       answer: {
         kind: "choice",
         options: shuffle(

@@ -26,6 +26,10 @@ function ruleText(k: Key, sig: number): string {
   return sig === -1 ? "♭1 つは F（覚えるしかない）" : `♭のメジャーは、最後から 2 つ目の♭（${acc.at(-2)}）が主音`;
 }
 
+/** 調号の覚え方（ヒント） */
+const SIG_TIP =
+  "♯は F C G D A E B の順に付き、メジャーは最後の♯の半音上が主音。♭は B E A D G C F の順に付き、メジャーは最後から 2 つ目の♭が主音（♭1 つは F）";
+
 /** 平行調（同じ調号のもう一方） */
 export const relative = (k: Key): Key => atPos(k.mode === "major" ? "minor" : "major", posOf(k));
 
@@ -80,34 +84,47 @@ export const circleOfFifths: Topic = {
       }),
       stripLabel: "五度圏の並び（右へ 5 度上）",
     };
-    const choice = (text: string, correct: string, candidates: string[]): Question => ({
+    const choice = (text: string, correct: string, candidates: string[], hint: string): Question => ({
       item: id,
       prompt: { text },
       answer: { kind: "choice", options: shuffle(rng, fill(correct, candidates)), correct },
+      hint: { text: hint },
       explanation,
     });
+    const minorTip = "マイナーは、平行調（短3度上のメジャー）と同じ調号";
     switch (kind) {
       case "sig": {
         const near = [sig + 1, sig - 1, -sig, sig + 2, sig - 2].filter(n => Math.abs(n) <= 7).map(sigLabel);
-        return choice(`キー ${keyLabel(k)} の調号は？`, sigLabel(sig), shuffle(rng, near));
+        return choice(
+          `キー ${keyLabel(k)} の調号は？`,
+          sigLabel(sig),
+          shuffle(rng, near),
+          k.mode === "minor" ? `${minorTip}。${SIG_TIP}` : SIG_TIP,
+        );
       }
       case "key": {
         // 調号が 1 つ違うキーと、♯♭を取り違えたキー
         const opposite = ALL.filter(x => x.mode === k.mode && keySignature(x) === -sig).map(keyLabel);
-        return choice(`調号${sigLabel(sig)}の${modeLabel(k)}キーは？`, keyLabel(k), [
-          ...shuffle(rng, [sameMode(1), sameMode(-1), ...opposite]),
-          sameMode(2),
-          sameMode(-2),
-        ]);
+        return choice(
+          `調号${sigLabel(sig)}の${modeLabel(k)}キーは？`,
+          keyLabel(k),
+          [...shuffle(rng, [sameMode(1), sameMode(-1), ...opposite]), sameMode(2), sameMode(-2)],
+          k.mode === "minor" ? `${SIG_TIP}。マイナーはそのメジャーの主音から短3度下` : SIG_TIP,
+        );
       }
       case "rel": {
         const r = relative(k);
         const rp = posOf(r);
         const parallel = keyLabel({ mode: r.mode, tonic: k.tonic });
-        return choice(`${keyLabel(k)} の平行調は？`, keyLabel(r), [
-          ...shuffle(rng, [parallel, keyLabel(atPos(r.mode, rp + 1)), keyLabel(atPos(r.mode, rp - 1))]),
-          keyLabel(atPos(r.mode, rp + 2)),
-        ]);
+        return choice(
+          `${keyLabel(k)} の平行調は？`,
+          keyLabel(r),
+          [
+            ...shuffle(rng, [parallel, keyLabel(atPos(r.mode, rp + 1)), keyLabel(atPos(r.mode, rp - 1))]),
+            keyLabel(atPos(r.mode, rp + 2)),
+          ],
+          "平行調は調号が同じもう一方。メジャー → 短3度下（スケールの 6 番目の音）のマイナー、マイナー → 短3度上のメジャー",
+        );
       }
       case "up":
       case "down": {
@@ -119,6 +136,7 @@ export const circleOfFifths: Topic = {
             ...shuffle(rng, [sameMode(-d), sameMode(2 * d), keyLabel(relative(atPos(k.mode, p + d)))]),
             sameMode(-2 * d),
           ],
+          `5 度上は主音から文字で 5 つ目（C → G）、5 度下は 5 つ下（C → F）。時計回りに 1 つ進むたびに♯が 1 つ増える（♭が 1 つ減る）`,
         );
       }
     }

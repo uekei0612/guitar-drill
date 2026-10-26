@@ -86,10 +86,19 @@ export interface FretTapAnswer {
 
 export type Answer = ChoiceAnswer | FretTapAnswer;
 
+/** 答える前に開けるヒント。答えは言わず、解き方か手がかりを 1 つ出す。
+    marks は問題の図に薄く重ねる点（図の範囲の中に置く） */
+export interface Hint {
+  readonly text: string;
+  readonly marks?: readonly Mark[];
+}
+
 export interface Question {
   readonly item: ItemId;
   readonly prompt: Prompt;
   readonly answer: Answer;
+  /** 答える前に開けるヒント（開くと、正解しても覚えていない扱いにする） */
+  readonly hint?: Hint;
   /** 答えのあとに出す解説 */
   readonly explanation?: Prompt;
   /** 解説から開くチャートの図 */

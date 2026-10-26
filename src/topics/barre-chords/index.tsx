@@ -5,19 +5,21 @@
 import { useState } from "preact/hooks";
 import { shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
-import { type Note, type Tuning, chordSymbol, chordType, fmt, mod, note, openNote, pc } from "../../theory";
+import { type Note, type Tuning, chordSymbol, chordType, fmt, mod, note, openNote, pc, spellings } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import {
   type LabelMode,
   type Shape,
   degreesText,
   hideRoot,
+  rootHint,
   shapeBoard,
   shapeRange,
   shift,
   sounding,
   strumOf,
   tabText,
+  thirdTip,
 } from "../chord-shapes/shape";
 import { isStandard } from "../open-chords";
 
@@ -91,6 +93,20 @@ export function formFret(t: Tuning, f: BarreForm, root: Note): number {
 export function barreShape(t: Tuning, f: BarreForm, root: Note): Shape {
   return shift({ frets: f.frets, fingers: f.fingers }, formFret(t, f, root));
 }
+
+/** ヒント：フォームの作り方。基本の 4 つは開放のコード（E 型の m なら Em = 022000）をバレーでずらしたもの */
+function formHint(f: BarreForm, fret: number): string {
+  const tab = f.frets.map(x => (x === null ? "x" : String(x))).join(" ");
+  if (!BASE_TYPES.includes(f.type)) return `根音のフレットを 0 とした形（6弦→1弦。x は鳴らさない）：${tab}`;
+  const open = `${f.rootString === 6 ? "E" : "A"}${chordType(f.type).symbol}`;
+  return `開放の ${open}（${tab.replace(/ /g, "")}）の形を、${fret}フレットで人差し指のバレーにしてずらしたもの`;
+}
+
+/** ヒント：ルートの弦の目印（開放・5・7・12 フレット） */
+const landmarks = (t: Tuning, string: number) =>
+  [0, 5, 7, 12]
+    .map(f => `${f === 0 ? "開放" : `${f}f`} ${fmt(spellings(mod(pc(openNote(t, string)) + f, 12))[0]!)}`)
+    .join("・");
 
 const formName = (rootString: number) => (rootString === 6 ? "6弦ルート（E 型）" : "5弦ルート（A 型）");
 const nameOf = (root: Note, type: string) => chordSymbol(root, chordType(type));
@@ -197,6 +213,7 @@ export const barreChords: Topic<BarreChordsSettings> = {
           orientation: "vertical",
           onePerString: true,
         },
+        hint: { text: formHint(f, fret) },
         explanation: ex,
         sound,
       };
@@ -211,6 +228,9 @@ export const barreChords: Topic<BarreChordsSettings> = {
           text: `${formName(f.rootString)}で ${name} を押さえるとき、ルート（${f.rootString}弦）は何フレット？`,
         },
         answer: { kind: "choice", options: shuffle(rng, options), correct: `${fret}フレット` },
+        hint: {
+          text: `${f.rootString}弦の目印：${landmarks(t, f.rootString)}。いちばん近い目印から半音（1 フレット）ずつ数える`,
+        },
         explanation: ex,
         sound,
       };
@@ -241,6 +261,13 @@ export const barreChords: Topic<BarreChordsSettings> = {
         board: { ...board, marks: hideRoot(board.marks) },
       },
       answer: { kind: "choice", options: shuffle(rng, options), correct: name },
+      hint: rootHint(
+        t,
+        s,
+        root,
+        chordType(type),
+        `薄い点がルート（${f.rootString}弦 ${fret}フレット）。${f.rootString}弦の目印：${landmarks(t, f.rootString)}。型は ${thirdTip}`,
+      ),
       explanation: ex,
       sound,
     };

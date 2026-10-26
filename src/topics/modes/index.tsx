@@ -63,6 +63,32 @@ export const parentOf = (m: Mode, root: string) => fmt(scaleNotes(m.id, note(roo
 
 const degreesOf = (m: Mode) => SCALES[m.id].degrees.map(d => degreeLabel(degree(d))).join(" ");
 
+/** 明るい順の言い方（ヒント） */
+const BRIGHT_TEXT =
+  "リディアン（♯4）→ アイオニアン → ミクソリディアン（♭7）→ ドリアン（♭3 ♭7）→ エオリアン（♭3 ♭6 ♭7）→ フリジアン（さらに ♭2）→ ロクリアン（さらに ♭5）";
+
+/** コードの型（Ⅱm7 → m7） */
+const typeOfChord = (chord: string) => chord.replace(/^[ⅠⅡⅢⅣⅤⅥⅦ]+/, "");
+
+/** ヒント：3・5・7 度からコードの型を出す（メジャーキーの型の並びと照らす） */
+function chordHint(m: Mode): string {
+  const ds = [2, 4, 6].map(i => degreeLabel(degree(SCALES[m.id].degrees[i]!)));
+  return `${m.name}の 3・5・7 度は ${ds.join(" ")} → ${typeOfChord(m.chord)}。メジャーキーのコードの型は Ⅰ から順に ${MODES.map(x => typeOfChord(x.chord)).join(" ")}`;
+}
+
+const VS_ID: Readonly<Record<string, ScaleId>> = {
+  メジャー: "major",
+  ナチュラルマイナー: "natural_minor",
+  フリジアン: "phrygian",
+};
+
+/** ヒント：比べる相手より明るいか暗いか（明るい順で隣どうしは 1 音だけ違う） */
+function charHint(m: Mode): string {
+  const vs = byId.get(VS_ID[m.char!.vs]!)!;
+  const brighter = BRIGHTNESS.indexOf(m.id) < BRIGHTNESS.indexOf(vs.id);
+  return `明るい順で隣どうしは 1 音だけ違う。${m.name}は${m.char!.vs}より${brighter ? "明るい（どれか 1 音が半音上がる）" : "暗い（どれか 1 音が半音下がる）"}。${m.char!.vs}の度数：${degreesOf(vs)}`;
+}
+
 type Kind = "tones" | "name" | "char" | "chord";
 
 function fill(correct: string, candidates: readonly string[]): string[] {
@@ -124,10 +150,11 @@ export const modes: Topic = {
       stripLabel: `${rootName} ${m.name}の音と度数`,
     };
     const sound = { notes: scaleMidis(pc(note(root)), scaleIntervals(m.id).map(semitones)) };
-    const choice = (text: string, correct: string, candidates: string[]): Question => ({
+    const choice = (text: string, correct: string, candidates: string[], hint: string): Question => ({
       item: id,
       prompt: { text },
       answer: { kind: "choice", options: shuffle(rng, fill(correct, candidates)), correct },
+      hint: { text: hint },
       explanation,
       sound,
     });
@@ -137,23 +164,26 @@ export const modes: Topic = {
           `${rootName} ${m.name}の構成音は？`,
           tonesOf(m, root),
           others.map(x => tonesOf(x, root)),
+          `${m.name}の度数：${degreesOf(m)}。${rootName} から度数の数だけ文字を進めて綴る`,
         );
       case "name":
         return choice(
           `${tonesOf(m, root)} は ${rootName} の何モード？`,
           m.name,
           others.map(x => x.name),
+          `${rootName} メジャー（${tonesOf(MODES[0]!, root)}）と比べて、変わった音を探す。明るい順：${BRIGHT_TEXT}`,
         );
       case "char": {
         const correct = degreeLabel(degree(m.char!.degree));
         const pool = MODES.filter(x => x.char && x.id !== m.id).map(x => degreeLabel(degree(x.char!.degree)));
-        return choice(`${m.name}の特性音は？（${m.char!.vs}との違い）`, correct, shuffle(rng, pool));
+        return choice(`${m.name}の特性音は？（${m.char!.vs}との違い）`, correct, shuffle(rng, pool), charHint(m));
       }
       case "chord":
         return choice(
           `${m.name}はメジャーキーのどのコードから始まるスケール？`,
           m.chord,
           others.map(x => x.chord),
+          chordHint(m),
         );
     }
   },

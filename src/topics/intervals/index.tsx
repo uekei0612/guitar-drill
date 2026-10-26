@@ -1,7 +1,7 @@
 /* 分野：度数の位置。ルートを指板に示し、「3度はどこ？」をタップで答える（オクターブ違いもすべて正解）。
    逆に、点を示して「ルートから何度？」を 4択で答える。ルートの位置は毎回変える（形で覚えるため）。 */
 import { pick, shuffle } from "../../drill/rng";
-import type { Mark, Question, Topic } from "../../drill/topic";
+import type { Hint, Mark, Question, Topic } from "../../drill/topic";
 import {
   type FretRange,
   type Position,
@@ -74,6 +74,28 @@ function crossNote(t: Tuning, root: Position, p: Position): string | undefined {
   return undefined;
 }
 
+/** レギュラーで 3弦→2弦だけ 4 になる注意書き */
+const standardTail = (t: Tuning) => (t.id === "standard" ? "（3弦→2弦だけは 4 フレット手前）" : "");
+
+/** ヒント：? と同じ音名を R の弦の上に置き直して見せる（同じ弦ならフレットを数えるだけ） */
+function sameStringHint(t: Tuning, root: Position, target: Position, range: FretRange): Hint {
+  if (target.string === root.string)
+    return { text: "R と同じ弦。R から何フレット離れているか（1 フレット＝半音 1 つ）を数える" };
+  const pc = pcAt(t, target);
+  const on = positionsOf(t, pc, range).filter(p => p.string === root.string && p.fret !== root.fret);
+  // ボディ側（R より高い音）を先に。ヘッド側しか無ければ 12 から引く
+  const p = [...on].sort((a, b) => Number(a.fret < root.fret) - Number(b.fret < root.fret) || a.fret - b.fret)[0];
+  const tip =
+    target.string < root.string
+      ? `1 本細い弦の音は、同じ弦の 5 フレット先と同じ${standardTail(t).replace("手前", "先")}`
+      : `1 本太い弦の音は、同じ弦の 5 フレット手前と同じ${standardTail(t).replace("3弦→2弦", "2弦→3弦")}`;
+  if (!p) return { text: `${tip}。? を R の弦の上に置き直して、R から何フレットかを数える` };
+  return {
+    text: `? と同じ音名を R の弦に置き直すと薄い点。R から何フレット離れているかを数える${p.fret < root.fret ? "（ヘッド側にあるので、離れた数を 12 から引く）" : ""}`,
+    marks: [{ pos: p, kind: "hint", label: "?" }],
+  };
+}
+
 export const intervals: Topic = {
   id: "intervals",
   level: "intermediate",
@@ -121,6 +143,9 @@ export const intervals: Topic = {
           board: { range, marks: [rootMark] },
         },
         answer: { kind: "tap", mode: "any", range, correct: targets },
+        hint: {
+          text: `${label}は半音 ${semis}。R と同じ弦なら ${semis} フレット先。1 本細い弦へ移ると同じ音は 5 フレット手前${standardTail(t)}`,
+        },
         explanation,
         sound,
       };
@@ -136,6 +161,7 @@ export const intervals: Topic = {
         board: { range, marks: [rootMark, { pos: target, kind: "target" }] },
       },
       answer: { kind: "choice", options: shuffle(rng, [correct, ...near.slice(0, 3)]), correct },
+      hint: sameStringHint(t, root, target, range),
       explanation,
       sound,
     };

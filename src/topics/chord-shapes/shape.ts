@@ -1,7 +1,7 @@
 /* コードの押さえ方（ローコード・ハイコード）で共通の道具。
    押さえ方は「6弦→1弦のフレット（x は鳴らさない）」と「指番号」の 2 つの文字列で持つ（C = x32010 / x32010）。
    レギュラーチューニングの形なので、ほかのチューニングでは出題しない。 */
-import type { Barre, Board, Mark } from "../../drill/topic";
+import type { Barre, Board, Hint, Mark } from "../../drill/topic";
 import {
   type ChordType,
   type FretRange,
@@ -101,6 +101,20 @@ export function shapeBoard(t: Tuning, s: Shape, root: Note, type: ChordType, mod
     barres: mode === "finger" ? barresOf(s) : [],
   };
 }
+
+/** ヒント：ルートの位置（薄い点）。形を見て名前を答える問題で、伏せたルートを見せる */
+export function rootHint(t: Tuning, s: Shape, root: Note, type: ChordType, text: string): Hint {
+  return {
+    text,
+    marks: sounding(s)
+      .filter(p => degreeAt(t, p, root, type) === "R")
+      .map(p => ({ pos: p, kind: "hint" as const, label: "R" })),
+  };
+}
+
+/** 3 度の高さで型を見分ける言い方 */
+export const thirdTip =
+  "R から 3 度が半音 4 ならメジャー系、半音 3 ならマイナー系。7 度があれば半音 10（7）か 11（M7）";
 
 /** 低い弦から高い弦へジャランと */
 export const strumOf = (t: Tuning, s: Shape) => ({ notes: sounding(s).map(p => midiAt(t, p)), strum: true });

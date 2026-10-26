@@ -79,6 +79,10 @@ function scaleRun(t: Tuning, ns: readonly BoxNote[]): number[] {
   return up.map(([m]) => m).filter(m => m >= lo && m <= lo + 12);
 }
 
+/** いちばん低い弦（同じ弦なら低いフレット）の音 */
+const lowest = (ns: readonly BoxNote[]) =>
+  [...ns].sort((a, b) => b.pos.string - a.pos.string || a.pos.fret - b.pos.fret)[0]!;
+
 function parseItem(id: string) {
   const [scale, p, box] = id.split(":") as [string, string, string];
   return { scale, rootPc: Number(p), box: Number(box) };
@@ -168,6 +172,11 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
         ...base,
         prompt: { text: `${title}：R（${rootName(scale, rootPc)}）を全部タップ（${roots.length} か所）` },
         answer: { kind: "tap", mode: "all", range, correct: roots.map(n => n.pos) },
+        // いちばん低い R を見せて、残りはオクターブの形で
+        hint: {
+          text: `薄い点が R の 1 つ。オクターブ上は 2 本細い弦の 2 フレット先（レギュラーで 3弦→2弦をまたぐと 3 フレット先）、オクターブ下はその逆`,
+          marks: [{ pos: lowest(roots).pos, kind: "hint", label: "R" }],
+        },
       };
     if (kind === "missing") {
       const hidden = shuffle(rng, notes).slice(0, notes.length > 6 ? 2 : 1);
@@ -179,6 +188,12 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
           board: { range, marks: toMarks(shown) },
         },
         answer: { kind: "tap", mode: "all", range, correct: hidden.map(n => n.pos) },
+        hint: {
+          text: `抜けているのは ${[...new Set(hidden.map(n => n.pos.string))]
+            .sort((a, b) => b - a)
+            .map(s => `${s}弦`)
+            .join("と")}。${scaleName(scale)}の度数：${degrees.join(" ")}。ボックスは 1 本の弦に 2〜3 音`,
+        },
       };
     }
     const target = pick(
@@ -206,6 +221,9 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
         kind: "choice",
         options: shuffle(rng, [target.label, ...shuffle(rng, labels).slice(0, 3)]),
         correct: target.label,
+      },
+      hint: {
+        text: `R から ? まで半音 ${mod(pcAt(t, target.pos) - rootPc, 12)}（低いほうの R から上へ数える）。${scaleName(scale)}の度数：${degrees.join(" ")}`,
       },
     };
   },

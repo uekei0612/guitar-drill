@@ -366,6 +366,36 @@ input:focus-visible {
 .prompt:focus {
   outline: none;
 }
+/* 問題文の右にヒントのボタン。開くと問題文の下に出す */
+.prompt-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.prompt-row .prompt {
+  flex: 1;
+  min-width: 0;
+}
+.hint-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  margin-top: 0.6em;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.hint-text {
+  white-space: pre-line;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 0.95rem;
+}
+.hint-text:empty {
+  display: none;
+}
 .choices {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -19,6 +19,16 @@ function openNotes(t: Tuning) {
   return t.open.filter((n, i) => t.open.findIndex(m => equals(m, n)) === i);
 }
 
+/** ヒント：隣の弦の開放から数える（a 弦の開放は、b 弦の何フレット目と同じ音か） */
+function neighborHint(t: Tuning, s: number): string {
+  const n = stringCount(t);
+  const other = s < n ? s + 1 : s - 1;
+  const d = midiAt(t, { string: s, fret: 0 }) - midiAt(t, { string: other, fret: 0 });
+  return d > 0
+    ? `${other}弦の開放は ${fmt(openNote(t, other))}。${s}弦の開放は、${other}弦の ${d} フレットと同じ音`
+    : `${other}弦の開放は ${fmt(openNote(t, other))}。${s}弦の開放は、そこから半音 ${-d} 下`;
+}
+
 const stringsOf = (t: Tuning, n: ReturnType<typeof note>) =>
   Array.from({ length: stringCount(t) }, (_, i) => i + 1).filter(s => equals(openNote(t, s), n));
 
@@ -72,6 +82,7 @@ export const openStrings: Topic = {
           board: { range: RANGE, marks: [{ pos: { string: it.string, fret: 0 }, kind: "target" }] },
         },
         answer: { kind: "choice", options: shuffle(rng, [correct, ...others]), correct },
+        hint: { text: neighborHint(t, it.string) },
         explanation: { text: `${t.name}：${stringCount(t)}弦から ${t.open.map(fmt).join(" ")}`, board: openBoard(t) },
         sound: openSound(t, [it.string]),
       };
@@ -92,6 +103,12 @@ export const openStrings: Topic = {
         range: RANGE,
         frets: OPEN,
         correct: strings.map(s => ({ string: s, fret: 0 })),
+      },
+      // 答えの弦を伏せて、太い弦からの並びを見せる
+      hint: {
+        text: `${stringCount(t)}弦から：${Array.from({ length: stringCount(t) }, (_, i) => stringCount(t) - i)
+          .map(s => (strings.includes(s) ? "?" : fmt(openNote(t, s))))
+          .join(" ")}`,
       },
       explanation: { text: `${fmt(n)} は ${strings.map(s => `${s}弦`).join("と")}`, board: openBoard(t) },
       sound: openSound(t, strings),

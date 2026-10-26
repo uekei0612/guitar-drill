@@ -14,6 +14,7 @@ import {
   fmt,
   keyId,
   keyLabel,
+  keySignature,
   note,
   scaleIntervals,
   scaleNotes,
@@ -23,6 +24,13 @@ import {
   semitones,
 } from "../../theory";
 import { voiced } from "../../chart/audio";
+import { accidentals, sigLabel } from "../circle-of-fifths";
+
+/** 調号の言い方（♯2つ：F♯ C♯） */
+const sigText = (k: Key) => {
+  const n = keySignature(k);
+  return `キー ${keyLabel(k)} の調号は${sigLabel(n)}${n ? `（${accidentals(n).join(" ")}）` : ""}`;
+};
 
 export interface DiatonicSettings {
   readonly size: 3 | 4;
@@ -160,6 +168,9 @@ export const diatonic: Topic<DiatonicSettings> = {
         item: id,
         prompt: { text: `キー ${kl} で ${c.label} は？` },
         answer: { kind: "choice", options: shuffle(rng, options), correct: c.symbol },
+        hint: {
+          text: `ルートは主音 ${fmt(key.tonic)} から文字で数えて ${i + 1} 番目の音（${fmt(key.tonic)} が 1）。${sigText(key)}`,
+        },
         explanation: { text: [tones, pattern].join("\n"), ...strip },
         sound: chordSound,
       };
@@ -169,6 +180,9 @@ export const diatonic: Topic<DiatonicSettings> = {
         item: id,
         prompt: { text: `キー ${kl} で ${c.symbol} は何度？` },
         answer: { kind: "choice", options: ch.map(x => x.label), correct: c.label },
+        hint: {
+          text: `ルート ${fmt(c.root)} が、主音 ${fmt(key.tonic)} から文字で数えて何番目か（${fmt(key.tonic)} が 1）。型は ${typeWord(c.type.symbol)}`,
+        },
         explanation: {
           text: [`ルート ${fmt(c.root)} はキー ${kl} のスケールの ${i + 1} 番目 → ${c.roman}`, pattern].join("\n"),
           ...strip,
@@ -190,6 +204,7 @@ export const diatonic: Topic<DiatonicSettings> = {
       item: id,
       prompt: { text: `キー ${kl} の ${degreeNames(key)[i]} の音は？` },
       answer: { kind: "choice", options: shuffle(rng, options), correct },
+      hint: { text: `主音 ${fmt(key.tonic)} から文字で ${i + 1} つ目（${fmt(key.tonic)} が 1）。${sigText(key)}` },
       explanation: {
         text: "",
         strip: notes.map((x, j) => ({ label: fmt(x), sub: degreeNames(key)[j], current: j === i })),

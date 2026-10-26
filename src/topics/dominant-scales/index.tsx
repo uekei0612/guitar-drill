@@ -104,24 +104,36 @@ export const dominantScales: Topic = {
       stripLabel: `${chord} の上の${nameOf(sid)}（強調はミクソリディアンと違う音）`,
     };
     const sound = { notes: scaleMidis(pc(r), scaleIntervals(sid).map(semitones)) };
-    const choice = (text: string, correct: string, candidates: string[]): Question => ({
+    const choice = (text: string, correct: string, candidates: string[], hint: string): Question => ({
       item: id,
       prompt: { text },
       answer: { kind: "choice", options: shuffle(rng, fill(correct, candidates)), correct },
+      hint: { text: hint },
       explanation,
       sound,
     });
     switch (kind) {
       case "degrees":
-        return choice(`${nameOf(sid)}の度数は？`, degreesOf(sid), others.map(degreesOf));
+        return choice(
+          `${nameOf(sid)}の度数は？`,
+          degreesOf(sid),
+          others.map(degreesOf),
+          `G7 なら：${d.how(note("G"))}。G から数えて度数にする`,
+        );
       case "tones":
         return choice(
           `${chord} の上の${nameOf(sid)}の構成音は？`,
           tonesOf(sid, root),
           others.map(o => tonesOf(o, root)),
+          d.how(r),
         );
       case "name":
-        return choice(`${chord} の上で ${tonesOf(sid, root)} は何のスケール？`, nameOf(sid), others.map(nameOf));
+        return choice(
+          `${chord} の上で ${tonesOf(sid, root)} は何のスケール？`,
+          nameOf(sid),
+          others.map(nameOf),
+          `${fmt(r)} ミクソリディアン（${tonesOf(MIXO, root)}）と比べて、変わった音を探す。音の数（7 音か 8 音か）も手がかり`,
+        );
       case "use":
         return choice(
           `${nameOf(sid)}を使うのは？`,
@@ -130,6 +142,7 @@ export const dominantScales: Topic = {
             rng,
             DOMINANT_SCALES.filter(x => x.id !== sid).map(x => x.use),
           ),
+          `${nameOf(sid)}の度数：${degreesOf(sid)}。どのテンション（♭9・♯9・♯11・♭13・13）を含むかで場面が決まる`,
         );
     }
   },

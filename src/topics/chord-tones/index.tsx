@@ -184,6 +184,7 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
           `数え方：${stackText(tones)}`,
         ].join("\n"),
       };
+      const semis = chordIntervals(type).map(semitones);
       // ルートを C4〜B4 に置いて、下から順に鳴らしてから和音で
       const sound = { notes: chordIntervals(type).map(iv => 60 + pc(root) + semitones(iv)), chord: true };
 
@@ -195,6 +196,9 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
             kind: "choice",
             options: shuffle(rng, fill(text, [misspelled(root, type), ...others.map(x => tonesText(root, x))])),
             correct: text,
+          },
+          hint: {
+            text: `${type.symbol || "メジャー"} の度数は ${labels.join(" ")}（R から半音 ${semis.join("・")}）。音名は度数の数だけ文字を進めて綴る`,
           },
           explanation,
           sound,
@@ -208,6 +212,12 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
           item: id,
           prompt: { text: `${text}（ルートから）は何のコード？` },
           answer: { kind: "choice", options: shuffle(rng, options), correct: sym },
+          hint: {
+            text: `ルート ${fmt(root)} から：${tones
+              .slice(1)
+              .map((n, j) => `${fmt(n)} まで半音 ${semis[j + 1]}`)
+              .join("、")}`,
+          },
           explanation,
           sound,
         };
@@ -229,6 +239,9 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
         item: id,
         prompt: { text: `${spoken(root, type)}の ${degWord(labels[i]!)}の音は？` },
         answer: { kind: "choice", options: shuffle(rng, fill(correct, candidates)), correct },
+        hint: {
+          text: `${degWord(labels[i]!)}は R から半音 ${semis[i]}。音名は ${fmt(root)} を 1 として文字で ${chordIntervals(type)[i]!.num} つ目`,
+        },
         explanation,
         sound,
       };

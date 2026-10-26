@@ -2,7 +2,7 @@
    初心者は自然音・6 弦と 5 弦から始め、設定で弦・フレット・♯♭を広げる。
    ♯♭を含めるときは異名同音をまとめて 1 つの選択肢にする（F♯/G♭ はどちらでも正解）。 */
 import { shuffle } from "../../drill/rng";
-import type { Mark, Question, Topic } from "../../drill/topic";
+import type { Hint, Mark, Question, Topic } from "../../drill/topic";
 import {
   type FretRange,
   type Position,
@@ -80,6 +80,26 @@ export function octaveGroups(t: Tuning, positions: readonly Position[]): Positio
   const byMidi = new Map<number, Position[]>();
   for (const p of positions) byMidi.set(midiAt(t, p), [...(byMidi.get(midiAt(t, p)) ?? []), p]);
   return [...byMidi].sort((a, b) => a[0] - b[0]).map(([, ps]) => [...ps].sort((a, b) => b.string - a.string));
+}
+
+/** ヒント：同じ弦の目印（開放・5・7・12 フレットなどの自然音）から何フレット離れているか */
+function anchorHint(t: Tuning, pos: Position, range: FretRange): Hint {
+  const anchors = [0, 3, 5, 7, 9, 12, 15]
+    .filter(f => f !== pos.fret && f >= range.minFret && f <= range.maxFret)
+    .filter(f => isNatural(pcAt(t, { string: pos.string, fret: f })))
+    .sort((a, b) => Math.abs(a - pos.fret) - Math.abs(b - pos.fret));
+  const f = anchors[0];
+  const tail = "（E と F、B と C の間だけは半音、ほかの隣り合う自然音は全音）";
+  if (f === undefined)
+    return {
+      text: `${pos.string}弦の開放は ${pcName(pcAt(t, { string: pos.string, fret: 0 }))}。そこから 1 フレット＝半音で数える${tail}`,
+    };
+  const d = pos.fret - f;
+  const a = { string: pos.string, fret: f };
+  return {
+    text: `${posText(a)}は ${pcName(pcAt(t, a))}（薄い点）。そこから ${Math.abs(d)} フレット${d > 0 ? "ボディ側" : "ヘッド側"}${tail}`,
+    marks: [{ pos: a, kind: "hint", label: pcName(pcAt(t, a)) }],
+  };
 }
 
 const posText = (p: Position) => `${p.string}弦 ${p.fret === 0 ? "開放" : `${p.fret}フレット`}`;
@@ -188,6 +208,7 @@ export const fretNotes: Topic<FretNotesSettings> = {
           board: { range, marks: [{ pos: it.pos, kind: "target" }] },
         },
         answer: { kind: "choice", options, correct },
+        hint: anchorHint(t, it.pos, range),
         explanation: { text: `${it.pos.string}弦の音の並び（${correct}）`, board: { range, marks } },
         sound: { notes: [midiAt(t, it.pos)] },
       };
@@ -207,6 +228,11 @@ export const fretNotes: Topic<FretNotesSettings> = {
         text: `${stringLabel(strings)}（${s.maxFret}フレットまで）の ${name} を全部タップ（${correct.length} か所）`,
       },
       answer: { kind: "tap", mode: "all", range, correct, strings },
+      // いちばん低い 1 か所を見せて、残りはオクターブの形で探させる
+      hint: {
+        text: `薄い点がいちばん低い ${name}。オクターブ上は 2 本細い弦の 2 フレット先（3弦→2弦は 3）、同じ弦なら 12 フレット先`,
+        marks: [{ pos: groups[0]![0]!, kind: "hint", label: fmt(spellings(it.pc)[0]!) }],
+      },
       sound: { notes: groups.map(g => midiAt(t, g[0]!)) },
       explanation: {
         text: [`${name} の位置（低いほうから）`, ...lines].join("\n"),
