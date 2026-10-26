@@ -20,6 +20,9 @@ export interface DrillProps {
   readonly store?: Store;
 }
 
+/** タップで答える図の最小の拡大率（1 マス 48 を 44px 以上に保つ） */
+const MIN_TAP_SCALE = 44 / 48;
+
 const same = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 
 /** タップの答え合わせ：正しく押した点・押し間違えた点・押し忘れた点 */
@@ -48,6 +51,10 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const [boardBox, setBoardBox] = useState<{ width: number; height: number }>();
   /** 縦長の図でも、画面に縦の余裕があれば解説を横に並べず下に置く（そのほうが図が大きい） */
   const [stack, setStack] = useState(false);
+  /** タップで答える図が、画面いっぱいに収めると 1 マス 44px を割るときは広げずに元の大きさで出す */
+  const [noFill, setNoFill] = useState(false);
+  /** 答える前の拡大率。答えたあとはこれより大きくしない（答えた瞬間に図の大きさが変わらないように） */
+  const questionScale = useRef<{ index: number; key: string; k: number } | undefined>(undefined);
   const promptRef = useRef<HTMLParagraphElement>(null);
 
   function newSession(): Session {
@@ -78,19 +85,21 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     }
   }, [session.index]);
 
-  // 答えたあとは画面いっぱいに使う：画面の高さから上の位置を引いた分を、この画面の高さにする
+  // 図のある問題は画面いっぱいに使う：画面の高さから上の位置を引いた分を、この画面の高さにし、
+  // 図の枠の大きさを測って拡大率を決める
+  const hasBoard = !!q && (!!q.prompt.board || q.answer.kind === "tap" || (!!result && !!q.explanation?.board));
+  const fill = hasBoard && (!!result || !noFill);
   useLayoutEffect(() => {
-    if (!result) {
+    setBoardBox(undefined);
+    if (!fill) {
       setFillHeight(undefined);
-      setBoardBox(undefined);
-      setStack(false);
       return;
     }
     const measure = () => {
       const el = screenRef.current;
       if (!el) return;
       const vh = window.visualViewport?.height ?? window.innerHeight;
-      setFillHeight(Math.floor(vh - el.getBoundingClientRect().top - window.scrollY * 0));
+      setFillHeight(Math.floor(vh - el.getBoundingClientRect().top));
     };
     window.scrollTo(0, 0);
     measure();
@@ -109,7 +118,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       window.visualViewport?.removeEventListener("resize", measure);
       ro?.disconnect();
     };
-  }, [result]);
+  }, [fill, !!result, session.index]);
 
   function submit(response: Response) {
     if (!q || result) return;
@@ -123,6 +132,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     setSession(s => answer(s, result!.ok));
     setResult(null);
     setTaps([]);
+    setStack(false);
+    setNoFill(false);
   }
 
   if (!session.queue.length)
@@ -234,6 +245,21 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     const below = Math.min(boardBox.width / L.width, (boardBox.height - TEXT) / L.height);
     if (below > side) queueMicrotask(() => setStack(true));
   }
+  // 拡大率：図の枠に収まるいちばん大きい値（広げすぎると点と文字だけが大きくなるので 1.6 倍まで）
+  let scale: number | undefined;
+  if (fill && shown && boardBox) {
+    const orient = shown.orientation ?? chooseOrientation(shown.range);
+    const L = layout(stringCount(ctx.common.tuning), shown.range, ctx.common.lefty, orient, {
+      headRow: (shown.muted?.length ?? 0) > 0,
+    });
+    const key = `${shown.range.minFret}-${shown.range.maxFret}-${orient}`;
+    scale = Math.min((tall ? boardBox.width * 0.6 : boardBox.width) / L.width, boardBox.height / L.height, 1.6);
+    if (!result) {
+      if (tapping && scale < MIN_TAP_SCALE) queueMicrotask(() => setNoFill(true));
+      questionScale.current = { index: session.index, key, k: scale };
+    } else if (questionScale.current?.index === session.index && questionScale.current.key === key)
+      scale = Math.min(scale, questionScale.current.k);
+  }
   const correctText = a.kind === "choice" ? a.correct : a.correct.map(posLabel).join("、");
   const picked = result?.response.kind === "choice" ? result.response.value : undefined;
   const feedback = !result
@@ -247,8 +273,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   return (
     <div
       ref={screenRef}
-      class={`drill-screen${result ? " fill" : ""}`}
-      style={result && fillHeight ? { height: `${fillHeight}px` } : undefined}
+      class={`drill-screen${fill ? " fill" : ""}`}
+      style={fill && fillHeight ? { height: `${fillHeight}px` } : undefined}
     >
       <header class="bar">
         <a class="bar-link" href={href({ name: "home" })}>
@@ -269,11 +295,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               tuning={ctx.common.tuning}
               lefty={ctx.common.lefty}
               {...shown}
-              fit={
-                result && boardBox
-                  ? { width: tall ? boardBox.width * 0.6 : boardBox.width, height: boardBox.height }
-                  : undefined
-              }
+              scale={scale}
               label={result && q.explanation ? q.explanation.text : q.prompt.text}
               selected={
                 result && ex && a.kind === "choice"
