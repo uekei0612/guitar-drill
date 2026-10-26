@@ -8,13 +8,16 @@ import {
   type Tuning,
   degree,
   degreeLabel,
+  midiAt,
   mod,
+  openMidis,
   pcAt,
   positionsOf,
   semitones,
   stringCount,
 } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
+import { intervalName } from "../chord-tones";
 
 /** 覚える順（5 度・3 度から） */
 export const DEGREES = ["5", "3", "b3", "b7", "7", "4", "2", "6", "b6", "b2", "b5"] as const;
@@ -38,6 +41,39 @@ function setup(t: Tuning, rng: () => number) {
   return { root, range, rootPc: pcAt(t, root) };
 }
 
+/** R から見た位置の言い方（「1 本細い弦・2 フレット ヘッド側」）。左利きの図でも通じるよう左右は使わない */
+export function shapeHint(root: Position, p: Position): string {
+  const ds = root.string - p.string,
+    df = p.fret - root.fret;
+  const str = ds === 0 ? "同じ弦" : `${Math.abs(ds)} 本${ds > 0 ? "細い" : "太い"}弦`;
+  const fret = df === 0 ? "同じフレット" : `${Math.abs(df)} フレット ${df > 0 ? "ボディ側" : "ヘッド側"}`;
+  return `${str}・${fret}`;
+}
+
+/** R から近い順（弦をまたぐ数とフレットの差が小さい順） */
+const nearest = (root: Position, ps: readonly Position[]) =>
+  [...ps]
+    .filter(p => Math.abs(p.string - root.string) <= 2)
+    .sort(
+      (a, b) =>
+        Math.abs(a.string - root.string) +
+        Math.abs(a.fret - root.fret) -
+        (Math.abs(b.string - root.string) + Math.abs(b.fret - root.fret)),
+    );
+
+/** R と p の間で、隣の弦との差が半音 5 つでない所（レギュラーなら 3弦→2弦）。形がずれる */
+function crossNote(t: Tuning, root: Position, p: Position): string | undefined {
+  const open = openMidis(t);
+  const lo = Math.min(root.string, p.string),
+    hi = Math.max(root.string, p.string);
+  for (let s = hi; s > lo; s--) {
+    const k = open[stringCount(t) - (s - 1)]! - open[stringCount(t) - s]!;
+    if (k !== 5)
+      return `${s}弦と${s - 1}弦の間は半音 ${k}（ほかは 5）なので、またぐと形が ${Math.abs(5 - k)} フレットずれる`;
+  }
+  return undefined;
+}
+
 export const intervals: Topic = {
   id: "intervals",
   level: "intermediate",
@@ -59,8 +95,15 @@ export const intervals: Topic = {
     const targets = positionsOf(t, mod(rootPc + semis, 12), range);
     const roots = positionsOf(t, rootPc, range);
     const rootMark: Mark = { pos: root, kind: "root", label: "R" };
+    // 「何度？」は示した点、タップは R にいちばん近い点で、形の言い方と音を出す
+    const target = kind === "tap" ? (nearest(root, targets)[0] ?? targets[0]!) : pick(rng, targets);
+    const cross = crossNote(t, root, target);
     const explanation = {
-      text: `R から ${label}（半音 ${semis} 個）`,
+      text: [
+        `R から ${label}：${intervalName(degree(d))}（半音 ${semis}）`,
+        `${kind === "tap" ? "近い形" : "? の位置"}：R から ${shapeHint(root, target)}`,
+        ...(cross ? [cross] : []),
+      ].join("\n"),
       board: {
         range,
         marks: [
@@ -69,17 +112,18 @@ export const intervals: Topic = {
         ],
       },
     };
+    const sound = { notes: [midiAt(t, root), midiAt(t, target)], chord: true };
     if (kind === "tap")
       return {
         item: id,
         prompt: {
-          text: `R から ${label} の位置をタップ（どのオクターブでもよい）`,
+          text: `R から ${label}（${intervalName(degree(d))}）の位置をタップ（どのオクターブでもよい）`,
           board: { range, marks: [rootMark] },
         },
         answer: { kind: "tap", mode: "any", range, correct: targets },
         explanation,
+        sound,
       };
-    const target = pick(rng, targets);
     const correct = LABEL_BY_SEMIS[semis]!;
     const near = shuffle(
       rng,
@@ -93,6 +137,7 @@ export const intervals: Topic = {
       },
       answer: { kind: "choice", options: shuffle(rng, [correct, ...near.slice(0, 3)]), correct },
       explanation,
+      sound,
     };
   },
 

@@ -1,5 +1,6 @@
 /* 分野：定番の進行。Ⅱ–Ⅴ–Ⅰ や王道進行を、指定したキーのコード名で答える（4択）。
    コードは「主音からの度数＋型」で持つので、♭Ⅶ や借りたコードも同じ書き方で足せる。 */
+import { voiced } from "../../chart/audio";
 import { pick, shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
 import {
@@ -8,6 +9,7 @@ import {
   type Note,
   KEYS,
   ROMAN,
+  chordIntervals,
   chordSymbol,
   chordType,
   degree,
@@ -15,6 +17,7 @@ import {
   keyLabel,
   note,
   pc,
+  semitones,
   spellings,
   transpose,
 } from "../../theory";
@@ -72,6 +75,31 @@ const join = (xs: readonly string[]) => xs.join(" – ");
 /** 型の取り違え（M7 と 7、m7 と m7(♭5)、メジャーとマイナー） */
 const SIBLING: Record<string, string> = { M7: "7", "7": "M7", m7: "m7b5", m7b5: "m7", maj: "m", m: "maj" };
 
+/** 度数の書き方をキーのコード名に置きかえた形（12 小節ブルースの並び） */
+const formIn = (k: Key, pr: Progression) =>
+  pr.form?.replace(/\S+/g, tok => {
+    const j = pr.chords.findIndex(c => romanOf(c) === tok);
+    return j < 0 ? tok : symbols(k, [pr.chords[j]!])[0]!;
+  });
+
+/** 進行を順に鳴らす音（ブルースは 12 小節の並びで） */
+function progressionSound(k: Key, pr: Progression) {
+  const chordOf = (c: ProgChord) => {
+    const r = pc(rootOf(k, c));
+    return voiced(
+      r,
+      chordIntervals(chordType(c.type)).map(iv => r + semitones(iv)),
+    );
+  };
+  const order = pr.form
+    ? pr.form
+        .split(/\s+/)
+        .map(tok => pr.chords.find(c => romanOf(c) === tok))
+        .filter((c): c is ProgChord => !!c)
+    : pr.chords;
+  return { notes: [], chords: order.map(chordOf) };
+}
+
 const keysOf = (mode: KeyMode) => KEYS[mode];
 const keyById = new Map([...KEYS.major, ...KEYS.minor].map(k => [keyId(k), k]));
 
@@ -126,7 +154,12 @@ export const progressions: Topic = {
       item: id,
       prompt: { text: `キー ${keyLabel(k)} の ${pr.name}：${romanText(pr)}${form} は？` },
       answer: { kind: "choice", options: shuffle(rng, options), correct },
-      explanation: { text: `${romanText(pr)} → ${correct}` },
+      explanation: {
+        text: pr.form ? `12 小節：${formIn(k, pr)}` : "",
+        strip: pr.chords.map(c => ({ label: symbols(k, [c])[0]!, sub: romanOf(c) })),
+        stripLabel: `キー ${keyLabel(k)} の ${pr.name}`,
+      },
+      sound: progressionSound(k, pr),
     };
   },
 

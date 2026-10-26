@@ -20,7 +20,9 @@ import {
   spellings,
   pc,
   degreeLabel,
+  semitones,
 } from "../../theory";
+import { voiced } from "../../chart/audio";
 
 export interface DiatonicSettings {
   readonly size: 3 | 4;
@@ -41,6 +43,10 @@ function parse(raw: unknown): DiatonicSettings {
 /** ♯系→♭系の順に、同じ位置のメジャーとマイナーを交互に */
 export const ALL_KEYS: readonly Key[] = KEYS.major.flatMap((k, i) => [k, KEYS.minor[i]!]);
 const keyById = new Map(ALL_KEYS.map(k => [keyId(k), k]));
+
+/** 型の呼び名（記号の無いメジャーの三和音は「メジャー」） */
+const typeWord = (symbol: string) => symbol || "メジャー";
+const modeWord = (k: Key) => (k.mode === "major" ? "メジャー" : "マイナー");
 
 const scaleOf = (k: Key) => (k.mode === "major" ? "major" : "natural_minor");
 /** 主音から見た度数（R 2 ♭3 …） */
@@ -131,7 +137,13 @@ export const diatonic: Topic<DiatonicSettings> = {
     const ch = chordsOf(key, size, settings);
     const c = ch[i]!;
     const kl = keyLabel(key);
-    const list = ch.map(x => `${x.label} ${x.symbol}`).join("　");
+    const tones = `${c.symbol} = ${c.tones.map(fmt).join(" ")}（${c.toneLabels.join(" ")}）`;
+    const pattern = `${modeWord(key)}キーの ${c.roman} はどのキーでも ${typeWord(c.type.symbol)}`;
+    const strip = {
+      strip: ch.map(x => ({ label: x.symbol, sub: x.roman, current: x.degree === i })),
+      stripLabel: `キー ${kl} のダイアトニックコード`,
+    };
+    const chordSound = { notes: [], chords: [voiced(pc(c.root), c.tones.map(pc))] };
     if (kind === "d2c") {
       const types = (size === 3 ? TRIADS.slice(0, 3) : SEVENTHS.slice(0, 5)).filter(t => t.id !== c.type.id);
       const sameRoot = shuffle(
@@ -148,9 +160,8 @@ export const diatonic: Topic<DiatonicSettings> = {
         item: id,
         prompt: { text: `キー ${kl} で ${c.label} は？` },
         answer: { kind: "choice", options: shuffle(rng, options), correct: c.symbol },
-        explanation: {
-          text: `${c.symbol} = ${c.tones.map(fmt).join(" ")}（${c.toneLabels.join(" ")}）／ キー ${kl}：${list}`,
-        },
+        explanation: { text: [tones, pattern].join("\n"), ...strip },
+        sound: chordSound,
       };
     }
     if (kind === "c2d")
@@ -158,7 +169,11 @@ export const diatonic: Topic<DiatonicSettings> = {
         item: id,
         prompt: { text: `キー ${kl} で ${c.symbol} は何度？` },
         answer: { kind: "choice", options: ch.map(x => x.label), correct: c.label },
-        explanation: { text: `キー ${kl}：${list}` },
+        explanation: {
+          text: [`ルート ${fmt(c.root)} はキー ${kl} のスケールの ${i + 1} 番目 → ${c.roman}`, pattern].join("\n"),
+          ...strip,
+        },
+        sound: chordSound,
       };
     const notes = scaleNotes(scaleOf(key), key.tonic);
     const n = notes[i]!;
@@ -175,7 +190,16 @@ export const diatonic: Topic<DiatonicSettings> = {
       item: id,
       prompt: { text: `キー ${kl} の ${degreeNames(key)[i]} の音は？` },
       answer: { kind: "choice", options: shuffle(rng, options), correct },
-      explanation: { text: `キー ${kl} のスケール：${notes.map(fmt).join(" ")}` },
+      explanation: {
+        text: "",
+        strip: notes.map((x, j) => ({ label: fmt(x), sub: degreeNames(key)[j], current: j === i })),
+        stripLabel: `キー ${kl} のスケール`,
+      },
+      // 主音と、その音
+      sound: {
+        notes: [60 + pc(key.tonic), 60 + pc(key.tonic) + semitones(scaleIntervals(scaleOf(key))[i]!)],
+        chord: true,
+      },
     };
   },
 

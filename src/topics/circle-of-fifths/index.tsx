@@ -13,6 +13,19 @@ const atPos = (mode: Key["mode"], i: number): Key => ({ mode, tonic: note(FIFTHS
 export const sigLabel = (n: number): string => (n === 0 ? "なし" : n > 0 ? `♯${n}つ` : `♭${-n}つ`);
 const modeLabel = (k: Key) => (k.mode === "major" ? "メジャー" : "マイナー");
 
+/** 調号の音（♯は F C G D A E B、♭は B E A D G C F の順に付く） */
+export const accidentals = (n: number): string[] =>
+  n >= 0 ? [..."FCGDAEB"].slice(0, n).map(l => `${l}♯`) : [..."BEADGCF"].slice(0, -n).map(l => `${l}♭`);
+
+/** 調号から主音を出す覚え方 */
+function ruleText(k: Key, sig: number): string {
+  if (k.mode === "minor") return "マイナーは、同じ調号のメジャー（平行調）の主音から短3度下";
+  if (sig === 0) return "メジャーで調号なしは C";
+  const acc = accidentals(sig);
+  if (sig > 0) return `♯のメジャーは、最後の♯（${acc.at(-1)}）の半音上が主音`;
+  return sig === -1 ? "♭1 つは F（覚えるしかない）" : `♭のメジャーは、最後から 2 つ目の♭（${acc.at(-2)}）が主音`;
+}
+
 /** 平行調（同じ調号のもう一方） */
 export const relative = (k: Key): Key => atPos(k.mode === "major" ? "minor" : "major", posOf(k));
 
@@ -54,8 +67,18 @@ export const circleOfFifths: Topic = {
     const sig = keySignature(k);
     const p = posOf(k);
     const sameMode = (d: number) => keyLabel(atPos(k.mode, p + d));
+    const acc = accidentals(sig);
     const explanation = {
-      text: `${keyLabel(k)}：調号${sigLabel(sig)}／平行調 ${keyLabel(relative(k))}／5 度上 ${sameMode(1)}・5 度下 ${sameMode(-1)}`,
+      text: [
+        `${keyLabel(k)}：調号${sigLabel(sig)}${acc.length ? `（${acc.join(" ")}）` : ""}／平行調 ${keyLabel(relative(k))}`,
+        ruleText(k, sig),
+      ].join("\n"),
+      // 五度圏の並び（右へ 5 度上）。調号も添えて、1 つずつ増えるのを見せる
+      strip: [-2, -1, 0, 1, 2].map(d => {
+        const x = atPos(k.mode, p + d);
+        return { label: keyLabel(x), sub: sigLabel(keySignature(x)).replace("つ", ""), current: d === 0 };
+      }),
+      stripLabel: "五度圏の並び（右へ 5 度上）",
     };
     const choice = (text: string, correct: string, candidates: string[]): Question => ({
       item: id,
@@ -138,6 +161,14 @@ export const circleOfFifths: Topic = {
             );
           })}
         </svg>
+        <h2>調号の付く順と、主音の見つけ方</h2>
+        <ul>
+          <li>♯は F C G D A E B の順に付く。メジャーの主音は最後の♯の半音上（♯3 つ＝F♯ C♯ G♯ → A）</li>
+          <li>
+            ♭は B E A D G C F の順に付く（♯の逆）。メジャーの主音は最後から 2 つ目の♭（♭3 つ＝B♭ E♭ A♭ → E♭）。♭1 つは F
+          </li>
+          <li>マイナーは、同じ調号のメジャーの主音から短3度下（C → Am）</li>
+        </ul>
         <p class="muted">F♯ と G♭（♯6・♭6）は同じ音のキー。このアプリでは F♯ と E♭m で数える。</p>
       </>
     );
