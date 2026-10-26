@@ -16,15 +16,3 @@ docker compose run --rm dev npm run check   # 型検査・整形・テスト・�
 ```
 
 画面上部のオレンジの帯は開発版の印で、本番（GitHub Pages）では出ない。
-
-### guitar_chart の定義の取り込み
-
-スケールの分野は [guitar_chart](https://github.com/uekei0612/guitar-chart) の定義とボックスの位置を
-`src/data/guitar-chart.json` として持つ（guitar-chart は private なので、CI からは取りに行かず commit する）。
-guitar_chart 側でスケールやボックスが変わったら、手元（`../guitar_chart` を clone 済み）で取り込み直す。
-
-```sh
-npm run sync:guitar-chart   # guitar_chart の書き出しコマンドを Docker で実行（Node 16 でも動く）
-```
-
-理論コアとずれていたら `src/data/guitar-chart.test.ts` が落ちる。

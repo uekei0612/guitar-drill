@@ -1,6 +1,7 @@
 /* 「guitar_chart で開く」の URL。guitar_chart は URL のパラメーターから画面の状態を復元する
    （web/static/app.js の restoreFromUrl）ので、出題中のスケール・キー・ボックスをそのまま渡す。 */
-import { GUITAR_CHART } from "../data/guitar-chart";
+/** guitar_chart のルートの名前（♯表記の 12 音） */
+const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 /** 問題が guitar_chart のどの図に対応するか */
 export interface GuitarChartRef {
@@ -19,7 +20,7 @@ export function guitarChartUrl(base: string, ref: GuitarChartRef, opts: { tuning
   const p = u.searchParams;
   p.set("chart_type", "scale");
   p.set("scale", ref.scale);
-  p.set("root", GUITAR_CHART.notes[ref.rootPc]!);
+  p.set("root", NOTES[ref.rootPc]!);
   p.set("tuning", opts.tuning);
   if (ref.flat) p.set("flat", "1");
   if (opts.lefty) p.set("lefty", "1");

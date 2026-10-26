@@ -23,6 +23,24 @@ function download(name: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** チューニングの選択肢（分類ごと） */
+export function TuningOptions() {
+  const groups = [...new Set(TUNINGS.map(t => t.group))];
+  return (
+    <>
+      {groups.map(g => (
+        <optgroup key={g} label={g}>
+          {TUNINGS.filter(t => t.group === g).map(t => (
+            <option key={t.id} value={t.id}>
+              {t.name}（{t.open.map(fmt).join(" ")}）
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </>
+  );
+}
+
 export function Settings() {
   const { settings: st, items } = useData();
   const [url, setUrl] = useState(st.guitarChartUrl);
@@ -56,11 +74,7 @@ export function Settings() {
         <label class="field">
           <span>チューニング</span>
           <select value={st.tuning} onChange={e => set({ tuning: e.currentTarget.value })}>
-            {TUNINGS.map(t => (
-              <option key={t.id} value={t.id}>
-                {t.name}（{t.open.map(fmt).join(" ")}）
-              </option>
-            ))}
+            <TuningOptions />
           </select>
         </label>
         <label class="field check">

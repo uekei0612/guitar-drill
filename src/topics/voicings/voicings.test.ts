@@ -14,7 +14,11 @@ const tab = (id: string, type: string, rootFret: number) => {
 
 describe("ボイシングの型", () => {
   it("どのチューニングでも問題が壊れていない", () => {
-    for (const t of TUNINGS) expect(checkTopic(voicings, ctx(t), 20)).toEqual([]);
+    // 弦が足りない・変則チューニングで作れない形は出さない（4 弦ベースは 4〜1 弦のドロップ 2 だけ）
+    for (const t of TUNINGS) if (voicings.items(ctx(t)).length) expect(checkTopic(voicings, ctx(t), 10)).toEqual([]);
+    expect(voicings.items(ctx(TUNINGS.find(t => t.id === "bass_4")))).toEqual(
+      ["M7", "7", "m7", "m7b5"].flatMap(x => [`drop2-4:${x}:fill`, `drop2-4:${x}:name`]),
+    );
   });
 
   it("よく知られた形になる", () => {

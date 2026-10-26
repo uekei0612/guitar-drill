@@ -49,7 +49,11 @@ export const pcName = (pc: number): string =>
   isNatural(pc) ? fmt(spellings(pc)[0]!) : spellings(pc).map(fmt).join("/");
 
 /** 出題する弦のうち、今のチューニングにある弦 */
-const activeStrings = (s: FretNotesSettings, t: Tuning) => s.strings.filter(x => x <= stringCount(t));
+const activeStrings = (s: FretNotesSettings, t: Tuning) => {
+  const on = s.strings.filter(x => x <= stringCount(t));
+  // 選んだ弦がこのチューニングに無い（4 弦ベースで 6 弦・5 弦など）ときは、低い 2 本で出す
+  return on.length ? on : [stringCount(t), stringCount(t) - 1].filter(x => x >= 1);
+};
 
 const posId = (t: Tuning, p: Position) => `${t.id}:${p.string}:${p.fret}`;
 
