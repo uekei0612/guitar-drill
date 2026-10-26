@@ -90,11 +90,9 @@ export const isStandard = (t: Tuning) => t.id === "standard";
 /** 図と構成音の説明 */
 function explain(t: Tuning, c: OpenChord) {
   const type = chordType(c.type);
-  const muted = c.shape.frets.flatMap((f, i) => (f === null ? [`${6 - i}弦`] : []));
   return {
     text: [
-      `${nameOf(c)}：${tabText(c.shape)}（6弦→1弦。x は鳴らさない）`,
-      `点の数字は指（1 人差し指〜4 小指）、白抜きの ○ は開放弦${muted.length ? `、× は鳴らさない弦（${muted.join("・")}）` : ""}`,
+      `${nameOf(c)}：${tabText(c.shape)}（6弦→1弦。点の数字は指）`,
       `鳴る音の度数（低い弦から）：${degreesText(t, c.shape, c.root, type)}`,
     ].join("\n"),
     board: shapeBoard(t, c.shape, c.root, type, "finger"),
