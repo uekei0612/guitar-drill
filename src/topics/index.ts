@@ -8,6 +8,7 @@ import { intervals } from "./intervals";
 import { modes } from "./modes";
 import { openStrings } from "./open-strings";
 import { progressions } from "./progressions";
+import { scaleBoxes } from "./scale-boxes";
 import { secondaryDominants } from "./secondary-dominants";
 import { sevenths } from "./sevenths";
 import { tensions } from "./tensions";
@@ -19,6 +20,7 @@ export const TOPICS: readonly AnyTopic[] = [
   fretNotes,
   triads,
   intervals,
+  scaleBoxes,
   diatonic,
   sevenths,
   circleOfFifths,
