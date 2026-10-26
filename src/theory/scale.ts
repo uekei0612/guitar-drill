@@ -1,4 +1,4 @@
-/* スケール。ID は guitar_chart の SCALE_REGISTRY と揃える（取り込みと「guitar_chart で開く」で使う）。 */
+/* スケール。ID は旧 guitar_chart の SCALE_REGISTRY と同じ（チャートの URL・PDF と揃える）。 */
 import { type Interval, degree, spell } from "./interval";
 import type { Note } from "./note";
 
