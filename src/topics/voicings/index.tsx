@@ -223,6 +223,7 @@ export const voicings: Topic = {
           board: { range, marks: [full[0]!] },
         },
         answer: { kind: "tap", mode: "all", range, correct: shape.positions.slice(1) },
+        hint: { text: `${howOf(v)}。${chord} は R から ${typeTones(v, type)}` },
         explanation,
         sound,
       };
@@ -243,6 +244,9 @@ export const voicings: Topic = {
         },
       },
       answer: { kind: "choice", options, correct },
+      hint: {
+        text: `R から各音まで半音で数える。3 度は半音 3 か 4、7 度は半音 10 か 11${v.order.includes("5") ? "、5 度は 6 か 7" : ""}（${howOf(v)}）`,
+      },
       explanation,
       sound,
     };

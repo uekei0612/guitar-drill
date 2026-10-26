@@ -23,6 +23,22 @@ export function problemsOf(q: Question, ctx: Context<unknown>): string[] {
     if (a.frets && !a.correct.every(inBoard({ range: a.frets }, ctx.common.tuning)))
       out.push("タップの正解が押せないフレットにある");
   }
+  // ヒント：どの問題にもあり、答えをそのまま言わず、点は問題の図の中に置く
+  if (!q.hint?.text) out.push("ヒントが無い");
+  // 問題文にも出ている言葉や、ほかの選択肢と一緒に並べたもの（覚え方の一覧）は除く
+  else if (
+    a.kind === "choice" &&
+    a.correct.length >= 2 &&
+    q.hint.text.includes(a.correct) &&
+    !q.prompt.text.includes(a.correct) &&
+    !a.options.some(o => o !== a.correct && q.hint!.text.includes(o))
+  )
+    out.push(`ヒントに正解 ${a.correct} がそのまま出ている: ${q.hint.text}`);
+  if (q.hint?.marks?.length) {
+    const range = a.kind === "tap" ? a.range : q.prompt.board?.range;
+    if (!range) out.push("図の無い問題にヒントの点がある");
+    else if (!q.hint.marks.every(m => inBoard({ range }, ctx.common.tuning)(m.pos))) out.push("ヒントの点が範囲外");
+  }
   for (const b of [q.prompt.board, q.explanation?.board])
     if (b && !b.marks.every(m => inBoard(b, ctx.common.tuning)(m.pos))) out.push("指板図の点が範囲外");
   return out;

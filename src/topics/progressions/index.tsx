@@ -13,10 +13,12 @@ import {
   chordSymbol,
   chordType,
   degree,
+  fmt,
   keyId,
   keyLabel,
   note,
   pc,
+  scaleNotes,
   semitones,
   spellings,
   transpose,
@@ -154,6 +156,16 @@ export const progressions: Topic = {
       item: id,
       prompt: { text: `キー ${keyLabel(k)} の ${pr.name}：${romanText(pr)}${form} は？` },
       answer: { kind: "choice", options: shuffle(rng, options), correct },
+      hint: {
+        text: `キー ${keyLabel(k)} の${k.mode === "major" ? "スケール" : "スケール（ナチュラルマイナー）"}：${scaleNotes(
+          k.mode === "major" ? "major" : "natural_minor",
+          k.tonic,
+        )
+          .map(fmt)
+          .join(
+            " ",
+          )}。ローマ数字は何番目の音がルートか${k.mode === "minor" ? "（♭Ⅵ・♭Ⅶ はこのスケールの 6・7 番目そのまま）" : ""}`,
+      },
       explanation: {
         text: pr.form ? `12 小節：${formIn(k, pr)}` : "",
         strip: pr.chords.map(c => ({ label: symbols(k, [c])[0]!, sub: romanOf(c) })),

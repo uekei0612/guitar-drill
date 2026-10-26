@@ -43,6 +43,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const [session, setSession] = useState<Session>(() => newSession());
   const [result, setResult] = useState<{ ok: boolean; response: Response } | null>(null);
   const [taps, setTaps] = useState<Position[]>([]);
+  /** ヒントを開いた（正解しても覚えていない扱いにし、このセッションの中でもう一度出す） */
+  const [hinted, setHinted] = useState(false);
   const nextRef = useRef<HTMLButtonElement>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -125,14 +127,15 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     if (!q || result) return;
     const ok = grade(q.answer, response);
     const key = itemKey(topic.id, q.item);
-    st.update(d => ({ ...d, items: { ...d.items, [key]: review(d.items[key], ok, clock()) } }));
+    st.update(d => ({ ...d, items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) } }));
     setResult({ ok, response });
   }
 
   function next() {
-    setSession(s => answer(s, result!.ok));
+    setSession(s => answer(s, result!.ok && !hinted));
     setResult(null);
     setTaps([]);
+    setHinted(false);
     setStack(false);
     setNoFill(false);
   }
@@ -179,7 +182,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </p>
           {sum.weak.length > 0 && (
             <>
-              <h3>間違えたもの</h3>
+              <h3>間違えた・ヒントを見たもの</h3>
               <ul class="weak">
                 {sum.weak.map(id => (
                   <li key={id}>{topic.itemLabel(id, ctx)}</li>
@@ -208,6 +211,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const a = q.answer;
   const board = q.prompt.board;
   const tapping = a.kind === "tap" && !result;
+  const hintMarks = hinted && !result ? (q.hint?.marks ?? []) : [];
   // 答えたあとは図を 1 枚にする：解説の図があればそれに置き換え、押したところを重ねる
   // （問題の図と解説の図を縦に並べるとスマホで画面に収まらないため）
   const ex = result ? q.explanation?.board : undefined;
@@ -232,7 +236,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             orientation: (a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation,
             muted: board?.muted,
             barres: board?.barres,
-            marks: a.kind === "tap" && result ? [...(board?.marks ?? []), ...tapMarks(a.correct, taps)] : board?.marks,
+            marks:
+              a.kind === "tap" && result
+                ? [...(board?.marks ?? []), ...tapMarks(a.correct, taps)]
+                : hintMarks.length
+                  ? [...hintMarks, ...(board?.marks ?? [])]
+                  : board?.marks,
           }
         : undefined;
   // 答えたあとの縦長の図（12 フレットまでなど）は、縮めると読めなくなるので解説を横に並べる
@@ -260,7 +269,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     const key = `${shown.range.minFret}-${shown.range.maxFret}-${orient}`;
     scale = Math.min((tall ? boardBox.width * 0.6 : boardBox.width) / L.width, boardBox.height / L.height, 1.6);
     if (!result) {
-      if (tapping && scale < MIN_TAP_SCALE) queueMicrotask(() => setNoFill(true));
+      // ヒントを開いて少し縮んだだけなら広げ直さない（画面からはみ出してスクロールになるより、少し小さいほうがよい）
+      if (tapping && scale < MIN_TAP_SCALE && !hinted) queueMicrotask(() => setNoFill(true));
       questionScale.current = { index: session.index, key, k: scale };
     } else if (questionScale.current?.index === session.index && questionScale.current.key === key)
       scale = Math.min(scale, questionScale.current.k);
@@ -272,7 +282,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const feedback = !result
     ? undefined
     : result.ok
-      ? `正解：${a.kind === "choice" ? a.correct : "全部合っています"}`
+      ? `正解${hinted ? "（ヒントあり）" : ""}：${a.kind === "choice" ? a.correct : "全部合っています"}`
       : a.kind === "choice"
         ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
         : `不正解：正解は図の点${taps.some(t => !a.correct.some(c => same(c, t))) ? "（赤は押し間違い）" : ""}`;
@@ -295,9 +305,20 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         </span>
       </header>
       <section class={`question${result ? " answered" : ""}${tall ? " tall" : ""}`}>
-        <p class="prompt" ref={promptRef} tabIndex={-1}>
-          {q.prompt.text}
-        </p>
+        <div class="prompt-row">
+          <p class="prompt" ref={promptRef} tabIndex={-1}>
+            {q.prompt.text}
+          </p>
+          {q.hint && !result && !hinted && (
+            <button
+              class="btn hint-btn"
+              onClick={() => setHinted(true)}
+              aria-label="ヒントを見る（見た問題はあとでもう一度出ます）"
+            >
+              ヒント
+            </button>
+          )}
+        </div>
         {shown && (
           <div class="board-wrap" ref={boardRef}>
             <Fretboard
@@ -338,6 +359,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       <div class={`dock${dock ? " stacked" : ""}`}>
         {(!result || dock) && (
           <div class={`dock-q${result ? " off" : ""}`} aria-hidden={result ? true : undefined}>
+            {/* ヒントは答えたあとの解説の場所（最初から高さを取ってある）に出す。図の大きさを変えない */}
+            {q.hint && (
+              <p class="hint-text" aria-live="polite">
+                {hinted && !result ? q.hint.text : ""}
+              </p>
+            )}
             {a.kind === "choice" && (
               <div
                 class={`choices${a.options.some(o => o.length > 10) ? " wide" : ""}`}

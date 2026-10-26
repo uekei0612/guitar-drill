@@ -93,6 +93,12 @@ export const secondaryDominants: Topic = {
         text: `キー ${keyLabel(k)} で ${target.symbol}（${target.label}）へ解決する${kind === "sec" ? "ドミナント 7th" : "裏コード"}は？`,
       },
       answer: { kind: "choice", options: shuffle(rng, options), correct },
+      hint: {
+        text:
+          kind === "sec"
+            ? `ドミナント 7th は、解決先の 5 度上（${fmt(target.root)} を 1 として文字で 5 つ目・半音 7 上）を根音にした 7th`
+            : `裏コードは、表のドミナント（解決先の 5 度上の 7th）から半音 6 離れた 7th。解決先 ${fmt(target.root)} へ半音上から下りてくる`,
+      },
       explanation: {
         text: [
           kind === "sec"

@@ -49,7 +49,7 @@ describe("checkTopic", () => {
       prompt: { text: "?", board: { range, marks: [{ pos: { string: 7, fret: 0 }, kind: "target" }] } },
       answer: { kind: "choice", options: ["A", "A"], correct: "B" },
     };
-    expect(problemsOf(bad, ctx)).toHaveLength(3);
+    expect(problemsOf(bad, ctx)).toHaveLength(4);
     const topic: Topic = {
       id: "t",
       level: "beginner",

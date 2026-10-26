@@ -4,19 +4,21 @@
 import { useState } from "preact/hooks";
 import { shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
-import { type Note, type Tuning, chordSymbol, chordType, note } from "../../theory";
+import { type Note, type Tuning, chordSymbol, chordTones, chordType, fmt, note } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import {
   type LabelMode,
   type Shape,
   degreesText,
   hideRoot,
+  rootHint,
   shape,
   shapeBoard,
   shapeRange,
   sounding,
   strumOf,
   tabText,
+  thirdTip,
 } from "../chord-shapes/shape";
 
 export interface OpenChord {
@@ -81,6 +83,11 @@ export const openChordById = (id: string): OpenChord => {
 };
 
 const enabled = (s: OpenChordsSettings) => [...BASE, ...GROUPS.filter(g => s[g.key]).flatMap(g => g.ids)];
+
+const mutedText = (s: Shape) => {
+  const m = s.frets.flatMap((f, i) => (f === null ? [`${6 - i}弦`] : []));
+  return m.length ? m.join("・") : "なし";
+};
 
 const nameOf = (c: OpenChord) => chordSymbol(c.root, chordType(c.type));
 
@@ -158,6 +165,13 @@ export const openChords: Topic<OpenChordsSettings> = {
           orientation: "vertical",
           onePerString: true,
         },
+        hint: rootHint(
+          t,
+          c.shape,
+          c.root,
+          chordType(c.type),
+          `薄い点がルート（${fmt(c.root)}）。鳴らさない弦：${mutedText(c.shape)}。構成音は ${chordTones(c.root, chordType(c.type)).map(fmt).join(" ")}`,
+        ),
         explanation: explain(t, c),
         sound: strumOf(t, c.shape),
       };
@@ -177,6 +191,7 @@ export const openChords: Topic<OpenChordsSettings> = {
         board: { ...board, marks: hideRoot(board.marks) },
       },
       answer: { kind: "choice", options: shuffle(rng, options), correct: name },
+      hint: rootHint(t, c.shape, c.root, chordType(c.type), `薄い点がルート。${thirdTip}`),
       explanation: explain(t, c),
       sound: strumOf(t, c.shape),
     };

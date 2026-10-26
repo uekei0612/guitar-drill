@@ -73,4 +73,36 @@ describe("Drill", () => {
     expect([...el.querySelectorAll(".weak li")].map(li => li.textContent)).toHaveLength(1);
     expect(Object.keys(st.data.items).sort()).toEqual(["stub/a", "stub/b", "stub/tap"]);
   });
+
+  it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {
+    const hinted: Topic = {
+      ...topic,
+      items: () => ["a", "b"],
+      question: id => ({
+        item: id,
+        prompt: { text: `${id} は？` },
+        answer: { kind: "choice", options: ["a", "b", "c", "d"], correct: id },
+        hint: { text: `${id} の手がかり` },
+      }),
+    };
+    const st = new Store(memoryStorage());
+    st.update(d => ({ ...d, settings: { ...d.settings, sessionSize: 4 } }));
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={hinted} store={st} rng={seeded(1)} clock={() => 0} />, el));
+
+    const id = el.querySelector(".prompt")!.textContent![0]!;
+    expect(el.querySelector(".hint-text")!.textContent).toBe("");
+    await click(button(el, "ヒント"));
+    expect(el.querySelector(".hint-text")!.textContent).toBe(`${id} の手がかり`);
+    expect(button(el, "ヒント")).toBeUndefined();
+    await click(button(el, id));
+    expect(el.querySelector(".feedback-line")!.textContent).toBe(`正解（ヒントあり）：${id}`);
+    // 答えたらヒントはしまう
+    expect(el.querySelector(".hint-text")!.textContent).toBe("");
+    expect(st.data.items[`stub/${id}`]!.interval).toBe(0);
+    await click(button(el, "次へ"));
+    // 次の問題ではヒントは閉じている
+    expect(button(el, "ヒント")).toBeDefined();
+    expect(el.querySelector(".hint-text")!.textContent).toBe("");
+  });
 });
