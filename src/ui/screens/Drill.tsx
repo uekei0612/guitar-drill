@@ -22,6 +22,8 @@ export interface DrillProps {
 
 /** タップで答える図の最小の拡大率（1 マス 48 を 44px 以上に保つ） */
 const MIN_TAP_SCALE = 44 / 48;
+/** 図の下のヒントのボタンが取る高さ（style.css の .hint-btn の高さ＋上の余白） */
+const HINT_BUTTON_HEIGHT = 56;
 
 const same = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 
@@ -50,7 +52,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const boardRef = useRef<HTMLDivElement>(null);
   /** 答えたあと：画面の残りの高さと、図に使える枠 */
   const [fillHeight, setFillHeight] = useState<number>();
-  const [boardBox, setBoardBox] = useState<{ width: number; height: number }>();
+  const [measured, setBoardBox] = useState<{ width: number; height: number; at: string }>();
   /** 縦長の図でも、画面に縦の余裕があれば解説を横に並べず下に置く（そのほうが図が大きい） */
   const [stack, setStack] = useState(false);
   /** タップで答える図が、画面いっぱいに収めると 1 マス 44px を割るときは広げずに元の大きさで出す */
@@ -112,7 +114,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     const ro = RO
       ? new RO(() => {
           const b = boardRef.current;
-          if (b) setBoardBox({ width: b.clientWidth, height: b.clientHeight });
+          if (b) setBoardBox({ width: b.clientWidth, height: b.clientHeight, at: `${session.index}-${!!result}` });
         })
       : undefined;
     if (boardRef.current) ro?.observe(boardRef.current);
@@ -252,6 +254,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const tallBoard = !!result && tallShape;
   const tall = tallBoard && !stack;
   // 横に並べたときと下に置いたときで、図が大きくなるほうを選ぶ（横に並べた状態で測ってから一度だけ決める）
+  // 測った枠がこの問題（答える前／あと）のものか。「次へ」の直後は前の問題の枠が残っていて、それで決めると誤る
+  const boardBox = measured?.at === `${session.index}-${!!result}` ? measured : undefined;
   if (tall && shown && boardBox) {
     const L = layout(stringCount(ctx.common.tuning), shown.range, ctx.common.lefty, "vertical");
     const TEXT = 110;
@@ -260,14 +264,45 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     if (below > side) queueMicrotask(() => setStack(true));
   }
   // 拡大率：図の枠に収まるいちばん大きい値（広げすぎると点と文字だけが大きくなるので 1.6 倍まで）
+  const L =
+    fill && shown && boardBox
+      ? layout(
+          stringCount(ctx.common.tuning),
+          shown.range,
+          ctx.common.lefty,
+          shown.orientation ?? chooseOrientation(shown.range),
+          {
+            headRow: (shown.muted?.length ?? 0) > 0,
+          },
+        )
+      : undefined;
+  const fitScale = (reserve: number) =>
+    L && boardBox
+      ? Math.min((tall ? boardBox.width * 0.6 : boardBox.width) / L.width, (boardBox.height - reserve) / L.height, 1.6)
+      : undefined;
+  // ヒントのボタンは図のすぐ下に置く（答えるまで。開いたあとも場所は取っておき、図の大きさを変えない）。
+  // そこに置くとタップのマスが小さくなりすぎるときだけ、「答え合わせ」の横に置く
+  const hintInRow =
+    tapping &&
+    a.kind === "tap" &&
+    a.mode === "all" &&
+    (fitScale(HINT_BUTTON_HEIGHT) ?? 1) < MIN_TAP_SCALE &&
+    (fitScale(0) ?? 0) >= MIN_TAP_SCALE;
+  const hintBelow = !!q.hint && !result && !!shown && !hintInRow;
+  const hintButton = (
+    <button
+      class="btn hint-btn"
+      style={hinted ? { visibility: "hidden" } : undefined}
+      onClick={() => setHinted(true)}
+      aria-label="ヒントを見る（見た問題はあとでもう一度出ます）"
+    >
+      ヒント
+    </button>
+  );
   let scale: number | undefined;
   if (fill && shown && boardBox) {
-    const orient = shown.orientation ?? chooseOrientation(shown.range);
-    const L = layout(stringCount(ctx.common.tuning), shown.range, ctx.common.lefty, orient, {
-      headRow: (shown.muted?.length ?? 0) > 0,
-    });
-    const key = `${shown.range.minFret}-${shown.range.maxFret}-${orient}`;
-    scale = Math.min((tall ? boardBox.width * 0.6 : boardBox.width) / L.width, boardBox.height / L.height, 1.6);
+    const key = `${shown.range.minFret}-${shown.range.maxFret}-${shown.orientation ?? chooseOrientation(shown.range)}`;
+    scale = fitScale(hintBelow ? HINT_BUTTON_HEIGHT : 0)!;
     if (!result) {
       // ヒントを開いて少し縮んだだけなら広げ直さない（画面からはみ出してスクロールになるより、少し小さいほうがよい）
       if (tapping && scale < MIN_TAP_SCALE && !hinted) queueMicrotask(() => setNoFill(true));
@@ -305,22 +340,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         </span>
       </header>
       <section class={`question${result ? " answered" : ""}${tall ? " tall" : ""}`}>
-        <div class="prompt-row">
-          <p class="prompt" ref={promptRef} tabIndex={-1}>
-            {q.prompt.text}
-          </p>
-          {q.hint && !result && !hinted && (
-            <button
-              class="btn hint-btn"
-              onClick={() => setHinted(true)}
-              aria-label="ヒントを見る（見た問題はあとでもう一度出ます）"
-            >
-              ヒント
-            </button>
-          )}
-        </div>
+        <p class="prompt" ref={promptRef} tabIndex={-1}>
+          {q.prompt.text}
+        </p>
         {shown && (
-          <div class="board-wrap" ref={boardRef}>
+          <div class={`board-wrap${hintBelow ? " with-hint" : ""}`} ref={boardRef}>
             <Fretboard
               tuning={ctx.common.tuning}
               lefty={ctx.common.lefty}
@@ -351,6 +375,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               }
             />
             {tall && q.explanation && <p class="side-explain">{q.explanation.text}</p>}
+            {hintBelow && hintButton}
           </div>
         )}
       </section>
@@ -360,6 +385,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         {(!result || dock) && (
           <div class={`dock-q${result ? " off" : ""}`} aria-hidden={result ? true : undefined}>
             {/* ヒントは答えたあとの解説の場所（最初から高さを取ってある）に出す。図の大きさを変えない */}
+            {/* 図の無い問題は、選択肢の上 */}
+            {q.hint && !shown && !hinted && hintButton}
             {q.hint && (
               <p class="hint-text" aria-live="polite">
                 {hinted && !result ? q.hint.text : ""}
@@ -383,6 +410,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 <button class="btn primary" onClick={() => submit({ kind: "tap", positions: taps })}>
                   答え合わせ（{taps.length}）
                 </button>
+                {q.hint && hintInRow && hintButton}
               </div>
             )}
           </div>
