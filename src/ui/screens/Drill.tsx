@@ -10,7 +10,7 @@ import { Fretboard, posLabel } from "../Fretboard";
 import { MAX_HORIZONTAL_FRETS, chooseOrientation, layout } from "../fretboard-layout";
 import { stringCount } from "../../theory";
 import { ChartLink } from "../ChartLink";
-import { playMidi } from "../../chart/audio";
+import { playSound } from "../../chart/audio";
 import { href } from "../route";
 
 export interface DrillProps {
@@ -85,10 +85,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     }
   }, [session.index]);
 
-  // 図のある問題は画面いっぱいに使う：画面の高さから上の位置を引いた分を、この画面の高さにし、
-  // 図の枠の大きさを測って拡大率を決める
+  // 画面いっぱいに使う：画面の高さから上の位置を引いた分を、この画面の高さにし、
+  // 図のある問題は図の枠の大きさを測って拡大率を決める。図の無い問題は選択肢を画面の下（親指の届く所）に置く
   const hasBoard = !!q && (!!q.prompt.board || q.answer.kind === "tap" || (!!result && !!q.explanation?.board));
-  const fill = hasBoard && (!!result || !noFill);
+  const textOnly = !!q && !hasBoard;
+  const fill = textOnly || (hasBoard && (!!result || !noFill));
   useLayoutEffect(() => {
     setBoardBox(undefined);
     if (!fill) {
@@ -275,7 +276,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   return (
     <div
       ref={screenRef}
-      class={`drill-screen${fill ? " fill" : ""}`}
+      class={`drill-screen${fill ? " fill" : ""}${textOnly ? " text-only" : ""}`}
       style={fill && fillHeight ? { height: `${fillHeight}px` } : undefined}
     >
       <header class="bar">
@@ -359,7 +360,17 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               {feedback ?? "\u3000"}
             </p>
             <section class="explain">
-              {q.explanation && !tall && <p>{q.explanation.text}</p>}
+              {q.explanation?.strip && (
+                <ol class="strip" aria-label={q.explanation.stripLabel}>
+                  {q.explanation.strip.map((x, i) => (
+                    <li key={i} class={x.current ? "current" : undefined}>
+                      <span class="strip-label">{x.label}</span>
+                      {x.sub && <span class="strip-sub">{x.sub}</span>}
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {q.explanation?.text && !tall && <p>{q.explanation.text}</p>}
               {q.chart && <ChartLink chart={q.chart} />}
             </section>
             <div class="actions next-bar">
@@ -367,7 +378,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 次へ
               </button>
               {q.sound && (
-                <button class="btn" onClick={() => playMidi(q.sound!.notes, q.sound!)}>
+                <button class="btn" onClick={() => playSound(q.sound!)}>
                   ♪ 音を聴く
                 </button>
               )}

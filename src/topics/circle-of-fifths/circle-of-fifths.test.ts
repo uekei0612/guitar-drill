@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkTopic } from "../../drill/check";
 import { seeded } from "../../drill/rng";
 import { STANDARD, keyLabel, note } from "../../theory";
-import { circleOfFifths, relative, sigLabel } from ".";
+import { accidentals, circleOfFifths, relative, sigLabel } from ".";
 
 const ctx = { common: { tuning: STANDARD, lefty: false }, settings: {} };
 const ask = (id: string) => circleOfFifths.question(id, ctx, seeded(1)).answer;
@@ -26,5 +26,18 @@ describe("五度圏と調号", () => {
     expect(ask("up:F#")).toMatchObject({ correct: "D♭" });
     expect(ask("down:Am")).toMatchObject({ correct: "Dm" });
     expect(keyLabel(relative({ mode: "major", tonic: note("Db") }))).toBe("B♭m");
+  });
+
+  it("調号の音と、解説の五度圏の並び", () => {
+    expect(accidentals(3)).toEqual(["F♯", "C♯", "G♯"]);
+    expect(accidentals(-2)).toEqual(["B♭", "E♭"]);
+    expect(accidentals(0)).toEqual([]);
+    const q = circleOfFifths.question("sig:C", ctx, seeded(1));
+    expect(q.explanation?.strip?.map(x => x.label)).toEqual(["B♭", "F", "C", "G", "D"]);
+    expect(q.explanation?.strip?.find(x => x.current)?.label).toBe("C");
+    expect(circleOfFifths.question("sig:Eb", ctx, seeded(1)).explanation?.text).toContain(
+      "最後から 2 つ目の♭（E♭）が主音",
+    );
+    expect(circleOfFifths.question("sig:A", ctx, seeded(1)).explanation?.text).toContain("最後の♯（G♯）の半音上");
   });
 });

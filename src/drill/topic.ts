@@ -45,9 +45,21 @@ export interface Board {
   readonly barres?: readonly Barre[];
 }
 
+/** 横に並べる札（五度圏の並び、進行のコード）。label が大きく、sub が下に小さく出る */
+export interface StripItem {
+  readonly label: string;
+  readonly sub?: string;
+  /** 問われているもの（強調する） */
+  readonly current?: boolean;
+}
+
 export interface Prompt {
   readonly text: string;
   readonly board?: Board;
+  /** 解説で文字の前に出す札の並び */
+  readonly strip?: readonly StripItem[];
+  /** 札の並びの読み上げ用の名前（「五度圏の並び」など） */
+  readonly stripLabel?: string;
 }
 
 /** 4択（選択肢は 2 つ以上、重複なし、正解を含む） */
@@ -82,8 +94,13 @@ export interface Question {
   readonly explanation?: Prompt;
   /** 解説から開くチャートの図 */
   readonly chart?: ChartRef;
-  /** 解説で鳴らせる音（MIDI ノート番号。順に鳴らし、chord なら最後に重ねる） */
-  readonly sound?: { readonly notes: readonly number[]; readonly chord?: boolean; readonly strum?: boolean };
+  /** 解説で鳴らせる音（MIDI ノート番号。順に鳴らし、chord なら最後に重ねる。chords は和音を順に＝進行） */
+  readonly sound?: {
+    readonly notes: readonly number[];
+    readonly chord?: boolean;
+    readonly strum?: boolean;
+    readonly chords?: readonly (readonly number[])[];
+  };
 }
 
 export type Response =

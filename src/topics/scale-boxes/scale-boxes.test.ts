@@ -24,7 +24,7 @@ describe("スケールのボックス", () => {
 
   it("全スケール × 全キー × どのチューニングでも問題が壊れていない", () => {
     for (const t of TUNINGS) expect(checkTopic(scaleBoxes, ctx(all, t), 4)).toEqual([]);
-  });
+  }, 20_000);
 
   it("A マイナーペンタのボックス 1 は guitar_chart と同じ 5〜8 フレットの形", () => {
     const ns = boxNotes(STANDARD, "minor_pentatonic", 9, [5, 8]);

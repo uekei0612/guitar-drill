@@ -4,11 +4,12 @@
    - ボックスの中の点を示して「何度？」（4択）
    - 「ボックスの R を全部タップ」
    - 「このボックスで抜けている音をタップ」 */
+import { useState } from "preact/hooks";
 import { pick, shuffle } from "../../drill/rng";
 import type { Mark, Question, Topic } from "../../drill/topic";
 import { type FretSpan, boxesFor, playableSpan } from "../../chart/boxes";
 import { CHART_SCALES, scaleChart } from "../../chart/registry";
-import { type Position, type Tuning, degree, degreeLabel, mod, pcAt, stringCount } from "../../theory";
+import { type Position, type Tuning, degree, degreeLabel, midiAt, mod, pcAt, stringCount } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import { ChartLink } from "../../ui/ChartLink";
 
@@ -66,6 +67,17 @@ export function boxNotes(t: Tuning, scale: string, rootPc: number, span: FretSpa
 
 const toMarks = (ns: readonly BoxNote[]): Mark[] =>
   ns.map(n => ({ pos: n.pos, kind: n.label === "R" ? "root" : "tone", label: n.label }));
+
+/** ボックスの中の音を低い順に（同じ高さは 1 つ） */
+const ascending = (t: Tuning, ns: readonly BoxNote[]) =>
+  [...new Map(ns.map(n => [midiAt(t, n.pos), n])).entries()].sort((a, b) => a[0] - b[0]);
+
+/** いちばん低い R から 1 オクターブ上の R まで、ボックスの音で上がる */
+function scaleRun(t: Tuning, ns: readonly BoxNote[]): number[] {
+  const up = ascending(t, ns);
+  const lo = up.find(([, n]) => n.label === "R")?.[0] ?? up[0]![0];
+  return up.map(([m]) => m).filter(m => m >= lo && m <= lo + 12);
+}
 
 function parseItem(id: string) {
   const [scale, p, box] = id.split(":") as [string, string, string];
@@ -139,10 +151,15 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
     const notes = boxNotes(t, scale, rootPc, span);
     const title = `${rootName(scale, rootPc)} ${scaleName(scale)} ボックス ${box}`;
     const roots = notes.filter(n => n.label === "R");
+    const degrees = scaleChart(scale)!.degrees.map(d => degreeLabel(degree(d)));
     const base = {
       item: id,
-      explanation: { text: `${title}（${span[0]}〜${span[1]} フレット）`, board: { range, marks: toMarks(notes) } },
+      explanation: {
+        text: `${title}（${span[0]}〜${span[1]} フレット）\n${scaleName(scale)}の度数：${degrees.join(" ")}`,
+        board: { range, marks: toMarks(notes) },
+      },
       chart: { scale, rootPc, box, flat: rootName(scale, rootPc).includes("♭") },
+      sound: { notes: scaleRun(t, notes) },
     };
     // ボックスに R が無いことは無いが、念のため「何度？」に寄せる
     const kind = pick(rng, roots.length ? (["deg", "roots", "missing"] as const) : (["deg", "missing"] as const));
@@ -169,8 +186,12 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
       notes.filter(n => n.label !== "R"),
     );
     const labels = [...new Set(notes.map(n => n.label))].filter(l => l !== "R" && l !== target.label);
+    // 何度？は、いちばん近い R と ? の 2 音
+    const tm = midiAt(t, target.pos);
+    const rm = roots.map(n => midiAt(t, n.pos)).sort((a, b) => Math.abs(a - tm) - Math.abs(b - tm))[0];
     return {
       ...base,
+      ...(rm !== undefined && { sound: { notes: [rm, tm], chord: true } }),
       prompt: {
         text: `${title}：? は何度？`,
         board: {
@@ -189,35 +210,54 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
     };
   },
 
-  reference: ({ ctx }) => {
-    const t = ctx.common.tuning;
-    const scale = ctx.settings.scales[0]!;
-    const rootPc = ctx.settings.roots[0]!;
-    const spans = boxesOf(scale, t, rootPc).map(playable);
-    const title = `${rootName(scale, rootPc)} ${scaleName(scale)}`;
-    return (
-      <>
-        <p>{title}のボックス（設定で選んだ最初のスケールとキー）。度数とボックスの位置はチャートと同じ。</p>
-        <ChartLink chart={{ scale, rootPc, flat: rootName(scale, rootPc).includes("♭") }} />
-        <dl class="ref-list">
-          {spans.map((span, i) => (
-            <div key={i}>
-              <dt>
-                ボックス {i + 1}（{span[0]}〜{span[1]} フレット）
-              </dt>
-              <dd>
-                <Fretboard
-                  tuning={t}
-                  range={{ minFret: span[0], maxFret: span[1] }}
-                  lefty={ctx.common.lefty}
-                  label={`${title} ボックス ${i + 1}`}
-                  marks={toMarks(boxNotes(t, scale, rootPc, span))}
-                />
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </>
-    );
-  },
+  reference: ({ ctx }) => <BoxSheet tuning={ctx.common.tuning} lefty={ctx.common.lefty} settings={ctx.settings} />,
 };
+
+/** 参考：設定で選んだスケール × キーをめくって見る */
+function BoxSheet({ tuning: t, lefty, settings }: { tuning: Tuning; lefty: boolean; settings: ScaleBoxSettings }) {
+  const pages = settings.scales.flatMap(scale => settings.roots.map(rootPc => ({ scale, rootPc })));
+  const [idx, setIdx] = useState(0);
+  const { scale, rootPc } = pages[idx % pages.length]!;
+  const go = (d: number) => setIdx(i => (i + d + pages.length) % pages.length);
+  const spans = boxesOf(scale, t, rootPc).map(playable);
+  const title = `${rootName(scale, rootPc)} ${scaleName(scale)}`;
+  const degrees = scaleChart(scale)!.degrees.map(d => degreeLabel(degree(d)));
+  return (
+    <>
+      {pages.length > 1 && (
+        <div class="pager" role="group" aria-label="スケールとキーをめくる">
+          <button class="btn" onClick={() => go(-1)} aria-label="前へ">
+            ←
+          </button>
+          <h2 aria-live="polite">{title}</h2>
+          <button class="btn" onClick={() => go(1)} aria-label="次へ">
+            →
+          </button>
+        </div>
+      )}
+      <p>
+        {pages.length > 1 ? "" : `${title}。`}度数：{degrees.join(" ")}
+        。ボックスの位置はチャートと同じ（設定で選んだスケールとキーをめくれる）。
+      </p>
+      <ChartLink chart={{ scale, rootPc, flat: rootName(scale, rootPc).includes("♭") }} />
+      <dl class="ref-list">
+        {spans.map((span, i) => (
+          <div key={i}>
+            <dt>
+              ボックス {i + 1}（{span[0]}〜{span[1]} フレット）
+            </dt>
+            <dd>
+              <Fretboard
+                tuning={t}
+                range={{ minFret: span[0], maxFret: span[1] }}
+                lefty={lefty}
+                label={`${title} ボックス ${i + 1}`}
+                marks={toMarks(boxNotes(t, scale, rootPc, span))}
+              />
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </>
+  );
+}

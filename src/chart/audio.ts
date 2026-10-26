@@ -73,3 +73,34 @@ export function playMidi(
   }
   if (chord && notes.length > 1) for (const m of notes) tone(c, midiFrequency(m), t, dur * 3);
 }
+
+/** ピアノ風に並べた和音：ルートを低音（E2〜D♯3）に置き、構成音はその上の G3〜F♯4 に収める。
+    コードが変わっても上の音があまり動かないので、進行を続けて鳴らしても聞き取りやすい */
+export function voiced(rootPc: number, pcs: readonly number[]): number[] {
+  const bass = 40 + mod(rootPc - 4, 12);
+  const upper = [...new Set(pcs.map(p => 55 + mod(p - 7, 12)))].sort((a, b) => a - b);
+  return [bass, ...upper];
+}
+
+/** コードを 1 つずつ順に鳴らす（進行） */
+export function playChords(chords: readonly (readonly number[])[]): void {
+  const c = audioCtx();
+  if (!c || !chords.length) return;
+  if (c.state === "suspended") void c.resume();
+  const step = 0.9;
+  const t0 = c.currentTime + 0.06;
+  chords.forEach((notes, i) =>
+    notes.forEach((m, j) => tone(c, midiFrequency(m), t0 + i * step + j * 0.02, i === chords.length - 1 ? 1.6 : step)),
+  );
+}
+
+/** 問題の音（Question.sound）を鳴らす */
+export function playSound(s: {
+  readonly notes: readonly number[];
+  readonly chord?: boolean;
+  readonly strum?: boolean;
+  readonly chords?: readonly (readonly number[])[];
+}): void {
+  if (s.chords) playChords(s.chords);
+  else playMidi(s.notes, s);
+}
