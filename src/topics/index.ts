@@ -1,11 +1,13 @@
 /* 分野の一覧。新しい分野はここに足す */
 import type { AnyTopic } from "../drill/topic";
+import { barreChords } from "./barre-chords";
 import { circleOfFifths } from "./circle-of-fifths";
 import { diatonic } from "./diatonic";
 import { dominantScales } from "./dominant-scales";
 import { fretNotes } from "./fret-notes";
 import { intervals } from "./intervals";
 import { modes } from "./modes";
+import { openChords } from "./open-chords";
 import { openStrings } from "./open-strings";
 import { progressions } from "./progressions";
 import { scaleBoxes } from "./scale-boxes";
@@ -17,7 +19,9 @@ import { voicings } from "./voicings";
 
 export const TOPICS: readonly AnyTopic[] = [
   openStrings,
+  openChords,
   fretNotes,
+  barreChords,
   triads,
   intervals,
   scaleBoxes,
