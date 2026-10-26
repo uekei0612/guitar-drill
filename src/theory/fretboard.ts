@@ -86,3 +86,21 @@ export function positionsOf(t: Tuning, p: number, range: FretRange = { minFret: 
   }
   return out;
 }
+
+/** 開放弦の高さ（MIDI ノート番号。C4 = 60）。チューニングは音名しか持たないので、
+    いちばん低い弦を F2（41）以下で最も高い音（ベースはその 1 オクターブ下）に置き、
+    そこから 1 本ごとに「前の弦より高い、いちばん近い音」と数える */
+export function openMidis(t: Tuning): number[] {
+  const out: number[] = [];
+  for (const n of t.open) {
+    const prev = out[out.length - 1];
+    if (prev === undefined) {
+      const low = 41 - mod(41 - pc(n), 12);
+      out.push(t.group === "ベース" ? low - 12 : low);
+    } else out.push(prev + 1 + mod(pc(n) - prev - 1, 12));
+  }
+  return out;
+}
+
+/** (弦, フレット) の高さ（MIDI ノート番号） */
+export const midiAt = (t: Tuning, pos: Position): number => openMidis(t)[stringCount(t) - pos.string]! + pos.fret;
