@@ -31,6 +31,8 @@ export default defineConfig({
       workbox: {
         // 画面はハッシュで切り替えるので、取っておくのはビルドした一式だけでよい
         globPatterns: ["**/*.{js,css,html,svg,png,json}"],
+        // jsPDF の任意の依存（HTML・SVG を画像にする機能用）。使わないので取っておかない
+        globIgnores: ["**/html2canvas-*.js", "**/purify.es-*.js", "**/index.es-*.js"],
         cleanupOutdatedCaches: true,
       },
     }),

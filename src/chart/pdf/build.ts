@@ -1,0 +1,79 @@
+/* チャートの状態から PDF のページを組み立てる（guitar_chart の web/params.py build_specs と builder.py）。
+   順番はボックス図 → 度数付き全指板 → 全 12 キー。 */
+import { mod, pc, tuningById } from "../../theory";
+import { computeBoxRanges } from "../boxes";
+import { type ChartState, chartOf, tuningPcs } from "../state";
+import { Canvas, type Page } from "./page";
+import { type Ctx, type Subject, sectionAllKeys, sectionBoxPositions, sectionFullWithDegrees } from "./sections";
+
+const STANDARD = tuningById("standard")!.open.map(pc);
+
+export interface PdfPlan {
+  readonly boxes: boolean;
+  readonly degrees: boolean;
+  readonly allKeys: boolean;
+}
+
+/** 出すセクション（ボックス図はボックスのあるスケールのときだけ） */
+export function pdfPlan(s: ChartState): PdfPlan {
+  const chart = chartOf(s);
+  return {
+    boxes: s.includeBoxes && chart.kind === "scale" && chart.boxRanges.length > 0,
+    degrees: s.includeDegrees,
+    allKeys: s.includeAllKeys,
+  };
+}
+
+/** PDF に描くボックス。
+    - 標準チューニング：手で決めた範囲（canonical root 用）。ボックス図は canonical root のまま、
+      度数付き全指板はキーに合わせて動かす（guitar_chart では帯が canonical root の位置のままだった）
+    - それ以外：例のキーで計算し直す（guitar_chart と同じ） */
+export function pdfBoxes(s: ChartState) {
+  const chart = chartOf(s);
+  const tuning = tuningPcs(s);
+  if (!chart.boxRanges.length) return { boxRoot: s.root, boxRanges: [], degreeRanges: [] };
+  const standard = tuning.length === STANDARD.length && tuning.every((p, i) => p === STANDARD[i]);
+  if (standard) {
+    const d = mod(s.root - chart.canonicalRoot, 12);
+    return {
+      boxRoot: chart.canonicalRoot,
+      boxRanges: chart.boxRanges,
+      degreeRanges: chart.boxRanges.map(([lo, hi]) => [lo + d, hi + d] as const),
+    };
+  }
+  const computed = computeBoxRanges(chart.intervals, s.root, tuning[0]!, { numBoxes: chart.boxRanges.length });
+  return { boxRoot: s.root, boxRanges: computed, degreeRanges: computed };
+}
+
+export const pageCount = (s: ChartState): number => {
+  const p = pdfPlan(s);
+  return (p.boxes ? 1 : 0) + (p.degrees ? 1 : 0) + (p.allKeys ? Math.ceil(12 / s.keysPerPage) : 0);
+};
+
+export function buildPdfPages(s: ChartState): Page[] {
+  const plan = pdfPlan(s);
+  const subject: Subject = { chart: chartOf(s), tuning: tuningPcs(s), capo: s.capo };
+  const { boxRoot, boxRanges, degreeRanges } = pdfBoxes(s);
+  const c = new Canvas();
+  const ctx: Ctx = { pageNum: 1, totalPages: pageCount(s), sectionName: "" };
+  if (plan.boxes) {
+    ctx.sectionName = "Section: Box positions (abstract)";
+    sectionBoxPositions(c, subject, ctx, boxRoot, boxRanges);
+  }
+  if (plan.degrees) {
+    ctx.sectionName = "Section: Full fretboard with degrees";
+    // 帯はボックス図を出さないときも描く（guitar_chart と同じ。アルペジオ・カスタムは範囲が空）
+    sectionFullWithDegrees(c, subject, ctx, s.root, degreeRanges);
+  }
+  if (plan.allKeys) {
+    ctx.sectionName = "Section: All 12 keys";
+    sectionAllKeys(c, subject, ctx, s.keysPerPage);
+  }
+  return c.pages;
+}
+
+/** ダウンロードのファイル名 */
+export const pdfFileName = (s: ChartState): string => {
+  const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  return `${chartOf(s).nameEn.replace(/[^\w#-]+/g, "_")}_${NOTES[s.root]}.pdf`;
+};
