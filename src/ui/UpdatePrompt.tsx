@@ -1,4 +1,5 @@
-/* 新しい版の知らせ。切り替えは利用者が押したときだけ（ドリルの途中で勝手に再読み込みしない）。 */
+/* 新しい版は自動で切り替える。ただしドリルの途中で再読み込みすると解いている回が消えるので、
+   ドリルの画面にいる間は待ち、ドリルを出たところで切り替える（URL はハッシュなので画面はそのまま戻る）。 */
 import { useEffect } from "preact/hooks";
 import { useRegisterSW } from "virtual:pwa-register/preact";
 
@@ -8,9 +9,9 @@ const OFFLINE_NOTICE_MS = 4000;
 /** 更新を確かめる間隔 */
 const CHECK_MS = 60 * 60 * 1000;
 
-export function UpdatePrompt() {
+export function UpdatePrompt({ busy }: { busy: boolean }) {
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     offlineReady: [offlineReady, setOfflineReady],
     updateServiceWorker,
   } = useRegisterSW({
@@ -29,23 +30,15 @@ export function UpdatePrompt() {
   });
 
   useEffect(() => {
+    if (needRefresh && !busy) updateServiceWorker(true);
+  }, [needRefresh, busy]);
+
+  useEffect(() => {
     if (!offlineReady) return;
     const id = setTimeout(() => setOfflineReady(false), OFFLINE_NOTICE_MS);
     return () => clearTimeout(id);
   }, [offlineReady]);
 
-  if (needRefresh)
-    return (
-      <div class="toast" role="alert">
-        <span>新しい版があります</span>
-        <button class="btn primary" onClick={() => updateServiceWorker(true)}>
-          更新する
-        </button>
-        <button class="btn" onClick={() => setNeedRefresh(false)}>
-          あとで
-        </button>
-      </div>
-    );
   if (offlineReady)
     return (
       <div class="toast" role="status">

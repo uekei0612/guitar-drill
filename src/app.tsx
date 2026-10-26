@@ -42,7 +42,7 @@ export function App() {
         </div>
       )}
       <main class={route.name === "chart" ? "wide" : undefined}>{screen}</main>
-      <UpdatePrompt />
+      <UpdatePrompt busy={route.name === "drill"} />
     </>
   );
 }

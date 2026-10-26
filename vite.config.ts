@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [
     preact(),
     VitePWA({
-      // 新しい版は勝手に切り替えず、「新しい版があります」を出して利用者が切り替える
+      // 新しい版は UpdatePrompt が切り替える（ドリルの途中は待つので autoUpdate にはしない）
       registerType: "prompt",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
