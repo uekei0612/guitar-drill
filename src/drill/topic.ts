@@ -22,14 +22,27 @@ export interface Mark {
   /** 点の中の文字（R、♭3、F♯ など） */
   readonly label?: string;
   /** root = ルート、tone = そのほかの音、target = 問われている点、hint = 薄く出す参考の点、
-      ok / wrong = 答え合わせ（正しく押した点／押し間違えた点） */
-  readonly kind: "root" | "tone" | "target" | "hint" | "ok" | "wrong";
+      ok / wrong = 答え合わせ（正しく押した点／押し間違えた点）、
+      open / openRoot = コードの押さえ方で鳴らす開放弦（白抜きの ○。openRoot はルート） */
+  readonly kind: "root" | "tone" | "target" | "hint" | "ok" | "wrong" | "open" | "openRoot";
+}
+
+/** 指で押さえるバレー（セーハ）。low〜high 弦を fret で */
+export interface Barre {
+  readonly fret: number;
+  readonly low: number;
+  readonly high: number;
 }
 
 /** 問題や解説に出す指板図 */
 export interface Board {
   readonly range: FretRange;
   readonly marks: readonly Mark[];
+  /** 図の向き（無ければ範囲の広さで決める。コードの押さえ方は縦） */
+  readonly orientation?: "horizontal" | "vertical";
+  /** 鳴らさない弦（ナットの上に × を出す） */
+  readonly muted?: readonly number[];
+  readonly barres?: readonly Barre[];
 }
 
 export interface Prompt {
@@ -54,6 +67,9 @@ export interface FretTapAnswer {
   readonly strings?: readonly number[];
   /** 押せるフレット（無ければ range 全部）。開放弦だけ押させたいときなど */
   readonly frets?: FretRange;
+  readonly orientation?: "horizontal" | "vertical";
+  /** 1 本の弦に 1 か所だけ（同じ弦の別のマスを押すと置き換える。コードの押さえ方） */
+  readonly onePerString?: boolean;
 }
 
 export type Answer = ChoiceAnswer | FretTapAnswer;
@@ -67,7 +83,7 @@ export interface Question {
   /** 解説から開くチャートの図 */
   readonly chart?: ChartRef;
   /** 解説で鳴らせる音（MIDI ノート番号。順に鳴らし、chord なら最後に重ねる） */
-  readonly sound?: { readonly notes: readonly number[]; readonly chord?: boolean };
+  readonly sound?: { readonly notes: readonly number[]; readonly chord?: boolean; readonly strum?: boolean };
 }
 
 export type Response =

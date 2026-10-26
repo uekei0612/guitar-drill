@@ -171,6 +171,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             tuning={ctx.common.tuning}
             lefty={ctx.common.lefty}
             range={a.kind === "tap" ? a.range : board!.range}
+            orientation={(a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation}
+            muted={board?.muted}
+            barres={board?.barres}
             label={q.prompt.text}
             marks={shownMarks}
             selected={tapping ? taps : []}
@@ -182,7 +185,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                     if (a.mode === "any") {
                       setTaps([p]);
                       submit({ kind: "tap", positions: [p] });
-                    } else setTaps(ts => (ts.some(t => same(t, p)) ? ts.filter(t => !same(t, p)) : [...ts, p]));
+                    } else
+                      setTaps(ts =>
+                        ts.some(t => same(t, p))
+                          ? ts.filter(t => !same(t, p))
+                          : [...(a.onePerString ? ts.filter(t => t.string !== p.string) : ts), p],
+                      );
                   }
                 : undefined
             }
@@ -227,6 +235,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                   tuning={ctx.common.tuning}
                   lefty={ctx.common.lefty}
                   range={q.explanation.board.range}
+                  orientation={q.explanation.board.orientation}
+                  muted={q.explanation.board.muted}
+                  barres={q.explanation.board.barres}
                   label={q.explanation.text}
                   marks={q.explanation.board.marks}
                 />
@@ -239,7 +250,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               次へ
             </button>
             {q.sound && (
-              <button class="btn" onClick={() => playMidi(q.sound!.notes, { chord: q.sound!.chord })}>
+              <button class="btn" onClick={() => playMidi(q.sound!.notes, q.sound!)}>
                 ♪ 音を聴く
               </button>
             )}

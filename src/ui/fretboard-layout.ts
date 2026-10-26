@@ -58,6 +58,8 @@ export interface Layout {
   /** 点の半径 */
   readonly r: number;
   cellAt(pos: Position): Cell | undefined;
+  /** ナットの手前で、その弦の × や ○ を書く点（開放の欄があればその欄の中心） */
+  headPoint(string: number): Point;
   /** lo〜hi フレットの欄を全弦ぶん覆う四角（ボックスの帯）。範囲外は切る。見えなければ undefined */
   span(
     lo: number,
@@ -68,6 +70,8 @@ export interface Layout {
 export interface LayoutOptions {
   /** 横向きのヘッド側に弦ごとの札を置く場所を取る（既定は取る。弦の番号か、開放弦の音名などを書く） */
   readonly headLabels?: boolean;
+  /** 縦向きで開放の欄が無いときも、ナット側に × などを書く帯を取る */
+  readonly headRow?: boolean;
 }
 
 export const chooseOrientation = (range: FretRange): Orientation =>
@@ -81,7 +85,7 @@ export function layout(
   range: FretRange,
   lefty: boolean,
   orientation: Orientation = chooseOrientation(range),
-  { headLabels = true }: LayoutOptions = {},
+  { headLabels = true, headRow = false }: LayoutOptions = {},
 ): Layout {
   const horizontal = orientation === "horizontal";
   const n = range.maxFret - range.minFret + 1;
@@ -97,7 +101,9 @@ export function layout(
 
   // 横向きで札を置くときは、ヘッド側（右利きは左、左利きは右）に札の幅を足す
   const headPad = horizontal && headLabels ? LABEL : 0;
-  const along0 = PAD + (flipAlong ? 0 : headPad);
+  const hasOpen = range.minFret === 0;
+  const topPad = !horizontal && headRow && !hasOpen ? LABEL : 0;
+  const along0 = PAD + topPad + (flipAlong ? 0 : headPad);
   const across0 = horizontal ? PAD : LABEL;
   const alongEnd = along0 + n * AL;
 
@@ -130,7 +136,6 @@ export function layout(
     }
 
   // 開放の欄があるときは、押さえる部分と弦はナットから（弦は開放の点の位置から引く）
-  const hasOpen = range.minFret === 0;
   const first = hasOpen ? 1 : 0;
   const boardFrom = hasOpen ? headEdge(1) : headEdge(0);
   const boardTo = bodyEdge(n - 1);
@@ -195,6 +200,10 @@ export function layout(
     stringLabels,
     r: Math.min(AL, AC) * 0.36,
     cellAt: pos => byKey.get(`${pos.string}:${pos.fret}`),
+    headPoint: string =>
+      hasOpen
+        ? byKey.get(`${string}:${range.minFret}`)!.c
+        : pt(flipAlong ? alongEnd + LABEL / 2 : along0 - LABEL / 2, acrossMid(string - 1)),
     span,
   };
 }

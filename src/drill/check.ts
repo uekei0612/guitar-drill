@@ -18,6 +18,8 @@ export function problemsOf(q: Question, ctx: Context<unknown>): string[] {
     if (!a.correct.length) out.push("タップの正解が空");
     if (!a.correct.every(inBoard(a, ctx.common.tuning))) out.push("タップの正解が指板の範囲外");
     if (a.strings && !a.correct.every(p => a.strings!.includes(p.string))) out.push("タップの正解が押せない弦にある");
+    if (a.onePerString && new Set(a.correct.map(p => p.string)).size !== a.correct.length)
+      out.push("1 弦 1 か所の問題で、正解が同じ弦に 2 つある");
     if (a.frets && !a.correct.every(inBoard({ range: a.frets }, ctx.common.tuning)))
       out.push("タップの正解が押せないフレットにある");
   }
