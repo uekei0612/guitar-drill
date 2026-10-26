@@ -8,6 +8,7 @@ import { intervals } from "./intervals";
 import { modes } from "./modes";
 import { openStrings } from "./open-strings";
 import { progressions } from "./progressions";
+import { secondaryDominants } from "./secondary-dominants";
 import { sevenths } from "./sevenths";
 import { tensions } from "./tensions";
 import { triads } from "./triads";
@@ -24,6 +25,7 @@ export const TOPICS: readonly AnyTopic[] = [
   modes,
   tensions,
   dominantScales,
+  secondaryDominants,
 ];
 
 export const topicById = (id: string): AnyTopic | undefined => TOPICS.find(t => t.id === id);
