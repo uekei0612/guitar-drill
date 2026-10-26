@@ -30,7 +30,21 @@ describe("トライアドの構成音", () => {
     expect(triads.question("m:G#:tones", ctx(), seeded(1)).answer).toMatchObject({ correct: "G♯ B D♯" });
     expect(triads.question("dim:B:name", ctx({ dim: true }), seeded(1)).answer).toMatchObject({ correct: "Bdim" });
     expect(triads.question("aug:Ab:tones", ctx({ aug: true }), seeded(1)).answer).toMatchObject({ correct: "A♭ C E" });
-    expect(triads.question("maj:C:name", ctx(), seeded(1)).explanation?.text).toBe("C = C（R） E（3） G（5）");
+    expect(triads.question("maj:C:name", ctx(), seeded(1)).explanation?.text).toBe(
+      "C = C（R） E（3） G（5）\n数え方：C →長3度（半音4）→ E →短3度（半音3）→ G",
+    );
+  });
+
+  it("問題文はコードだとわかる形で、度数には「度」を付ける", () => {
+    expect(triads.question("maj:D:tones", ctx(), seeded(1)).prompt.text).toBe("コード D（メジャー）の構成音は？");
+    expect(triads.question("m:E:deg", ctx(), seeded(1)).prompt.text).toMatch(
+      /^コード Em（マイナー）の (♭3|5)度の音は？$/,
+    );
+    expect(triads.question("sus4:C:deg", ctx({ sus: true }), seeded(1)).prompt.text).toMatch(/^コード Csus4 の /);
+  });
+
+  it("鳴らす音：ルートを C4〜B4 に置いて下から、最後に和音", () => {
+    expect(triads.question("m:A:tones", ctx(), seeded(1)).sound).toEqual({ notes: [69, 72, 76], chord: true });
   });
 
   it("壊れた設定は既定値に戻す", () => {
