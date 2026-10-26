@@ -88,8 +88,8 @@ type Question = {
 
 スケールの暗記は guitar_chart と組にする。**guitar_chart で見て覚え、guitar-drill で覚えたか確かめる**。
 
-guitar_chart は tailnet 内だけで動く Python のサーバーなので、実行時にその API を呼ぶ形にはしない。
-呼ぶ形にすると、オフラインや Tailscale を切った iPhone ではスケールの分野が動かなくなる。
+guitar_chart は Python のサーバー（自宅の tailnet 内と Google Cloud Run）なので、実行時にその API を呼ぶ形にはしない。
+呼ぶ形にすると、オフラインのときやサーバーが止まっているときにスケールの分野が動かなくなる。
 代わりに次の 2 段で使う。
 
 1. **定義の取り込み（ビルド時）**
@@ -103,7 +103,8 @@ guitar_chart は tailnet 内だけで動く Python のサーバーなので、�
 2. **guitar_chart を開くリンク（実行時・任意）**
    - スケールの問題の解説と参考ページに「guitar_chart で開く」を出す。
      URL に `scale` / `root` / `tuning` / `caged=1&box=N` を付け、出題中のスケール・キー・ボックスで開く
-   - guitar_chart の URL は設定で入れる（空なら出さない）。公開ページに tailnet 内のホスト名を埋め込まないため
+   - guitar_chart の URL は設定で入れる（空なら出さない）。どのサーバーを使うか（自宅／Cloud Run／dev）を利用者が選べるようにし、
+     公開ページに自宅のホスト名を埋め込まないため
 
 guitar_chart の側の作業は guitar-chart リポジトリの Issue で扱う。
 
