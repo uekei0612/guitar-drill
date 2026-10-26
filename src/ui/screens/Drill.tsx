@@ -300,8 +300,19 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     </button>
   );
   let scale: number | undefined;
-  if (fill && shown && boardBox) {
-    const key = `${shown.range.minFret}-${shown.range.maxFret}-${shown.orientation ?? chooseOrientation(shown.range)}`;
+  // 答えたあと、図が答える前と同じなら同じ大きさのまま描き、図の枠を図の高さに縮める。
+  // 余った高さは画面のいちばん下へ回し、正誤・解説・「次へ」を図のすぐ下に続ける
+  const boardKey =
+    shown && `${shown.range.minFret}-${shown.range.maxFret}-${shown.orientation ?? chooseOrientation(shown.range)}`;
+  const keep =
+    fill &&
+    !!result &&
+    !tallShape &&
+    questionScale.current?.index === session.index &&
+    questionScale.current.key === boardKey;
+  if (keep) scale = questionScale.current!.k;
+  else if (fill && shown && boardBox) {
+    const key = boardKey!;
     scale = fitScale(hintBelow ? HINT_BUTTON_HEIGHT : 0)!;
     if (!result) {
       // ヒントを開いて少し縮んだだけなら広げ直さない（画面からはみ出してスクロールになるより、少し小さいほうがよい）
@@ -339,7 +350,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {session.index + 1}/{session.queue.length}
         </span>
       </header>
-      <section class={`question${result ? " answered" : ""}${tall ? " tall" : ""}`}>
+      <section class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}`}>
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
         </p>
@@ -416,7 +427,10 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </div>
         )}
         {(result || dock) && (
-          <div class={`dock-a${result ? "" : " off"}`} aria-hidden={result ? undefined : true}>
+          <div
+            class={`dock-a${result ? (result.ok ? " is-ok" : " is-ng") : " off"}`}
+            aria-hidden={result ? undefined : true}
+          >
             <p class={`feedback-line ${result ? (result.ok ? "ok" : "ng") : ""}`} aria-hidden="true">
               {feedback ?? "\u3000"}
             </p>
