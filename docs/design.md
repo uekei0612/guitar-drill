@@ -16,7 +16,7 @@ GitHub Pages から配る。
 | 言語・ビルド | TypeScript + Vite | 分野が増えても型で守る。ビルドは GitHub Actions で行う |
 | UI | Preact | 画面が多くなるので部品化したい。実行時 4KB 程度で軽い |
 | テスト | Vitest（理論・出題・記録）、Playwright（画面） | 理論は DOM に触らない純粋関数にして単体テストで固める |
-| PWA | vite-plugin-pwa（更新は「新しい版があります」を出して利用者が再読み込み） | word-sprint で、更新の反映が遅れる問題を経験済み |
+| PWA | vite-plugin-pwa（新しい版は自動で切り替える。ドリルの画面にいる間は待ち、出たところで再読み込み） | word-sprint で、更新の反映が遅れる問題を経験済み |
 | 記録 | localStorage、版付きスキーマ＋移行関数、JSON の書き出し／読み込み | ホーム画面版は Safari と保存領域が別なので、最初から移せるようにする |
 | 開発環境 | Docker の `node:22-alpine`（dev VM の Node は 16 で Vite が動かない） | dev サーバーは 8008 番（HTTP）。実機で SW を試すときは NPM で HTTPS を被せる |
 | ブランチ | feature → develop → main | `main` への push がそのまま本番 |
