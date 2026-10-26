@@ -6,10 +6,14 @@ export type Route =
   | { readonly name: "home" }
   | { readonly name: "drill"; readonly topicId: string }
   | { readonly name: "reference"; readonly topicId: string }
-  | { readonly name: "settings" };
+  | { readonly name: "settings" }
+  /** チャート。query は guitar_chart と同じ形の URL パラメーター */
+  | { readonly name: "chart"; readonly query: string };
 
 export function parseRoute(hash: string): Route {
-  const [name, id] = hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
+  const [path = "", query = ""] = hash.replace(/^#\/?/, "").split("?");
+  if (path === "chart") return { name: "chart", query };
+  const [name, id] = path.split("/").map(decodeURIComponent);
   if (name === "drill" && id) return { name, topicId: id };
   if (name === "reference" && id) return { name, topicId: id };
   if (name === "settings") return { name };
@@ -22,6 +26,8 @@ export function href(r: Route): string {
       return "#/";
     case "settings":
       return "#/settings";
+    case "chart":
+      return r.query ? `#/chart?${r.query}` : "#/chart";
     default:
       return `#/${r.name}/${encodeURIComponent(r.topicId)}`;
   }

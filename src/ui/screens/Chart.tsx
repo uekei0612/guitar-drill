@@ -1,0 +1,335 @@
+/* チャート（旧 guitar_chart）。スケール・アルペジオ・カスタムを指板で見て、ボックスを確かめ、PDF にする。
+   状態は URL（#/chart?…、guitar_chart と同じパラメーター）に持つので、リロードやリンクで同じ図に戻る。 */
+import { useEffect, useState } from "preact/hooks";
+import { boxesForOpen } from "../../chart/boxes";
+import { CHART_ARPEGGIOS, CHART_SCALES, CHROMATIC_DEGREES } from "../../chart/registry";
+import {
+  type ChartState,
+  DEFAULT_CHART,
+  MAX_CAPO,
+  NOTE_NAMES,
+  addLowString,
+  chartOf,
+  fromParams,
+  noteName,
+  removeLowString,
+  toParams,
+  toggleDegree,
+  tuningOf,
+  tuningPcs,
+} from "../../chart/state";
+import type { Mark } from "../../drill/topic";
+import { useData } from "../../state";
+import { type Position, degree, degreeLabel, mod, pcAt, stringCount } from "../../theory";
+import { type Band, Fretboard, posLabel } from "../Fretboard";
+import { href } from "../route";
+import { TuningOptions } from "./Settings";
+
+/** 指板に出すフレット（guitar_chart と同じ 15 まで） */
+export const CHART_FRETS = 15;
+
+/** 横幅の広い画面では横向き、スマホでは縦向き */
+function useWide(): boolean {
+  const q = "(min-width: 720px)";
+  const [wide, setWide] = useState(() => typeof matchMedia === "function" && matchMedia(q).matches);
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return;
+    const m = matchMedia(q);
+    const on = () => setWide(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
+
+const degreeText = (d: string) => degreeLabel(degree(d));
+
+export interface ChartDots {
+  readonly marks: Mark[];
+  readonly boxes: readonly (readonly [number, number])[];
+}
+
+/** 指板に置く点とボックス（画面と画像保存で同じものを使う） */
+export function chartDots(s: ChartState): ChartDots {
+  const chart = chartOf(s);
+  const t = tuningOf(s);
+  const boxes = s.caged && chart.kind === "scale" ? boxesForOpen(chart, s.root, tuningPcs(s)) : [];
+  const iso = s.box != null ? boxes[s.box - 1] : undefined;
+  const marks: Mark[] = [];
+  for (let string = 1; string <= stringCount(t); string++)
+    for (let fret = 0; fret <= CHART_FRETS; fret++) {
+      if (s.capo && fret < s.capo) continue; // カポより手前は弾けない（PDF と同じ）
+      if (iso && (fret < iso[0] || fret > iso[1])) continue;
+      const p = pcAt(t, { string, fret });
+      const semi = mod(p - s.root, 12);
+      const i = chart.intervals.indexOf(semi);
+      if (i < 0) continue;
+      const label = s.label === "note" ? noteName(p, s.flat) : semi === 0 ? "R" : degreeText(chart.degrees[i]!);
+      marks.push({ pos: { string, fret }, kind: semi === 0 ? "root" : "tone", label });
+    }
+  return { marks, boxes };
+}
+
+export function Chart({ query }: { query: string }) {
+  const { settings } = useData();
+  const [s, setS] = useState<ChartState>(() =>
+    fromParams(new URLSearchParams(query), { ...DEFAULT_CHART, lefty: settings.lefty }),
+  );
+  const wide = useWide();
+
+  // 状態を URL に書く（履歴は増やさない）
+  useEffect(() => {
+    history.replaceState(null, "", href({ name: "chart", query: toParams(s).toString() }));
+  }, [s]);
+
+  const set = (patch: Partial<ChartState>) => setS(x => ({ ...x, ...patch }));
+  const chart = chartOf(s);
+  const t = tuningOf(s);
+  const { marks, boxes } = chartDots(s);
+  const hasBoxes = chart.kind === "scale" && chart.boxRanges.length > 0;
+  const bands: Band[] = boxes.map(([lo, hi], i) => ({
+    lo,
+    hi,
+    color: i,
+    label: String(i + 1),
+    selected: s.box === i + 1,
+    dimmed: s.box != null && s.box !== i + 1,
+  }));
+  const inChart = (p: Position) => chart.intervals.includes(mod(pcAt(t, p) - s.root, 12));
+  const presetValue = s.chartType === "arpeggio" ? `arp:${s.arpeggio}` : `scale:${s.scale}`;
+
+  return (
+    <>
+      <header class="bar">
+        <a class="bar-link" href={href({ name: "home" })}>
+          ← ホーム
+        </a>
+        <h1 tabIndex={-1}>チャート</h1>
+      </header>
+      <p class="muted">スケール・アルペジオを指板で確かめ、PDF の資料にする（旧 guitar_chart）。</p>
+
+      <section class="form chart-form" aria-label="何を出すか">
+        <div class="seg" role="radiogroup" aria-label="選び方">
+          <label class="check">
+            <input
+              type="radio"
+              name="source"
+              checked={s.chartType !== "custom"}
+              onChange={() => set({ chartType: presetValue.startsWith("arp:") ? "arpeggio" : "scale" })}
+            />
+            <span>一覧から選ぶ</span>
+          </label>
+          <label class="check">
+            <input
+              type="radio"
+              name="source"
+              checked={s.chartType === "custom"}
+              onChange={() => set({ chartType: "custom" })}
+            />
+            <span>カスタムで作る</span>
+          </label>
+        </div>
+        <label class="field">
+          <span>スケール／アルペジオ</span>
+          <select
+            value={presetValue}
+            disabled={s.chartType === "custom"}
+            onChange={e => {
+              const [kind, id] = e.currentTarget.value.split(":") as [string, string];
+              const c = kind === "arp" ? CHART_ARPEGGIOS.find(x => x.id === id)! : CHART_SCALES.find(x => x.id === id)!;
+              // 一覧で選んだものをカスタムの出発点にもする（guitar_chart と同じ）
+              set(
+                kind === "arp"
+                  ? { chartType: "arpeggio", arpeggio: id, custom: c.intervals, box: null }
+                  : { chartType: "scale", scale: id, custom: c.intervals, box: null },
+              );
+            }}
+          >
+            <optgroup label="スケール">
+              {CHART_SCALES.map(c => (
+                <option key={c.id} value={`scale:${c.id}`}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="アルペジオ（コードトーン）">
+              {CHART_ARPEGGIOS.map(c => (
+                <option key={c.id} value={`arp:${c.id}`}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+        </label>
+        <fieldset class="field" disabled={s.chartType !== "custom"}>
+          <legend>含める度数（R は固定）</legend>
+          <div class="chips">
+            {CHROMATIC_DEGREES.map((d, semi) => (
+              <label key={d} class="check">
+                <input
+                  type="checkbox"
+                  checked={semi === 0 || s.custom.includes(semi)}
+                  disabled={semi === 0}
+                  onChange={e => {
+                    const on = e.currentTarget.checked;
+                    const next = on ? [...s.custom, semi] : s.custom.filter(x => x !== semi);
+                    if (next.length >= 2) set({ custom: [...new Set([0, ...next])].sort((a, b) => a - b) });
+                  }}
+                />
+                <span>{degreeText(d)}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div class="row3">
+          <label class="field">
+            <span>キー</span>
+            <select value={s.root} onChange={e => set({ root: Number(e.currentTarget.value) })}>
+              {NOTE_NAMES.map((_, p) => (
+                <option key={p} value={p}>
+                  {noteName(p, s.flat)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label class="field">
+            <span>チューニング</span>
+            <select
+              value={s.tuning}
+              onChange={e => {
+                const v = e.currentTarget.value;
+                // 自分で決めるときは、今のチューニングから始める
+                set(v === "custom" ? { tuning: "custom", customTuning: tuningPcs(s) } : { tuning: v });
+              }}
+            >
+              <TuningOptions />
+              <optgroup label="カスタム">
+                <option value="custom">自分で決める…</option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="field">
+            <span>カポ</span>
+            <select value={s.capo} onChange={e => set({ capo: Number(e.currentTarget.value) })}>
+              {Array.from({ length: MAX_CAPO + 1 }, (_, f) => (
+                <option key={f} value={f}>
+                  {f === 0 ? "なし" : `${f} フレット`}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {s.tuning === "custom" && (
+          <fieldset class="field">
+            <legend>自分で決めるチューニング（左が低い弦）</legend>
+            <div class="chips">
+              {s.customTuning.map((p, i) => (
+                <select
+                  key={i}
+                  aria-label={`低い方から ${i + 1} 本目`}
+                  value={p}
+                  onChange={e =>
+                    set({ customTuning: s.customTuning.map((x, j) => (j === i ? Number(e.currentTarget.value) : x)) })
+                  }
+                >
+                  {NOTE_NAMES.map((_, q) => (
+                    <option key={q} value={q}>
+                      {noteName(q, s.flat)}
+                    </option>
+                  ))}
+                </select>
+              ))}
+              <button class="btn" disabled={s.customTuning.length <= 4} onClick={() => setS(removeLowString)}>
+                − 弦
+              </button>
+              <button class="btn" disabled={s.customTuning.length >= 8} onClick={() => setS(addLowString)}>
+                ＋ 弦
+              </button>
+            </div>
+          </fieldset>
+        )}
+      </section>
+
+      <section aria-label="指板">
+        <p class="chart-meta">
+          {chart.name}（{noteName(s.root, s.flat)}）　構成音：{chart.degrees.map(degreeText).join(" - ")}
+          {s.capo ? `　カポ ${s.capo}f` : ""}
+        </p>
+        <div class="chips chart-toggles">
+          <label class="check">
+            <input type="radio" name="label" checked={s.label === "degree"} onChange={() => set({ label: "degree" })} />
+            <span>度数</span>
+          </label>
+          <label class="check">
+            <input type="radio" name="label" checked={s.label === "note"} onChange={() => set({ label: "note" })} />
+            <span>音名</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" checked={s.flat} onChange={e => set({ flat: e.currentTarget.checked })} />
+            <span>♭表記</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" checked={s.lefty} onChange={e => set({ lefty: e.currentTarget.checked })} />
+            <span>左利き</span>
+          </label>
+          {hasBoxes && (
+            <label class="check">
+              <input
+                type="checkbox"
+                checked={s.caged}
+                onChange={e => set({ caged: e.currentTarget.checked, box: null })}
+              />
+              <span>CAGED ボックス</span>
+            </label>
+          )}
+        </div>
+        {s.caged && boxes.length > 0 && (
+          <div class="chips box-select" role="group" aria-label="ボックスを 1 つだけ出す">
+            <button
+              class={`btn${s.box == null ? " primary" : ""}`}
+              aria-pressed={s.box == null}
+              onClick={() => set({ box: null })}
+            >
+              すべて
+            </button>
+            {boxes.map((_, i) => (
+              <button
+                key={i}
+                class={`btn box-btn box-btn--${i}${s.box === i + 1 ? " primary" : ""}`}
+                aria-pressed={s.box === i + 1}
+                onClick={() => set({ box: s.box === i + 1 ? null : i + 1 })}
+              >
+                Box {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+        <div class="chart-board">
+          <Fretboard
+            tuning={t}
+            range={{ minFret: 0, maxFret: CHART_FRETS }}
+            orientation={wide ? "horizontal" : "vertical"}
+            lefty={s.lefty}
+            label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
+            marks={marks}
+            bands={bands}
+            capo={s.capo}
+            stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
+            hitLabel={p =>
+              `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
+                mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
+              }`
+            }
+            onTap={p => {
+              const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
+              if (next) setS(next);
+            }}
+          />
+        </div>
+        <p class="muted small">
+          指板をタップすると構成音を足し引きできます（カスタムになります）。キーは上の「キー」で変えます。
+        </p>
+      </section>
+    </>
+  );
+}

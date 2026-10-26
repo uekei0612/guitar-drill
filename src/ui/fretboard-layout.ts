@@ -51,11 +51,21 @@ export interface Layout {
   readonly wires: readonly (Line & { readonly nut: boolean })[];
   readonly inlays: readonly Point[];
   readonly fretLabels: readonly (Point & { readonly fret: number })[];
-  /** 弦の番号（縦向きのときだけ、指板の下に。縦向きは弦の並びが見た目で分かりにくい） */
+  /** 弦の札（縦向きは指板の下に弦の番号。横向きは headLabels のときだけヘッド側に） */
   readonly stringLabels: readonly (Point & { readonly string: number })[];
   /** 点の半径 */
   readonly r: number;
   cellAt(pos: Position): Cell | undefined;
+  /** lo〜hi フレットの欄を全弦ぶん覆う四角（ボックスの帯）。範囲外は切る。見えなければ undefined */
+  span(
+    lo: number,
+    hi: number,
+  ): { readonly x: number; readonly y: number; readonly w: number; readonly h: number } | undefined;
+}
+
+export interface LayoutOptions {
+  /** 横向きでも、ヘッド側に弦ごとの札（開放弦の音名など）を置く場所を取る */
+  readonly headLabels?: boolean;
 }
 
 export const chooseOrientation = (range: FretRange): Orientation =>
@@ -69,6 +79,7 @@ export function layout(
   range: FretRange,
   lefty: boolean,
   orientation: Orientation = chooseOrientation(range),
+  { headLabels = false }: LayoutOptions = {},
 ): Layout {
   const { along: AL, across: AC } = SIZE[orientation];
   const horizontal = orientation === "horizontal";
@@ -77,7 +88,9 @@ export function layout(
   const flipAlong = horizontal && lefty;
   const flipAcross = !horizontal && !lefty;
 
-  const along0 = PAD;
+  // 横向きで札を置くときは、ヘッド側（右利きは左、左利きは右）に札の幅を足す
+  const headPad = horizontal && headLabels ? LABEL : 0;
+  const along0 = PAD + (flipAlong ? 0 : headPad);
   const across0 = horizontal ? PAD : LABEL;
   const alongEnd = along0 + n * AL;
 
@@ -144,14 +157,27 @@ export function layout(
       fretLabels.push({ ...pt(alongMid(a), horizontal ? across0 + strings * AC + LABEL / 2 : LABEL / 2), fret: f });
   }
 
-  const stringLabels = horizontal
-    ? []
-    : Array.from({ length: strings }, (_, s) => ({ ...pt(alongEnd + LABEL / 2, acrossMid(s)), string: s + 1 }));
+  const labelAlong = horizontal ? (flipAlong ? alongEnd + LABEL / 2 : PAD + LABEL / 2) : alongEnd + LABEL / 2;
+  const stringLabels =
+    horizontal && !headLabels
+      ? []
+      : Array.from({ length: strings }, (_, s) => ({ ...pt(labelAlong, acrossMid(s)), string: s + 1 }));
+
+  const span = (lo: number, hi: number) => {
+    const a1 = Math.max(lo, range.minFret) - range.minFret,
+      a2 = Math.min(hi, range.maxFret) - range.minFret;
+    if (a1 > a2) return undefined;
+    const e1 = Math.min(headEdge(a1), bodyEdge(a2)),
+      e2 = Math.max(headEdge(a1), bodyEdge(a2));
+    const p1 = pt(e1, across0),
+      p2 = pt(e2, across0 + strings * AC);
+    return { x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y), w: Math.abs(p2.x - p1.x), h: Math.abs(p2.y - p1.y) };
+  };
 
   const byKey = new Map(cells.map(c => [`${c.pos.string}:${c.pos.fret}`, c]));
   return {
     orientation,
-    width: horizontal ? alongEnd + PAD : across0 + strings * AC + PAD,
+    width: horizontal ? alongEnd + PAD + (flipAlong ? headPad : 0) : across0 + strings * AC + PAD,
     height: horizontal ? across0 + strings * AC + LABEL : alongEnd + LABEL,
     cells,
     board,
@@ -162,5 +188,6 @@ export function layout(
     stringLabels,
     r: Math.min(AL, AC) * 0.36,
     cellAt: pos => byKey.get(`${pos.string}:${pos.fret}`),
+    span,
   };
 }

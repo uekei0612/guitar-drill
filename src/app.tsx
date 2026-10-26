@@ -3,6 +3,7 @@ import { APP_ENV, APP_VERSION } from "./env";
 import { useData } from "./state";
 import { topicById } from "./topics";
 import { useRoute } from "./ui/route";
+import { Chart } from "./ui/screens/Chart";
 import { Drill } from "./ui/screens/Drill";
 import { Home } from "./ui/screens/Home";
 import { Reference } from "./ui/screens/Reference";
@@ -28,6 +29,7 @@ export function App() {
   const topic = route.name === "drill" || route.name === "reference" ? topicById(route.topicId) : undefined;
   let screen;
   if (route.name === "settings") screen = <Settings />;
+  else if (route.name === "chart") screen = <Chart key={route.query} query={route.query} />;
   else if (route.name === "drill" && topic) screen = <Drill key={topic.id} topic={topic} />;
   else if (route.name === "reference" && topic) screen = <Reference topic={topic} />;
   else screen = <Home />;
@@ -39,7 +41,7 @@ export function App() {
           {APP_ENV}（{APP_VERSION}）
         </div>
       )}
-      <main>{screen}</main>
+      <main class={route.name === "chart" ? "wide" : undefined}>{screen}</main>
       <UpdatePrompt />
     </>
   );
