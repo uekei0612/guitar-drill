@@ -495,6 +495,55 @@ main:has(.drill-screen.fill) {
   justify-content: flex-start;
   align-items: flex-start;
 }
+/* 答えたあと（図の大きさは答える前のまま）：図の枠を図の高さに縮め、正誤と解説を図のすぐ下に続ける */
+.drill-screen.fill .question.keep,
+.drill-screen.fill .question.keep .board-wrap {
+  flex: 0 0 auto;
+}
+.drill-screen.fill .question.keep .board-wrap {
+  min-height: 0;
+}
+/* 残りの高さは答えの欄が取る */
+.drill-screen.fill .question.keep + .dock {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.question.keep + .dock.stacked > .dock-a {
+  align-self: stretch;
+  margin-top: 8px;
+}
+/* 答えの欄は 1 枚のパネル：上に正誤と解説、下に「次へ」。正解は緑、不正解は赤の薄い地。
+   余った高さはパネルの中に入るので、図との間や画面の下に空白が残らない */
+.drill-screen.fill .dock-a {
+  display: flex;
+  flex-direction: column;
+  padding: 0 14px;
+  border-radius: 14px 14px 0 0;
+}
+.drill-screen.fill .dock-a.is-ok {
+  background: color-mix(in srgb, var(--ok) 9%, var(--bg));
+}
+.drill-screen.fill .dock-a.is-ng {
+  background: color-mix(in srgb, var(--ng) 9%, var(--bg));
+}
+.drill-screen.fill .dock-a .feedback-line {
+  font-size: 1.05rem;
+  margin: 10px 0 4px;
+}
+.drill-screen.fill .dock-a .next-bar {
+  margin-top: auto;
+  background: transparent;
+  border-top: 0;
+}
+.drill-screen.fill .next-bar .btn {
+  flex: 1 1 auto;
+  min-height: 50px;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+.drill-screen.fill .next-bar .btn.primary {
+  flex-grow: 3;
+}
 /* 図の無い問題：問題文を大きく、選択肢は画面の下に大きめに */
 .drill-screen.text-only .prompt {
   font-size: 1.3rem;
