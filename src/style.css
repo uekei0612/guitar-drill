@@ -253,6 +253,11 @@ a {
   flex: 1;
   min-width: 0;
 }
+/* ドリル中は見出しを少し小さく（「ダイアトニックコード」が狭い画面でも 1 行に収まる） */
+.drill-screen .bar h1 {
+  font-size: 1.1rem;
+  line-height: 1.25;
+}
 .bar-link {
   display: inline-flex;
   align-items: center;
@@ -381,6 +386,40 @@ input:focus-visible {
   white-space: pre-line;
   margin: 4px 0 8px;
 }
+/* 解説の札の並び（五度圏の並び・進行のコード） */
+.strip {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+  padding: 0;
+}
+.strip li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 0 auto;
+  min-width: 40px;
+  max-width: 33%;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.strip li.current {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.strip-label {
+  font-weight: 600;
+}
+.strip li.current .strip-label {
+  color: var(--accent);
+}
+.strip-sub {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
 /* 答えたあとは画面の高さいっぱいに使う（高さは Drill が測って入れる）。
    図の枠が残りの高さを全部取り、図はその枠に収まる最大の大きさで描く
    （タップで答える間は 1 マス 44px を保つので広げも縮めもしない） */
@@ -414,6 +453,14 @@ main:has(.drill-screen.fill) {
 .drill-screen.fill .answered.tall .board-wrap {
   justify-content: flex-start;
   align-items: flex-start;
+}
+/* 図の無い問題：問題文を大きく、選択肢は画面の下に大きめに */
+.drill-screen.text-only .prompt {
+  font-size: 1.3rem;
+  margin-top: 16px;
+}
+.drill-screen.text-only .choice {
+  min-height: 56px;
 }
 .dock.stacked {
   display: grid;
