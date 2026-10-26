@@ -56,7 +56,11 @@ describe("layout", () => {
     expect(B.wires.filter(w => w.nut)).toHaveLength(0);
     expect(B.wires).toHaveLength(5);
     expect(B.fretLabels.map(f => f.fret)).toEqual([5, 7]);
-    expect(B.stringLabels).toEqual([]);
+    // 横向きはヘッド側（右利きは左）に弦の番号
+    expect(B.stringLabels.map(l => l.string)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(B.stringLabels[0]!.x).toBeLessThan(B.cellAt({ string: 1, fret: 5 })!.c.x);
+    expect(B.stringLabels[0]!.y).toBeLessThan(B.stringLabels[5]!.y);
+    expect(layout(6, box, false, "horizontal", { headLabels: false }).stringLabels).toEqual([]);
   });
 
   it("点はすべて図の中", () => {

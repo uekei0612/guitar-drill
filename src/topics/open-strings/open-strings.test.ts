@@ -43,4 +43,16 @@ describe("開放弦の音名", () => {
     expect(q.answer).toMatchObject({ kind: "choice", correct: "E♭" });
     expect(openStrings.itemLabel("half_step_down:string:Ab", ctxOf("half_step_down"))).toBe("A♭ の弦");
   });
+
+  it("タップは開放の列だけ。鳴らす音は低い弦から", () => {
+    const q = openStrings.question("standard:string:E", ctxOf("standard"), seeded(1));
+    expect(q.answer).toMatchObject({ frets: { minFret: 0, maxFret: 0 } });
+    expect(q.sound).toEqual({ notes: [40, 64] });
+    expect(openStrings.question("standard:name:5", ctxOf("standard"), seeded(1)).sound).toEqual({ notes: [45] });
+  });
+
+  it("解説は弦の本数から数える（7 弦は 7弦から）", () => {
+    const q = openStrings.question("7_string:name:7", ctxOf("7_string"), seeded(1));
+    expect(q.explanation?.text).toBe("7 弦：7弦から B E A D G B E");
+  });
 });

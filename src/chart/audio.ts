@@ -47,3 +47,20 @@ export function playAscending(intervals: readonly number[], rootPc: number): num
   }
   return semis;
 }
+
+export const midiFrequency = (midi: number): number => 440 * 2 ** ((midi - 69) / 12);
+
+/** MIDI ノート番号の並びを順に鳴らす。chord なら最後に全部を重ねて鳴らす */
+export function playMidi(notes: readonly number[], { chord = false }: { chord?: boolean } = {}): void {
+  const c = audioCtx();
+  if (!c || !notes.length) return;
+  if (c.state === "suspended") void c.resume();
+  const dur = 0.42,
+    gap = 0.04;
+  let t = c.currentTime + 0.06;
+  for (const m of notes) {
+    tone(c, midiFrequency(m), t, dur);
+    t += dur + gap;
+  }
+  if (chord && notes.length > 1) for (const m of notes) tone(c, midiFrequency(m), t, dur * 3);
+}

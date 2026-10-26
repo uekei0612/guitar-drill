@@ -50,6 +50,10 @@ export interface FretTapAnswer {
   readonly mode: "any" | "all";
   readonly range: FretRange;
   readonly correct: readonly Position[];
+  /** 押せる弦（無ければ全部）。ほかの弦は薄く出して押せなくする */
+  readonly strings?: readonly number[];
+  /** 押せるフレット（無ければ range 全部）。開放弦だけ押させたいときなど */
+  readonly frets?: FretRange;
 }
 
 export type Answer = ChoiceAnswer | FretTapAnswer;
@@ -62,6 +66,8 @@ export interface Question {
   readonly explanation?: Prompt;
   /** 解説から開くチャートの図 */
   readonly chart?: ChartRef;
+  /** 解説で鳴らせる音（MIDI ノート番号。順に鳴らし、chord なら最後に重ねる） */
+  readonly sound?: { readonly notes: readonly number[]; readonly chord?: boolean };
 }
 
 export type Response =

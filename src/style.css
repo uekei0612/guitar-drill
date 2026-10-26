@@ -124,6 +124,14 @@ main {
 .fb-string {
   stroke: var(--fb-string);
 }
+/* 出題していない弦・押せないフレット */
+.fb-string.off {
+  opacity: 0.2;
+}
+.fb-off {
+  fill: var(--bg);
+  opacity: 0.6;
+}
 .fb-inlay {
   fill: var(--fb-inlay);
 }
@@ -341,6 +349,9 @@ input:focus-visible {
 .choice.ng {
   border-color: var(--ng);
   box-shadow: inset 0 0 0 2px var(--ng);
+}
+.explain > p {
+  white-space: pre-line;
 }
 .feedback p {
   font-weight: 600;

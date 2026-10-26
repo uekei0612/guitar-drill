@@ -23,12 +23,12 @@ describe("4和音の構成音", () => {
   it("綴りと度数", () => {
     expect(sevenths.question("dim7:G#:tones", ctx(all), seeded(1)).answer).toMatchObject({ correct: "G♯ B D F" });
     expect(sevenths.question("m7b5:B:name", ctx(), seeded(1)).answer).toMatchObject({ correct: "Bm7(♭5)" });
-    expect(sevenths.question("dim7:C#:tones", ctx(all), seeded(1)).explanation?.text).toBe(
+    expect(sevenths.question("dim7:C#:tones", ctx(all), seeded(1)).explanation?.text.split("\n")[0]).toBe(
       "C♯dim7 = C♯（R） E（♭3） G（♭5） B♭（♭♭7）",
     );
     for (let n = 0; n < 30; n++) {
       const q = sevenths.question("7:Bb:deg", ctx(), seeded(n));
-      const want = { "3": "D", "5": "F", "♭7": "A♭" }[q.prompt.text.match(/の (.+) の音は/)![1]!];
+      const want = { "3": "D", "5": "F", "♭7": "A♭" }[q.prompt.text.match(/の (.+)度の音は/)![1]!];
       expect(q.answer).toMatchObject({ correct: want });
     }
   });

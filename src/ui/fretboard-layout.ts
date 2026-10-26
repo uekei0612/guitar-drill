@@ -19,6 +19,8 @@ const SIZE = {
 const PAD = 8;
 /** フレット番号を書く帯の幅 */
 const LABEL = 22;
+/** 横向きの図が 1 マス 44px 以上を保てる幅（360px 幅の画面で 328px に縮めるとき 48 → 44 になる上限） */
+const FIT_WIDTH = 358;
 
 export interface Point {
   readonly x: number;
@@ -51,7 +53,7 @@ export interface Layout {
   readonly wires: readonly (Line & { readonly nut: boolean })[];
   readonly inlays: readonly Point[];
   readonly fretLabels: readonly (Point & { readonly fret: number })[];
-  /** 弦の札（縦向きは指板の下に弦の番号。横向きは headLabels のときだけヘッド側に） */
+  /** 弦の札（縦向きは指板の下、横向きはヘッド側。headLabels: false の横向きは無し） */
   readonly stringLabels: readonly (Point & { readonly string: number })[];
   /** 点の半径 */
   readonly r: number;
@@ -64,7 +66,7 @@ export interface Layout {
 }
 
 export interface LayoutOptions {
-  /** 横向きでも、ヘッド側に弦ごとの札（開放弦の音名など）を置く場所を取る */
+  /** 横向きのヘッド側に弦ごとの札を置く場所を取る（既定は取る。弦の番号か、開放弦の音名などを書く） */
   readonly headLabels?: boolean;
 }
 
@@ -79,11 +81,16 @@ export function layout(
   range: FretRange,
   lefty: boolean,
   orientation: Orientation = chooseOrientation(range),
-  { headLabels = false }: LayoutOptions = {},
+  { headLabels = true }: LayoutOptions = {},
 ): Layout {
-  const { along: AL, across: AC } = SIZE[orientation];
   const horizontal = orientation === "horizontal";
   const n = range.maxFret - range.minFret + 1;
+  const { across: AC } = SIZE[orientation];
+  // 横向きの短い図は、札の幅を足しても画面に収まるようにネック方向を少し詰める
+  const AL =
+    horizontal && headLabels && n <= MAX_HORIZONTAL_FRETS
+      ? Math.min(SIZE.horizontal.along, Math.floor((FIT_WIDTH - 2 * PAD - LABEL) / n))
+      : SIZE[orientation].along;
   // 横向きの左利きはネックの向きを、縦向きの右利きは弦の並び（6 弦を左）を反転する
   const flipAlong = horizontal && lefty;
   const flipAcross = !horizontal && !lefty;

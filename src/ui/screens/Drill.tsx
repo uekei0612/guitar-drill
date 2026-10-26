@@ -8,6 +8,7 @@ import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
 import { ChartLink } from "../ChartLink";
+import { playMidi } from "../../chart/audio";
 import { href } from "../route";
 
 export interface DrillProps {
@@ -123,6 +124,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                   <li key={id}>{topic.itemLabel(id, ctx)}</li>
                 ))}
               </ul>
+              {topic.reference && (
+                <p>
+                  <a href={href({ name: "reference", topicId: topic.id })}>参考で見直す →</a>
+                </p>
+              )}
             </>
           )}
           <div class="actions">
@@ -168,6 +174,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             label={q.prompt.text}
             marks={shownMarks}
             selected={tapping ? taps : []}
+            tapStrings={a.kind === "tap" ? a.strings : undefined}
+            tapFrets={a.kind === "tap" ? a.frets : undefined}
             onTap={
               tapping
                 ? p => {
@@ -230,6 +238,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             <button ref={nextRef} class="btn primary" onClick={next}>
               次へ
             </button>
+            {q.sound && (
+              <button class="btn" onClick={() => playMidi(q.sound!.notes, { chord: q.sound!.chord })}>
+                ♪ 音を聴く
+              </button>
+            )}
           </div>
         </section>
       )}

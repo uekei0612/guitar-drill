@@ -5,15 +5,22 @@ import { shuffle } from "../../drill/rng";
 import type { Level, Question, Topic } from "../../drill/topic";
 import {
   type ChordType,
+  type Interval,
   type Note,
+  chordIntervals,
   chordSymbol,
   chordToneLabels,
   chordTones,
   chordType,
+  degreeLabel,
   fmt,
   note,
+  intervalBetween,
   pc,
+  quality,
+  semitones,
   spellings,
+  transpose,
 } from "../../theory";
 
 export interface ChordGroup {
@@ -63,7 +70,40 @@ function fill(correct: string, candidates: readonly (string | undefined)[]): str
   return out;
 }
 
-const nameOf = (t: ChordType) => (t.symbol === "" ? "メジャー" : t.symbol);
+/** 型の呼び名（参考と設定に出す） */
+const TYPE_NAMES: Readonly<Record<string, string>> = {
+  maj: "メジャー",
+  m: "マイナー（m）",
+  dim: "ディミニッシュ（dim）",
+  aug: "オーギュメント（aug）",
+};
+const nameOf = (t: ChordType) => TYPE_NAMES[t.id] ?? t.symbol;
+
+/** 問題文のコード名。記号の無いメジャーと「m」だけのマイナーは、音名と取り違えないよう読みを添える */
+const spoken = (root: Note, t: ChordType) =>
+  `コード ${chordSymbol(root, t)}${t.id === "maj" ? "（メジャー）" : t.id === "m" ? "（マイナー）" : " "}`;
+
+/** 度数の読み（3 → 3度、♭7 → ♭7度、R → ルート） */
+const degWord = (label: string) => (label === "R" ? "ルート" : `${label}度`);
+
+const QUALITY_NAMES = { P: "完全", M: "長", m: "短", A: "増", d: "減" } as const;
+
+/** 音程の名前（長3度） */
+export const intervalName = (iv: Interval) => `${QUALITY_NAMES[quality(iv)]}${iv.num}度`;
+
+/** 長3度（半音4） */
+const stepText = (iv: Interval) => `${intervalName(iv)}（半音${semitones(iv)}）`;
+
+/** 構成音を下から順に積む数え方（D →長3度（半音4）→ F♯ →短3度（半音3）→ A） */
+export const stackText = (tones: readonly Note[]) =>
+  tones.map((n, i) => (i === 0 ? fmt(n) : `→${stepText(intervalBetween(tones[i - 1]!, n))}→ ${fmt(n)}`)).join(" ");
+
+/** 型の並びに出てくる度数（R を除き、半音の少ない順） */
+const usedIntervals = (types: readonly string[]): Interval[] => {
+  const seen = new Map<string, Interval>();
+  for (const t of types) for (const iv of chordIntervals(chordType(t))) if (iv.num > 1) seen.set(degreeLabel(iv), iv);
+  return [...seen.values()].sort((a, b) => semitones(a) - semitones(b) || a.num - b.num);
+};
 
 export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings> {
   const defaults = Object.fromEntries(cfg.groups.map(g => [g.key, false]));
@@ -138,18 +178,26 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
           on.filter(x => x !== t && chordType(x).degrees.length !== type.degrees.length),
         ),
       ].map(chordType);
-      const explanation = { text: `${sym} = ${tones.map((n, i) => `${fmt(n)}（${labels[i]}）`).join(" ")}` };
+      const explanation = {
+        text: [
+          `${sym} = ${tones.map((n, i) => `${fmt(n)}（${labels[i]}）`).join(" ")}`,
+          `数え方：${stackText(tones)}`,
+        ].join("\n"),
+      };
+      // ルートを C4〜B4 に置いて、下から順に鳴らしてから和音で
+      const sound = { notes: chordIntervals(type).map(iv => 60 + pc(root) + semitones(iv)), chord: true };
 
       if (kind === "tones")
         return {
           item: id,
-          prompt: { text: `${sym} の構成音は？` },
+          prompt: { text: `${spoken(root, type)}の構成音は？` },
           answer: {
             kind: "choice",
             options: shuffle(rng, fill(text, [misspelled(root, type), ...others.map(x => tonesText(root, x))])),
             correct: text,
           },
           explanation,
+          sound,
         };
       if (kind === "name") {
         const options = fill(
@@ -161,6 +209,7 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
           prompt: { text: `${text}（ルートから）は何のコード？` },
           answer: { kind: "choice", options: shuffle(rng, options), correct: sym },
           explanation,
+          sound,
         };
       }
       // 度数の音：R 以外から 1 つ
@@ -178,9 +227,10 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
       ];
       return {
         item: id,
-        prompt: { text: `${sym} の ${labels[i]} の音は？` },
+        prompt: { text: `${spoken(root, type)}の ${degWord(labels[i]!)}の音は？` },
         answer: { kind: "choice", options: shuffle(rng, fill(correct, candidates)), correct },
         explanation,
+        sound,
       };
     },
 
@@ -201,6 +251,26 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
                 <td>{nameOf(chordType(t))}</td>
                 <td>{chordToneLabels(chordType(t)).join(" ")}</td>
                 <td>{tonesText(note("C"), chordType(t))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h2>度数と半音の数</h2>
+        <p>ルートから半音いくつ上か。鍵盤やフレットで数えるときは 1 フレット＝半音 1 つ。</p>
+        <table class="ref-table">
+          <thead>
+            <tr>
+              <th scope="col">度数</th>
+              <th scope="col">音程</th>
+              <th scope="col">C から</th>
+            </tr>
+          </thead>
+          <tbody>
+            {usedIntervals(typesOf(ctx.settings)).map(iv => (
+              <tr key={degreeLabel(iv)}>
+                <td>{degreeLabel(iv)}</td>
+                <td>{stepText(iv)}</td>
+                <td>{fmt(transpose(note("C"), iv))}</td>
               </tr>
             ))}
           </tbody>

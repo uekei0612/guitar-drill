@@ -2,10 +2,17 @@
    item はチューニングごとに分ける（ドロップ D の 6 弦と、レギュラーの 6 弦の成績を混ぜない）。 */
 import { shuffle } from "../../drill/rng";
 import type { Context, Question, Topic } from "../../drill/topic";
-import { type Tuning, equals, fmt, note, noteId, openNote, stringCount } from "../../theory";
+import { type Tuning, equals, fmt, midiAt, note, noteId, openNote, stringCount } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 
 const RANGE = { minFret: 0, maxFret: 3 };
+/** タップで答えるのは開放の列だけ（1〜3 フレットは見せるだけ） */
+const OPEN = { minFret: 0, maxFret: 0 };
+
+/** 弦の音（低い弦から） */
+const openSound = (t: Tuning, strings: readonly number[]) => ({
+  notes: [...strings].sort((a, b) => b - a).map(s => midiAt(t, { string: s, fret: 0 })),
+});
 
 /** 開放弦の音（重複を除く、低い弦から） */
 function openNotes(t: Tuning) {
@@ -65,7 +72,8 @@ export const openStrings: Topic = {
           board: { range: RANGE, marks: [{ pos: { string: it.string, fret: 0 }, kind: "target" }] },
         },
         answer: { kind: "choice", options: shuffle(rng, [correct, ...others]), correct },
-        explanation: { text: `${t.name}：6弦から ${t.open.map(fmt).join(" ")}`, board: openBoard(t) },
+        explanation: { text: `${t.name}：${stringCount(t)}弦から ${t.open.map(fmt).join(" ")}`, board: openBoard(t) },
+        sound: openSound(t, [it.string]),
       };
     }
     const n = note(it.note);
@@ -82,9 +90,11 @@ export const openStrings: Topic = {
         kind: "tap",
         mode: strings.length > 1 ? "all" : "any",
         range: RANGE,
+        frets: OPEN,
         correct: strings.map(s => ({ string: s, fret: 0 })),
       },
       explanation: { text: `${fmt(n)} は ${strings.map(s => `${s}弦`).join("と")}`, board: openBoard(t) },
+      sound: openSound(t, strings),
     };
   },
 
@@ -93,7 +103,7 @@ export const openStrings: Topic = {
     return (
       <>
         <p>
-          {t.name}の開放弦は、6弦（いちばん太い弦）から <strong>{t.open.map(fmt).join(" ")}</strong>。
+          {t.name}の開放弦は、{stringCount(t)}弦（いちばん太い弦）から <strong>{t.open.map(fmt).join(" ")}</strong>。
         </p>
         <Fretboard
           tuning={t}
