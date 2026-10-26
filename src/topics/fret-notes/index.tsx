@@ -7,6 +7,7 @@ import {
   type FretRange,
   type Position,
   type Tuning,
+  midiAt,
   mod,
   noteId,
   pcAt,
@@ -70,6 +71,18 @@ function windowAround(fret: number, maxFret: number): FretRange {
 }
 
 const stringLabel = (strings: readonly number[]) => strings.map(s => `${s}弦`).join("・");
+
+const OCTAVES = ["いちばん低い", "1 オクターブ上", "2 オクターブ上", "3 オクターブ上", "4 オクターブ上"];
+
+/** 同じ音名の位置を高さでまとめる（低いほうから）。同じ高さの位置が別の弦にあることと、
+    オクターブの関係が見えるように */
+export function octaveGroups(t: Tuning, positions: readonly Position[]): Position[][] {
+  const byMidi = new Map<number, Position[]>();
+  for (const p of positions) byMidi.set(midiAt(t, p), [...(byMidi.get(midiAt(t, p)) ?? []), p]);
+  return [...byMidi].sort((a, b) => a[0] - b[0]).map(([, ps]) => [...ps].sort((a, b) => b.string - a.string));
+}
+
+const posText = (p: Position) => `${p.string}弦 ${p.fret === 0 ? "開放" : `${p.fret}フレット`}`;
 
 export const fretNotes: Topic<FretNotesSettings> = {
   id: "fret-notes",
@@ -176,23 +189,37 @@ export const fretNotes: Topic<FretNotesSettings> = {
         },
         answer: { kind: "choice", options, correct },
         explanation: { text: `${it.pos.string}弦の音の並び（${correct}）`, board: { range, marks } },
+        sound: { notes: [midiAt(t, it.pos)] },
       };
     }
     const strings = activeStrings(s, t);
     const range = { minFret: 0, maxFret: s.maxFret };
     const correct = positionsOf(t, it.pc, range).filter(p => strings.includes(p.string));
     const name = pcName(it.pc);
+    const groups = octaveGroups(t, correct);
+    const lines = groups.map(
+      (g, i) =>
+        `${OCTAVES[i] ?? `${i} オクターブ上`}：${g.map(posText).join(" ＝ ")}${g.length > 1 ? "（同じ高さ）" : ""}`,
+    );
     return {
       item: id,
       prompt: {
         text: `${stringLabel(strings)}（${s.maxFret}フレットまで）の ${name} を全部タップ（${correct.length} か所）`,
       },
-      answer: { kind: "tap", mode: "all", range, correct },
+      answer: { kind: "tap", mode: "all", range, correct, strings },
+      sound: { notes: groups.map(g => midiAt(t, g[0]!)) },
       explanation: {
-        text: `${name} の位置`,
+        text: [`${name} の位置（低いほうから）`, ...lines].join("\n"),
         board: {
           range,
-          marks: correct.map(p => ({ pos: p, kind: "root" as const, label: fmt(spellings(it.pc)[0]!) })),
+          // 高さごとに色を交互に変える（同じ色＝同じ高さ）
+          marks: groups.flatMap((g, i) =>
+            g.map(p => ({
+              pos: p,
+              kind: i % 2 ? ("tone" as const) : ("root" as const),
+              label: fmt(spellings(it.pc)[0]!),
+            })),
+          ),
         },
       },
     };

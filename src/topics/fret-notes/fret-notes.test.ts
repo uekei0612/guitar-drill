@@ -3,7 +3,7 @@ import { checkTopic } from "../../drill/check";
 import { seeded } from "../../drill/rng";
 import { grade } from "../../drill/topic";
 import { STANDARD, TUNINGS } from "../../theory";
-import { type FretNotesSettings, fretNotes, pcName } from ".";
+import { type FretNotesSettings, fretNotes, octaveGroups, pcName } from ".";
 
 const ctx = (settings: Partial<FretNotesSettings> = {}, tuning = STANDARD) => ({
   common: { tuning, lefty: false },
@@ -79,5 +79,31 @@ describe("指板の音名", () => {
       maxFret: 7,
       accidentals: true,
     });
+  });
+
+  it("音名 → 位置：出題する弦だけ押せて、解説は高さでまとめる", () => {
+    const q = fretNotes.question("standard:note:9", ctx(), seeded(1));
+    expect(q.answer).toMatchObject({ strings: [6, 5] });
+    expect(q.explanation?.text).toBe(
+      "A の位置（低いほうから）\nいちばん低い：6弦 5フレット ＝ 5弦 開放（同じ高さ）\n1 オクターブ上：5弦 12フレット",
+    );
+    expect(q.sound).toEqual({ notes: [45, 57] });
+  });
+
+  it("オクターブの形（6弦 3f の G と 4弦 5f の G は 1 オクターブ）", () => {
+    const g = octaveGroups(STANDARD, [
+      { string: 4, fret: 5 },
+      { string: 6, fret: 3 },
+      { string: 1, fret: 3 },
+      { string: 3, fret: 0 },
+    ]);
+    expect(g).toEqual([
+      [{ string: 6, fret: 3 }],
+      [
+        { string: 4, fret: 5 },
+        { string: 3, fret: 0 },
+      ],
+      [{ string: 1, fret: 3 }],
+    ]);
   });
 });
