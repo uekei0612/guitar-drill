@@ -20,6 +20,7 @@ describe("schema", () => {
         theme: "dark",
         sessionSize: 30,
         autoNext: false,
+        autoSound: true,
         topics: { a: { x: 1 }, b: 3 },
       }),
     ).toEqual({
@@ -29,6 +30,7 @@ describe("schema", () => {
       theme: "dark",
       sessionSize: 30,
       autoNext: false,
+      autoSound: true,
       topics: { a: { x: 1 } },
     });
   });

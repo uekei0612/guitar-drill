@@ -204,6 +204,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     const key = recordKeyOf(topic, q.item);
     st.update(d => ({ ...d, items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) } }));
     setResult({ ok, response });
+    // 答えた操作の中で鳴らす（iOS は操作の外では音を出させない）
+    if (q.sound && st.data.settings.autoSound) playSound(q.sound);
   }
 
   function next() {
