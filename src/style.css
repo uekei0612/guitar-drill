@@ -1034,3 +1034,59 @@ select {
   text-align: center;
   margin-bottom: 4px;
 }
+
+/* 下のタブ（ドリル／チャート／設定）。ホームバーの分だけ下を空ける */
+:root {
+  --tabbar-h: 56px;
+}
+main.with-tabs {
+  padding-bottom: calc(var(--tabbar-h) + max(24px, env(safe-area-inset-bottom) + 16px));
+}
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  padding: 0 max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.tab {
+  flex: 0 1 8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tabbar-h);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab.current {
+  color: var(--accent);
+  font-weight: 600;
+}
+.tab-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.tab-icon .tab-knob {
+  fill: var(--bg);
+}
+.tab.current .tab-icon .tab-knob {
+  fill: currentColor;
+}
+.tab:focus-visible {
+  outline-offset: -3px;
+}

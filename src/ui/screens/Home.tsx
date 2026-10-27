@@ -11,9 +11,6 @@ export function Home({ now = Date.now() }: { now?: number }) {
     <>
       <header class="bar">
         <h1 tabIndex={-1}>guitar-drill</h1>
-        <a class="bar-link" href={href({ name: "settings" })}>
-          設定
-        </a>
       </header>
       <a class="chart-entry" href={href({ name: "chart", query: "" })}>
         <span class="topic-title">チャート</span>
