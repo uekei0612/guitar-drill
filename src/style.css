@@ -496,6 +496,8 @@ main:has(.drill-screen.fill) {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* いちばん下のボタンを画面の端（ホームバー）から離して、親指で押しやすくする */
+  padding-bottom: max(24px, calc(env(safe-area-inset-bottom) + 14px));
 }
 .drill-screen.fill .question {
   flex: 1 1 auto;
