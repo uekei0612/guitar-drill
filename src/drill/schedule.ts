@@ -87,3 +87,20 @@ export function planSession(
   }
   return out.slice(0, size);
 }
+
+/** その時刻の、端末の暦での日の番号 */
+const dayNo = (t: number) => {
+  const d = new Date(t);
+  return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY);
+};
+
+/** 次に復習する日（今日＝0）と、その日に期限が来る数。期限切れのものは今日に数える。記録が無ければ undefined */
+export function nextDue(
+  stats: readonly (ItemStat | undefined)[],
+  now: number,
+): { readonly days: number; readonly count: number } | undefined {
+  const days = stats.filter((s): s is ItemStat => !!s).map(s => Math.max(0, dayNo(Math.max(s.due, now)) - dayNo(now)));
+  if (!days.length) return undefined;
+  const first = Math.min(...days);
+  return { days: first, count: days.filter(d => d === first).length };
+}

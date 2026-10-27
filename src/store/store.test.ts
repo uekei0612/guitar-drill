@@ -33,6 +33,20 @@ describe("schema", () => {
     });
   });
 
+  it("前回の点数：壊れたものは捨て、無い記録（古い版）は空として読む", () => {
+    expect(parseData({ version: 1, items: {} }).scores).toEqual({});
+    expect(
+      parseData({
+        version: 1,
+        scores: {
+          a: { correct: 3, total: 5, at: 1 },
+          b: { correct: 6, total: 5, at: 1 },
+          c: { correct: 0, total: 0, at: 1 },
+        },
+      }).scores,
+    ).toEqual({ a: { correct: 3, total: 5, at: 1 } });
+  });
+
   it("成績は 1 件ずつ検証し、壊れたものだけ捨てる", () => {
     expect(parseStat(stat)).toEqual(stat);
     expect(parseStat({ ...stat, ease: 9 })).toBeUndefined();
