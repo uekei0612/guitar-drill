@@ -100,17 +100,21 @@ export function Settings() {
         </label>
       </section>
 
+      <h2>分野ごとの出題</h2>
       {TOPICS.filter(t => t.settings?.view).map(t => {
         const View = t.settings!.view!;
         return (
-          <section key={t.id} class="form" aria-labelledby={`ts-${t.id}`}>
-            <h2 id={`ts-${t.id}`}>{t.title}</h2>
-            <View
-              value={t.settings!.parse(st.topics[t.id])}
-              common={commonOf(st)}
-              onChange={v => set({ topics: { ...st.topics, [t.id]: v } })}
-            />
-          </section>
+          // 分野ごとの出題設定は折りたたむ（全部開くと縦に長く、目的の分野を探すことになる）
+          <details key={t.id} class="topic-settings">
+            <summary>{t.title}</summary>
+            <div class="form">
+              <View
+                value={t.settings!.parse(st.topics[t.id])}
+                common={commonOf(st)}
+                onChange={v => set({ topics: { ...st.topics, [t.id]: v } })}
+              />
+            </div>
+          </details>
         );
       })}
 
