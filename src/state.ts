@@ -24,3 +24,13 @@ export const contextOf = (topic: AnyTopic, st: Settings): Context<unknown> => ({
   common: commonOf(st),
   settings: topic.settings ? topic.settings.parse(st.topics[topic.id]) : {},
 });
+
+/** 1 回だけ出題範囲を絞った設定（ドリルの URL の only。読めなければ元の設定のまま）。記録には書かない */
+export function scoped(topic: AnyTopic, st: Settings, only: string | undefined): Settings {
+  if (!only || !topic.settings) return st;
+  try {
+    return { ...st, topics: { ...st.topics, [topic.id]: JSON.parse(only) as unknown } };
+  } catch {
+    return st;
+  }
+}

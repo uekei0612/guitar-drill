@@ -31,7 +31,8 @@ export function App() {
   let screen;
   if (route.name === "settings") screen = <Settings />;
   else if (route.name === "chart") screen = <Chart key={route.query} query={route.query} />;
-  else if (route.name === "drill" && topic) screen = <Drill key={topic.id} topic={topic} />;
+  else if (route.name === "drill" && topic)
+    screen = <Drill key={`${topic.id}?${route.only ?? ""}`} topic={topic} only={route.only} />;
   else if (route.name === "reference" && topic) screen = <Reference topic={topic} />;
   else screen = <Home />;
 

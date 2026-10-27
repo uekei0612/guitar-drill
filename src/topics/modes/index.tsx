@@ -150,6 +150,8 @@ export const modes: Topic = {
       stripLabel: `${rootName} ${m.name}の音と度数`,
     };
     const sound = { notes: scaleMidis(pc(note(root)), scaleIntervals(m.id).map(semitones)) };
+    // モードはチャートにも同じ ID である（指板の上でどこに特性音があるかを見に行ける）
+    const chart = { scale: m.id, rootPc: pc(note(root)), flat: rootName.includes("♭") };
     const choice = (text: string, correct: string, candidates: string[], hint: string): Question => ({
       item: id,
       prompt: { text },
@@ -157,6 +159,7 @@ export const modes: Topic = {
       hint: { text: hint },
       explanation,
       sound,
+      chart,
     });
     switch (kind) {
       case "tones":

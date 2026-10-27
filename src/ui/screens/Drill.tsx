@@ -2,8 +2,16 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/ho
 import { type Rng, randomRng } from "../../drill/rng";
 import { planSession, review } from "../../drill/schedule";
 import { type Session, answer, currentItem, isFinished, startSession, summarize } from "../../drill/session";
-import { type AnyTopic, type Mark, type Question, type Response, grade, itemKey } from "../../drill/topic";
-import { contextOf, store, useData } from "../../state";
+import {
+  type AnyTopic,
+  type Context,
+  type Mark,
+  type Question,
+  type Response,
+  grade,
+  itemKey,
+} from "../../drill/topic";
+import { contextOf, scoped, store, useData } from "../../state";
 import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
@@ -18,6 +26,8 @@ export interface DrillProps {
   readonly rng?: Rng;
   readonly clock?: () => number;
   readonly store?: Store;
+  /** 1 回だけ出題範囲を絞る（分野の設定と同じ形の JSON） */
+  readonly only?: string;
 }
 
 /** タップで答える図の最小の拡大率（1 マス 48 を 44px 以上に保つ） */
@@ -39,9 +49,40 @@ function tapMarks(correct: readonly Position[], taps: readonly Position[]): Mark
   ];
 }
 
-export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = store }: DrillProps) {
+/** 参考を、ドリルの上に重ねて開く（ページを移るとセッションが消えるので）。閉じるとドリルの続きに戻る */
+function ReferenceSheet({ topic, ctx, onClose }: { topic: AnyTopic; ctx: Context<unknown>; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    d?.showModal?.();
+    return () => d?.close?.();
+  }, []);
+  const Ref = topic.reference!;
+  return (
+    <dialog
+      ref={ref}
+      class="sheet"
+      aria-labelledby="sheet-h"
+      onClose={onClose}
+      // 外側（暗くした背景）を押しても閉じる
+      onClick={e => e.target === ref.current && ref.current?.close()}
+    >
+      <div class="sheet-inner">
+        <div class="sheet-head">
+          <h2 id="sheet-h">{topic.title}の参考</h2>
+          <button class="btn" onClick={() => ref.current?.close()}>
+            閉じる
+          </button>
+        </div>
+        <Ref ctx={ctx} />
+      </div>
+    </dialog>
+  );
+}
+
+export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = store, only }: DrillProps) {
   const data = useData(st);
-  const ctx = contextOf(topic, data.settings);
+  const ctx = contextOf(topic, scoped(topic, data.settings, only));
   const [session, setSession] = useState<Session>(() => newSession());
   const [result, setResult] = useState<{ ok: boolean; response: Response } | null>(null);
   /** 押したマス（null はまだ触っていない。問題ごとの初期状態を使う） */
@@ -67,13 +108,20 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       at は問題とヒントの開閉（変わったら縮める前の枠で測り直す）、k はそのとき決めた拡大率 */
   const [snug, setSnug] = useState<{ at: string; k: number }>();
   const promptRef = useRef<HTMLParagraphElement>(null);
+  const [refOpen, setRefOpen] = useState(false);
 
   function newSession(): Session {
     const d = st.data;
     return startSession(
-      planSession(topic.items(contextOf(topic, d.settings)), id => d.items[itemKey(topic.id, id)], clock(), rng, {
-        size: d.settings.sessionSize,
-      }),
+      planSession(
+        topic.items(contextOf(topic, scoped(topic, d.settings, only))),
+        id => d.items[itemKey(topic.id, id)],
+        clock(),
+        rng,
+        {
+          size: d.settings.sessionSize,
+        },
+      ),
     );
   }
 
@@ -519,7 +567,16 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 </ol>
               )}
               {q.explanation?.text && !tall && <p>{q.explanation.text}</p>}
-              {q.chart && <ChartLink chart={q.chart} />}
+              {(topic.reference || q.chart) && (
+                <div class="explain-links">
+                  {topic.reference && (
+                    <button class="link-btn" onClick={() => setRefOpen(true)}>
+                      参考を見る
+                    </button>
+                  )}
+                  {q.chart && <ChartLink chart={q.chart} />}
+                </div>
+              )}
             </section>
             <div class="actions next-bar">
               <button ref={nextRef} class="btn primary" onClick={next}>
@@ -534,6 +591,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </div>
         )}
       </div>
+      {refOpen && <ReferenceSheet topic={topic} ctx={ctx} onClose={() => setRefOpen(false)} />}
       {/* 正誤の読み上げ（見た目の行は上の feedback-line） */}
       <div class="feedback sr-only" aria-live="assertive">
         {result && `${feedback}${!result.ok && a.kind === "tap" ? `（${correctText}）` : ""}`}
