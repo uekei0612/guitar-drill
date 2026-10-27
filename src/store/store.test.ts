@@ -37,6 +37,11 @@ describe("schema", () => {
 
   it("前回の点数：壊れたものは捨て、無い記録（古い版）は空として読む", () => {
     expect(parseData({ version: 1, items: {} }).scores).toEqual({});
+    expect(parseData({ version: 1 }).days).toEqual([]);
+    expect(parseData({ version: 1, days: ["2026-10-28", "x", 3, "2026-10-27", "2026-10-28"] }).days).toEqual([
+      "2026-10-27",
+      "2026-10-28",
+    ]);
     expect(
       parseData({
         version: 1,

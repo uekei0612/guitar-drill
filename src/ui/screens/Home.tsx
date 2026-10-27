@@ -1,8 +1,18 @@
+import { DAY } from "../../drill/schedule";
+import { localDay, streakOf } from "../../drill/streak";
 import { LEVELS } from "../../drill/topic";
 import { useData } from "../../state";
 import { TOPICS } from "../../topics";
 import { REVIEW_ID, nextTopic, progressOf } from "../../topics/review";
 import { href } from "../route";
+
+/** 最後に練習した日の言い方（今日・昨日・N 日前） */
+function dayText(day: string, now: number): string {
+  if (day === localDay(now)) return "今日";
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+  const n = Math.round((new Date(localDay(now) + "T12:00").getTime() - new Date(y, m - 1, d, 12).getTime()) / DAY);
+  return n === 1 ? "昨日" : `${n} 日前`;
+}
 
 /** 覚えた割合の輪（行の右端）。数は行の文字で読み上げるので、輪は飾り */
 function Ring({ frac }: { frac: number }) {
@@ -31,11 +41,26 @@ export function Home({ now = Date.now() }: { now?: number }) {
   const due = rows.reduce((n, x) => n + x.p.due, 0);
   const dueTopics = rows.filter(x => x.p.due > 0).length;
   const next = due ? undefined : nextTopic(data, now);
+  const streak = streakOf(data.days, now);
   return (
     <>
       <header class="bar home-head">
         <img class="app-icon" src={`${import.meta.env.BASE_URL}icon.svg`} alt="" width={32} height={32} />
         <h1 tabIndex={-1}>guitar-drill</h1>
+        {/* 続ける動機：連続日数と最後に練習した日（まだ練習していなければ出さない） */}
+        {streak.last && (
+          <p class="streak">
+            {streak.streak > 0 ? (
+              <>
+                <strong>{streak.streak}</strong> 日連続
+                {/* 昨日まで続いていて今日はまだ：途切れる前に気づけるように */}
+                {streak.last !== localDay(now) && "・今日はまだ"}
+              </>
+            ) : (
+              <>最後の練習 {dayText(streak.last, now)}</>
+            )}
+          </p>
+        )}
       </header>
 
       {/* 次にやること：期限の来た問題があれば全分野まとめて復習、無ければ続きの分野 */}

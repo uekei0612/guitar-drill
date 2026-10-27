@@ -1,5 +1,6 @@
 /* 記録の形と検証。保存値は信用せず、版を見て移行し、値を 1 つずつ検証する（壊れた値は既定値）。 */
 import { MAX_EASE, MAX_INTERVAL, MIN_EASE, type ItemStat } from "../drill/schedule";
+import { MAX_DAYS } from "../drill/streak";
 import { TUNINGS } from "../theory";
 
 export const VERSION = 1;
@@ -36,6 +37,8 @@ export interface SaveData {
   readonly items: Readonly<Record<string, ItemStat>>;
   /** キーは分野 ID（今日の復習は "review"）。無い記録（古い版）は空として読む */
   readonly scores: Readonly<Record<string, Score>>;
+  /** 練習した日（端末のローカル時刻の YYYY-MM-DD、古い順）。無い記録（古い版）は空として読む */
+  readonly days: readonly string[];
 }
 
 export const SESSION_SIZES = [10, 20, 30] as const;
@@ -51,7 +54,13 @@ export const DEFAULT_SETTINGS: Settings = {
   topics: {},
 };
 
-export const emptyData = (): SaveData => ({ version: VERSION, settings: DEFAULT_SETTINGS, items: {}, scores: {} });
+export const emptyData = (): SaveData => ({
+  version: VERSION,
+  settings: DEFAULT_SETTINGS,
+  items: {},
+  scores: {},
+  days: [],
+});
 
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => typeof x === "object" && x !== null && !Array.isArray(x);
@@ -127,5 +136,10 @@ export function parseData(raw: unknown): SaveData {
     settings: parseSettings(r.settings),
     items: parseItems(r.items),
     scores: parseScores(r.scores),
+    days: Array.isArray(r.days)
+      ? [...new Set(r.days.filter((x): x is string => typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x)))]
+          .sort()
+          .slice(-MAX_DAYS)
+      : [],
   };
 }
