@@ -8,6 +8,12 @@
   --on-accent: #fff;
   --ok: #15803d;
   --ng: #b91c1c;
+  /* 進み具合の下地（バー・輪）。--line だと暗色でほとんど見えない */
+  --track: #e2e2e2;
+  /* 角の丸み：小（札・入力欄）／中（ボタン・カード）／大（まとまり・シート） */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
   font-family:
     system-ui,
     -apple-system,
@@ -57,8 +63,9 @@ main {
     --fg: #eee;
     --muted: #aaa;
     --accent: #fb923c;
-    --line: #333;
-    --surface: #1e1e1e;
+    --line: #3a3a3e;
+    --surface: #1f1f23;
+    --track: #45454b;
     --on-accent: #111;
     --ok: #4ade80;
     --ng: #f87171;
@@ -79,8 +86,9 @@ main {
   --fg: #eee;
   --muted: #aaa;
   --accent: #fb923c;
-  --line: #333;
-  --surface: #1e1e1e;
+  --line: #3a3a3e;
+  --surface: #1f1f23;
+  --track: #45454b;
   --on-accent: #111;
   --ok: #4ade80;
   --ng: #f87171;
@@ -295,7 +303,7 @@ a {
   min-height: 44px;
   padding: 8px 16px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--fg);
   font: inherit;
@@ -341,7 +349,7 @@ input:focus-visible {
   min-height: 56px;
   padding: 8px 14px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--fg);
   text-decoration: none;
@@ -377,7 +385,7 @@ input:focus-visible {
   stroke-width: 4;
 }
 .ring-track {
-  stroke: var(--line);
+  stroke: var(--track);
 }
 .ring-bar {
   stroke: var(--accent);
@@ -492,7 +500,7 @@ input:focus-visible {
   max-width: 33%;
   padding: 4px 6px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 /* 強調する札（正解の側）は正誤の緑。オレンジだと不正解の赤いパネルの中で「これが間違い」に見える */
 .strip li.current {
@@ -634,7 +642,7 @@ main:has(.drill-screen.fill) {
   display: flex;
   flex-direction: column;
   padding: 0 14px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 /* 正誤は色だけに頼らない：見出しの ✓ / ✗ と枠で示し、地の色は薄くする */
 .drill-screen.fill .dock-a.is-ok {
@@ -854,7 +862,7 @@ input[type="url"] {
   font-size: 16px; /* iOS で入力時に拡大されないように */
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--fg);
 }
@@ -893,7 +901,7 @@ input[type="url"] {
   gap: 8px;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--surface);
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
 }
@@ -1191,7 +1199,7 @@ main.with-tabs {
   margin: auto auto 0;
   padding: 0;
   border: 0;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--bg);
   color: var(--fg);
   box-shadow: 0 -4px 24px rgb(0 0 0 / 0.25);
@@ -1230,7 +1238,7 @@ main.with-tabs {
   gap: 10px;
 }
 .app-icon {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 .today {
   display: grid;
@@ -1238,7 +1246,7 @@ main.with-tabs {
   gap: 4px;
   margin-top: 16px;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg));
 }
 .today h2 {
@@ -1287,7 +1295,7 @@ main.with-tabs {
   height: 4px;
   margin: 4px 0 8px;
   border-radius: 2px;
-  background: var(--line);
+  background: var(--track);
   overflow: hidden;
 }
 .progress-track > span {
@@ -1368,7 +1376,7 @@ main.with-tabs {
     margin-top: 8px;
     padding: 16px;
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-radius: var(--radius);
   }
 }
 /* 含める度数：押して切り替える丸いボタン（指板の点と同じ見た目で、入っている度数は塗る） */
@@ -1435,4 +1443,15 @@ main.with-tabs {
 }
 .chart-pdf > .form {
   margin: 0 0 16px;
+}
+
+/* 広い画面のホーム：分野を 2〜3 列に並べる（スマホでは 1 列のまま） */
+main.home {
+  max-width: 60rem;
+}
+main.home .topics {
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+main.home .today {
+  max-width: 40rem;
 }

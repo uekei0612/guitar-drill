@@ -50,7 +50,11 @@ export function App() {
         </div>
       )}
       <main
-        class={[route.name === "chart" && "wide", tabOf(route) && "with-tabs"].filter(Boolean).join(" ") || undefined}
+        class={
+          [route.name === "chart" && "wide", route.name === "home" && "home", tabOf(route) && "with-tabs"]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
       >
         {screen}
       </main>
