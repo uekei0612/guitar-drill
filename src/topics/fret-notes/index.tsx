@@ -17,6 +17,7 @@ import {
   stringCount,
 } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
+import { chooseOrientation } from "../../ui/fretboard-layout";
 
 export interface FretNotesSettings {
   /** 出題する弦 */
@@ -190,6 +191,8 @@ export const fretNotes: Topic<FretNotesSettings> = {
     if (it.kind === "pos") {
       const pc = pcAt(t, it.pos);
       const range = windowAround(it.pos.fret, Math.max(s.maxFret, 4));
+      // 図の向きは「全部タップ」の問題（0〜maxFret）にそろえる。同じ分野で向きが変わると読み直しになる
+      const orientation = chooseOrientation({ minFret: 0, maxFret: s.maxFret });
       const correct = pcName(pc);
       // 紛らわしい選択肢：近い音（半音・全音のずれ）から
       const near = [1, -1, 2, -2, 3, -3, 4, -4].map(d => mod(pc + d, 12)).filter(ok);
@@ -205,11 +208,11 @@ export const fretNotes: Topic<FretNotesSettings> = {
         item: id,
         prompt: {
           text: `${it.pos.string}弦 ${it.pos.fret === 0 ? "開放" : `${it.pos.fret}フレット`}の音は？`,
-          board: { range, marks: [{ pos: it.pos, kind: "target" }] },
+          board: { range, orientation, marks: [{ pos: it.pos, kind: "target" }] },
         },
         answer: { kind: "choice", options, correct },
         hint: anchorHint(t, it.pos, range),
-        explanation: { text: `${it.pos.string}弦の音の並び（${correct}）`, board: { range, marks } },
+        explanation: { text: `${it.pos.string}弦の音の並び（${correct}）`, board: { range, orientation, marks } },
         sound: { notes: [midiAt(t, it.pos)] },
       };
     }
