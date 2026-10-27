@@ -15,6 +15,8 @@ export interface Settings {
   readonly sessionSize: number;
   /** 選択肢の問題で正解したら、少し待って自動で次へ進む */
   readonly autoNext: boolean;
+  /** 音のある問題（コード・音程など）で、答えたら自動で鳴らす */
+  readonly autoSound: boolean;
   /** 分野ごとの設定。中身は分野の settings.parse で検証してから使う */
   readonly topics: Readonly<Record<string, unknown>>;
 }
@@ -44,6 +46,8 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   sessionSize: 20,
   autoNext: true,
+  // 既定は鳴らさない（電車などで急に鳴ると困る。マナーモードの iPhone ではどのみち鳴らない）
+  autoSound: false,
   topics: {},
 };
 
@@ -65,6 +69,7 @@ export function parseSettings(raw: unknown): Settings {
       ? (r.sessionSize as number)
       : d.sessionSize,
     autoNext: typeof r.autoNext === "boolean" ? r.autoNext : d.autoNext,
+    autoSound: typeof r.autoSound === "boolean" ? r.autoSound : d.autoSound,
     topics: isObj(r.topics) ? Object.fromEntries(Object.entries(r.topics).filter(([, v]) => isObj(v))) : d.topics,
   };
 }

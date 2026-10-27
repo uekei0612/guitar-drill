@@ -5,7 +5,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { seeded } from "../../drill/rng";
 import type { Topic } from "../../drill/topic";
 import { Store, memoryStorage } from "../../store/store";
+import { playSound } from "../../chart/audio";
 import { AUTO_NEXT_MS, Drill } from "./Drill";
+
+vi.mock("../../chart/audio", async orig => ({ ...(await orig<object>()), playSound: vi.fn() }));
 
 /** 「x の答えは x」の 4択と、「1 弦の開放をタップ」 */
 const topic: Topic = {
@@ -155,6 +158,24 @@ describe("Drill", () => {
     expect(ev.defaultPrevented).toBe(false);
     expect(el.querySelector(".result")).toBeNull();
     expect(st.data.scores).toEqual({});
+  });
+
+  it("設定で、答えたら音を自動で鳴らす（既定は鳴らさない）", async () => {
+    const sounding: Topic = {
+      ...topic,
+      items: () => ["a"],
+      question: id => ({ ...topic.question(id, undefined as never, seeded(1)), sound: { notes: [60, 64, 67] } }),
+    };
+    for (const autoSound of [false, true]) {
+      vi.mocked(playSound).mockClear();
+      const st = new Store(memoryStorage());
+      st.update(d => ({ ...d, settings: { ...d.settings, autoSound } }));
+      const el = document.body.appendChild(document.createElement("div"));
+      await act(() => render(<Drill topic={sounding} store={st} rng={seeded(1)} clock={() => 0} />, el));
+      await click(button(el, "a"));
+      expect(vi.mocked(playSound).mock.calls.length).toBe(autoSound ? 1 : 0);
+      render(null, el);
+    }
   });
 
   it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {
