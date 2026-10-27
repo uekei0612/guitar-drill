@@ -427,7 +427,10 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               selected={
                 result && ex && a.kind === "choice"
                   ? (board?.marks ?? []).filter(m => m.kind === "target").map(m => m.pos)
-                  : taps
+                  : result
+                    ? // 答えたあとは開放の ○ を消す（正解の点と重なって読みにくい）
+                      taps.filter(t => t.fret !== 0)
+                    : taps
               }
               tapStrings={tapping && a.kind === "tap" ? a.strings : undefined}
               tapFrets={tapping && a.kind === "tap" ? a.frets : undefined}

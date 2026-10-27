@@ -236,10 +236,11 @@ export function Fretboard({
         return c ? (
           <circle
             key={`sel${p.string}:${p.fret}`}
-            class="fb-selected"
+            // 開放は押さえる場所ではないので、コードダイアグラムと同じ小さな ○ にする（押したマスに目が行くように）
+            class={p.fret === 0 ? "fb-selected fb-selected--open" : "fb-selected"}
             cx={c.c.x}
             cy={c.c.y}
-            r={L.r + 3}
+            r={p.fret === 0 ? L.r * 0.55 : L.r + 3}
             aria-hidden="true"
           />
         ) : null;
