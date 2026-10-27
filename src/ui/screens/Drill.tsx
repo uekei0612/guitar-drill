@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { type Rng, randomRng } from "../../drill/rng";
 import { nextDue, planSession, review } from "../../drill/schedule";
+import { addDay } from "../../drill/streak";
 import { type Session, answer, currentItem, isFinished, startSession, summarize } from "../../drill/session";
 import {
   type AnyTopic,
@@ -202,7 +203,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     if (!q || result) return;
     const ok = grade(q.answer, response);
     const key = recordKeyOf(topic, q.item);
-    st.update(d => ({ ...d, items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) } }));
+    st.update(d => ({
+      ...d,
+      items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) },
+      days: addDay(d.days, clock()),
+    }));
     setResult({ ok, response });
     // 答えた操作の中で鳴らす（iOS は操作の外では音を出させない）
     if (q.sound && st.data.settings.autoSound) playSound(q.sound);

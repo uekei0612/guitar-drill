@@ -1534,3 +1534,17 @@ main.home .today {
 .result .actions .btn {
   flex: 1 1 100%;
 }
+
+/* ホームの見出しの右：連続日数 */
+.streak {
+  margin: 0 0 0 auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.streak strong {
+  color: var(--accent);
+  font-size: 1.05rem;
+}
