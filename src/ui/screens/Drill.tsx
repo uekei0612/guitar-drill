@@ -100,7 +100,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   // 図のある問題は図の枠の大きさを測って拡大率を決める。図の無い問題は選択肢を画面の下（親指の届く所）に置く
   const hasBoard = !!q && (!!q.prompt.board || q.answer.kind === "tap" || (!!result && !!q.explanation?.board));
   const textOnly = !!q && !hasBoard;
-  const fill = textOnly || (hasBoard && (!!result || !noFill));
+  // 答える前に収まらなかった（スクロールさせた）問題は、答えたあとも同じ大きさのままスクロールで見せる。
+  // 答えた瞬間に画面に収めると、解説の分だけ図が縮んで読めなくなる（長い問題文のローコードなど）。
+  // 7 フレット以上の縦長の図は、答えたあと解説を横に並べて収めるので除く
+  const wideTap =
+    q?.answer.kind === "tap" && q.answer.range.maxFret - q.answer.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
+  const fill = textOnly || (hasBoard && (!!result ? !(noFill && !wideTap) : !noFill));
   const snugAt = `${session.index}-${hinted}`;
   const isSnug = !result && snug?.at === snugAt;
   const boxAt = `${session.index}-${!!result}-${isSnug}`;
