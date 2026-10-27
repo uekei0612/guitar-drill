@@ -13,6 +13,8 @@ export interface Settings {
   readonly theme: Theme;
   /** 1 セッションの問題数 */
   readonly sessionSize: number;
+  /** 選択肢の問題で正解したら、少し待って自動で次へ進む */
+  readonly autoNext: boolean;
   /** 分野ごとの設定。中身は分野の settings.parse で検証してから使う */
   readonly topics: Readonly<Record<string, unknown>>;
 }
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lefty: false,
   theme: "system",
   sessionSize: 20,
+  autoNext: true,
   topics: {},
 };
 
@@ -51,6 +54,7 @@ export function parseSettings(raw: unknown): Settings {
     sessionSize: (SESSION_SIZES as readonly unknown[]).includes(r.sessionSize)
       ? (r.sessionSize as number)
       : d.sessionSize,
+    autoNext: typeof r.autoNext === "boolean" ? r.autoNext : d.autoNext,
     topics: isObj(r.topics) ? Object.fromEntries(Object.entries(r.topics).filter(([, v]) => isObj(v))) : d.topics,
   };
 }

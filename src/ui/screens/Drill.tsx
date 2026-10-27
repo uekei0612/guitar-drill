@@ -34,6 +34,8 @@ export interface DrillProps {
 const MIN_TAP_SCALE = 44 / 48;
 /** 図の下のヒントのボタンが取る高さ（style.css の .hint-btn の高さ＋上の余白） */
 const HINT_BUTTON_HEIGHT = 56;
+/** 選択肢の問題で正解したあと、自動で次へ進むまで（正誤を目で確かめる間） */
+export const AUTO_NEXT_MS = 800;
 
 const same = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 
@@ -209,6 +211,36 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     setStack(false);
     setNoFill(false);
   }
+
+  // 選択肢の問題で正解したら、少し待って次へ（不正解は解説を読むので止める）。参考を開いたら待つ
+  const autoNext = !!result && result.ok && q?.answer.kind === "choice" && data.settings.autoNext && !refOpen;
+  useEffect(() => {
+    if (!autoNext) return;
+    const id = setTimeout(next, AUTO_NEXT_MS);
+    return () => clearTimeout(id);
+  }, [autoNext, session.index]);
+
+  // キーボード：1〜9 で選択肢を選び、答えたあとは Enter で次へ（PC 向け）
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if (!q || refOpen || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
+      if (!result && q.answer.kind === "choice" && /^[1-9]$/.test(e.key)) {
+        const o = q.answer.options[Number(e.key) - 1];
+        if (o !== undefined) {
+          e.preventDefault();
+          submit({ kind: "choice", value: o });
+        }
+      } else if (result && e.key === "Enter" && !(el && /^(BUTTON|A)$/.test(el.tagName))) {
+        // ボタンにフォーカスがあるときは、そのボタンの Enter に任せる
+        e.preventDefault();
+        next();
+      }
+    };
+    addEventListener("keydown", on);
+    return () => removeEventListener("keydown", on);
+  });
 
   if (!session.queue.length)
     return (
@@ -540,8 +572,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 role="group"
                 aria-label="選択肢"
               >
-                {a.options.map(o => (
+                {a.options.map((o, i) => (
                   <button key={o} class="btn choice" onClick={() => submit({ kind: "choice", value: o })}>
+                    {/* PC では 1〜9 キーで選べるので番号を添える（タッチの画面では出さない） */}
+                    {i < 9 && (
+                      <span class="key-hint" aria-hidden="true">
+                        {i + 1}
+                      </span>
+                    )}
                     {o}
                   </button>
                 ))}
@@ -602,7 +640,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               )}
             </section>
             <div class="actions next-bar">
-              <button ref={nextRef} class="btn primary" onClick={next}>
+              <button ref={nextRef} class={`btn primary${autoNext ? " auto" : ""}`} onClick={next}>
                 次へ
               </button>
               {q.sound && (

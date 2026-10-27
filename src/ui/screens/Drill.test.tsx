@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 import { render } from "preact";
 import { act } from "preact/test-utils";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { seeded } from "../../drill/rng";
 import type { Topic } from "../../drill/topic";
 import { Store, memoryStorage } from "../../store/store";
-import { Drill } from "./Drill";
+import { AUTO_NEXT_MS, Drill } from "./Drill";
 
 /** 「x の答えは x」の 4択と、「1 弦の開放をタップ」 */
 const topic: Topic = {
@@ -34,8 +34,9 @@ afterEach(() => {
 });
 
 const click = (el: Element) => act(() => void el.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-const button = (el: Element, text: string) =>
-  [...el.querySelectorAll("button")].find(b => b.textContent?.startsWith(text))!;
+/** ボタンの文字（選択肢の番号 .key-hint は除く） */
+const label = (b: Element) => b.textContent!.slice(b.querySelector(".key-hint")?.textContent?.length ?? 0);
+const button = (el: Element, text: string) => [...el.querySelectorAll("button")].find(b => label(b).startsWith(text))!;
 
 describe("Drill", () => {
   it("出題 → 回答 → 正誤と解説 → 次へ → 結果、記録も残る", async () => {
@@ -93,6 +94,30 @@ describe("Drill", () => {
     }
     expect(el.querySelector(".score")!.textContent).toMatch(/^2 \/ 2/);
     expect(Object.keys(st.data.items).sort()).toEqual(["orig/a", "orig/b"]);
+  });
+
+  it("選択肢の問題で正解したら少し待って次へ。不正解は止まる。1〜4 キーで選べる", async () => {
+    vi.useFakeTimers();
+    try {
+      const st = new Store(memoryStorage());
+      const el = document.body.appendChild(document.createElement("div"));
+      const choices: Topic = { ...topic, items: () => ["a", "b"] };
+      await act(() => render(<Drill topic={choices} store={st} rng={seeded(1)} clock={() => 0} />, el));
+      const progress = () => el.querySelector(".progress")!.textContent;
+      const id = el.querySelector(".prompt")!.textContent![0]!;
+      const n = [...el.querySelectorAll(".choice")].findIndex(b => label(b) === id) + 1;
+      await act(() => void dispatchEvent(new KeyboardEvent("keydown", { key: String(n) })));
+      expect(el.querySelector(".feedback-line")!.textContent).toMatch(/^正解/);
+      await act(() => void vi.advanceTimersByTime(AUTO_NEXT_MS));
+      expect(progress()).toMatch(/^2\//);
+      // 不正解は自動で進まない
+      const id2 = el.querySelector(".prompt")!.textContent![0]!;
+      await click(button(el, id2 === "a" ? "b" : "a"));
+      await act(() => void vi.advanceTimersByTime(AUTO_NEXT_MS * 3));
+      expect(progress()).toMatch(/^2\//);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {

@@ -14,13 +14,21 @@ describe("schema", () => {
       DEFAULT_SETTINGS,
     );
     expect(
-      parseSettings({ tuning: "drop_d", lefty: true, theme: "dark", sessionSize: 30, topics: { a: { x: 1 }, b: 3 } }),
+      parseSettings({
+        tuning: "drop_d",
+        lefty: true,
+        theme: "dark",
+        sessionSize: 30,
+        autoNext: false,
+        topics: { a: { x: 1 }, b: 3 },
+      }),
     ).toEqual({
       ...DEFAULT_SETTINGS,
       tuning: "drop_d",
       lefty: true,
       theme: "dark",
       sessionSize: 30,
+      autoNext: false,
       topics: { a: { x: 1 } },
     });
   });

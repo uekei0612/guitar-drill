@@ -1455,3 +1455,50 @@ main.home .topics {
 main.home .today {
   max-width: 40rem;
 }
+
+/* 正解したあと自動で次へ進むとき、「次へ」のボタンに進むまでの時間を帯で見せる */
+.btn.primary.auto {
+  position: relative;
+  overflow: hidden;
+}
+.btn.primary.auto::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: 100%;
+  background: color-mix(in srgb, var(--on-accent) 70%, transparent);
+  transform-origin: left;
+  animation: auto-next 0.8s linear forwards;
+}
+@keyframes auto-next {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.primary.auto::after {
+    animation: none;
+  }
+}
+/* 選択肢の番号（キーボードで選ぶため）。マウスの画面だけ出す */
+.choice {
+  position: relative;
+}
+.key-hint {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .key-hint {
+    display: block;
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+}

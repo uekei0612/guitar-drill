@@ -94,6 +94,10 @@ export function Settings() {
             ))}
           </select>
         </label>
+        <label class="field check">
+          <input type="checkbox" checked={st.autoNext} onChange={e => set({ autoNext: e.currentTarget.checked })} />
+          <span>選択肢の問題で正解したら、自動で次へ進む</span>
+        </label>
       </section>
 
       <h2>分野ごとの出題</h2>
