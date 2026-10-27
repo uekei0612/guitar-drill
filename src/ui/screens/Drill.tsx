@@ -470,7 +470,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             )}
             {a.kind === "tap" && a.mode === "all" && (
               <div class="actions">
-                <button class="btn primary" onClick={() => submit({ kind: "tap", positions: taps })}>
+                <button
+                  class="btn primary"
+                  disabled={taps.length === 0}
+                  onClick={() => submit({ kind: "tap", positions: taps })}
+                >
                   答え合わせ（{taps.length}）
                 </button>
                 {q.hint && hintInRow && hintButton}

@@ -645,6 +645,14 @@ main:has(.drill-screen.fill) {
   white-space: pre-line;
   font-size: 0.95rem;
 }
+/* 「答え合わせ」は選択肢と同じく幅いっぱい。何も押していないあいだは押せない */
+.dock-q .actions .btn.primary {
+  flex: 1 1 auto;
+  min-height: 50px;
+}
+.btn.primary:disabled {
+  opacity: 0.45;
+}
 /* 1 画面に収まらない問題（12 フレットまでを全部タップなど）：マスの 44px を保つためにスクロールさせるが、
    「答え合わせ」は画面の下に固定して、いつでも押せるようにする */
 .drill-screen:not(.fill) .dock {
