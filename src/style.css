@@ -867,6 +867,7 @@ input[type="url"] {
   white-space: nowrap;
 }
 .ref-table {
+  width: 100%;
   border-collapse: collapse;
   margin: 16px 0;
 }
@@ -1302,4 +1303,33 @@ main.with-tabs {
   .choices {
     --choice-max: 64px;
   }
+}
+
+/* 参考ページの見出し：戻るは上の小さな行、題名の前に「参考」の札 */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+/* 長い名前（「セカンダリードミナントと裏コード」）は文字数で縮めて 1 行に収める。80px は札と隙間と左右の余白 */
+.page-head h1 {
+  min-width: 0;
+  font-size: clamp(0.9rem, calc((min(100vw, 40rem) - 80px) / var(--len, 10)), 1.25rem);
+}
+.tag {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
