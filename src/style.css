@@ -126,7 +126,7 @@ main {
 }
 .fb-muted {
   fill: var(--muted);
-  font-size: 18px;
+  font-size: 26px;
   font-weight: 700;
   text-anchor: middle;
   dominant-baseline: central;

@@ -20,6 +20,8 @@ export function problemsOf(q: Question, ctx: Context<unknown>): string[] {
     if (a.strings && !a.correct.every(p => a.strings!.includes(p.string))) out.push("タップの正解が押せない弦にある");
     if (a.onePerString && new Set(a.correct.map(p => p.string)).size !== a.correct.length)
       out.push("1 弦 1 か所の問題で、正解が同じ弦に 2 つある");
+    if (a.openDefault && (!a.onePerString || a.range.minFret !== 0))
+      out.push("開放から始める問題に、1 弦 1 か所の指定か開放の欄が無い");
     if (a.frets && !a.correct.every(inBoard({ range: a.frets }, ctx.common.tuning)))
       out.push("タップの正解が押せないフレットにある");
   }

@@ -105,4 +105,52 @@ describe("Drill", () => {
     expect(button(el, "ヒント")).toBeDefined();
     expect(el.querySelector(".hint-text")!.textContent).toBe("");
   });
+  it("コードの押さえ方：最初から開放弦を押した状態。開放の欄で × と切り替え、押さえたマスは弦ごとに 1 つ", async () => {
+    // C（x32010）
+    const chord: Topic = {
+      ...topic,
+      items: () => ["C"],
+      question: id => ({
+        item: id,
+        prompt: { text: "C を押さえる" },
+        answer: {
+          kind: "tap",
+          mode: "all",
+          range: { minFret: 0, maxFret: 4 },
+          correct: [
+            { string: 5, fret: 3 },
+            { string: 4, fret: 2 },
+            { string: 3, fret: 0 },
+            { string: 2, fret: 1 },
+            { string: 1, fret: 0 },
+          ],
+          onePerString: true,
+          openDefault: true,
+        },
+      }),
+    };
+    const st = new Store(memoryStorage());
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={chord} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    const cell = (label: string) => el.querySelector(`[aria-label="${label}"]`)!;
+    const pressed = () =>
+      [...el.querySelectorAll('.fb-hit[aria-pressed="true"]')].map(e => e.getAttribute("aria-label")).sort();
+
+    expect(pressed()).toEqual(["1弦 開放", "2弦 開放", "3弦 開放", "4弦 開放", "5弦 開放", "6弦 開放"]);
+    expect(el.querySelectorAll(".fb-muted")).toHaveLength(0);
+    // 6 弦を鳴らさない：× が出る。もう一度押すと開放に戻り、また押すと ×
+    await click(cell("6弦 開放"));
+    expect(el.querySelectorAll(".fb-muted")).toHaveLength(1);
+    await click(cell("6弦 開放"));
+    expect(el.querySelectorAll(".fb-muted")).toHaveLength(0);
+    await click(cell("6弦 開放"));
+    // 押さえたマスは開放を置き換え、もう一度押すと開放に戻る
+    await click(cell("2弦 2フレット"));
+    await click(cell("2弦 2フレット"));
+    expect(pressed()).toContain("2弦 開放");
+    for (const l of ["5弦 3フレット", "4弦 2フレット", "2弦 1フレット"]) await click(cell(l));
+    expect(pressed()).toEqual(["1弦 開放", "2弦 1フレット", "3弦 開放", "4弦 2フレット", "5弦 3フレット"]);
+    await click(button(el, "答え合わせ"));
+    expect(el.querySelector(".feedback-line")!.textContent).toMatch(/^正解/);
+  });
 });
