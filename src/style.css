@@ -634,6 +634,23 @@ main:has(.drill-screen.fill) {
   white-space: pre-line;
   font-size: 0.95rem;
 }
+/* 1 画面に収まらない問題（12 フレットまでを全部タップなど）：マスの 44px を保つためにスクロールさせるが、
+   「答え合わせ」は画面の下に固定して、いつでも押せるようにする */
+.drill-screen:not(.fill) .dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+.drill-screen:not(.fill) .dock .actions {
+  margin: 0;
+  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+}
+.drill-screen:not(.fill) .dock .actions .btn.primary {
+  flex: 1 1 auto;
+  min-height: 50px;
+}
 /* 「次へ」は画面の下に固定する（解説が長くてもスクロールせずに進める） */
 .next-bar {
   position: sticky;
