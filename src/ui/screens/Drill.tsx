@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { type Rng, randomRng } from "../../drill/rng";
-import { planSession, review } from "../../drill/schedule";
+import { nextDue, planSession, review } from "../../drill/schedule";
 import { type Session, answer, currentItem, isFinished, startSession, summarize } from "../../drill/session";
 import {
   type AnyTopic,
@@ -111,6 +111,10 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const [snug, setSnug] = useState<{ at: string; k: number }>();
   const promptRef = useRef<HTMLParagraphElement>(null);
   const [refOpen, setRefOpen] = useState(false);
+  /** 「やめる」で途中までの結果を出している */
+  const [quit, setQuit] = useState(false);
+  /** このセッションを始めたときの前回の点数（終えると上書きするので、始めに取っておく） */
+  const [prevScore, setPrevScore] = useState(() => st.data.scores[topic.id]);
 
   function newSession(): Session {
     const d = st.data;
@@ -220,6 +224,26 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     return () => clearTimeout(id);
   }, [autoNext, session.index]);
 
+  /** 新しいセッションを始める（queue を渡せばその並びで。間違えたものだけもう一度） */
+  function restart(queue?: readonly string[]) {
+    setPrevScore(st.data.scores[topic.id]);
+    setSession(queue ? startSession(queue) : newSession());
+    setQuit(false);
+    setRefOpen(false);
+  }
+
+  // 終えたら（途中でやめたときも）点数を残す。1 問も答えていなければ残さない
+  const finished = isFinished(session) || quit || (!q && session.queue.length > 0);
+  useEffect(() => {
+    if (!finished) return;
+    const sum = summarize(session);
+    if (sum.total)
+      st.update(d => ({
+        ...d,
+        scores: { ...d.scores, [topic.id]: { correct: sum.correct, total: sum.total, at: clock() } },
+      }));
+  }, [finished]);
+
   // キーボード：1〜9 で選択肢を選び、答えたあとは Enter で次へ（PC 向け）
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
@@ -271,9 +295,18 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       </>
     );
 
-  if (isFinished(session) || !q) {
+  if (finished || !q) {
     const sum = summarize(session);
     const pct = sum.total ? Math.round((sum.correct / sum.total) * 100) : 0;
+    const now = clock();
+    // 次の復習の予告：今日の復習は全分野、ほかはこの分野の item で
+    const keys = topic.fitSize ? Object.keys(data.items) : topic.items(ctx).map(id => recordKeyOf(topic, id));
+    const upcoming = nextDue(
+      keys.map(k => data.items[k]),
+      now,
+    );
+    const when = upcoming && (upcoming.days === 0 ? "今日" : upcoming.days === 1 ? "明日" : `${upcoming.days} 日後`);
+    const diff = prevScore && sum.total ? pct - Math.round((prevScore.correct / prevScore.total) * 100) : undefined;
     return (
       <>
         <header class="bar">
@@ -285,10 +318,31 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </h1>
         </header>
         <section class="result" aria-live="polite">
-          <h2>結果</h2>
-          <p class="score">
-            {sum.correct} / {sum.total}（{pct}%）
-          </p>
+          <h2>{quit ? "途中までの結果" : "結果"}</h2>
+          {sum.total ? (
+            <p class="score">
+              <strong>{sum.correct}</strong> / {sum.total}
+              <span class="muted">（{pct}%）</span>
+            </p>
+          ) : (
+            <p class="muted">まだ 1 問も答えていません。</p>
+          )}
+          {prevScore && sum.total > 0 && (
+            <p class="muted small">
+              前回 {prevScore.correct} / {prevScore.total}
+              {diff !== undefined && diff !== 0 && (
+                <span class={diff > 0 ? "ok" : "ng"}>
+                  （{diff > 0 ? "+" : "−"}
+                  {Math.abs(diff)} ポイント）
+                </span>
+              )}
+            </p>
+          )}
+          {upcoming && (
+            <p class="next-review">
+              次の復習は<strong>{when}</strong> {upcoming.count} 問
+            </p>
+          )}
           {sum.weak.length > 0 && (
             <>
               <h3>間違えた・ヒントを見たもの</h3>
@@ -298,14 +352,19 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 ))}
               </ul>
               {topic.reference && (
-                <p>
-                  <a href={href({ name: "reference", topicId: topic.id })}>参考で見直す →</a>
-                </p>
+                <button class="link-btn" onClick={() => setRefOpen(true)}>
+                  参考で見直す
+                </button>
               )}
             </>
           )}
           <div class="actions">
-            <button class="btn primary" onClick={() => setSession(newSession())}>
+            {sum.weak.length > 0 && (
+              <button class="btn primary" onClick={() => restart(sum.weak)}>
+                間違えたものだけもう一度（{sum.weak.length} 問）
+              </button>
+            )}
+            <button class={`btn${sum.weak.length ? "" : " primary"}`} onClick={() => restart()}>
               もう一度
             </button>
             <a class="btn" href={href({ name: "home" })}>
@@ -313,6 +372,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             </a>
           </div>
         </section>
+        {refOpen && <ReferenceSheet topic={topic} ctx={ctx} onClose={() => setRefOpen(false)} />}
       </>
     );
   }
@@ -491,7 +551,20 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     >
       <header class="bar">
         {/* やめるは補助の操作なので、色を付けない ✕ にする（題名と同じ重さにしない） */}
-        <a class="icon-btn" href={href({ name: "home" })} aria-label="やめる（ホームへ）">
+        {/* 1 問でも答えていたら、ホームへ戻らずに途中までの結果を出す */}
+        <a
+          class="icon-btn"
+          href={href({ name: "home" })}
+          aria-label="やめる"
+          onClick={e => {
+            if (!session.results.length && !result) return;
+            e.preventDefault();
+            // 答えて「次へ」を押す前なら、その 1 問も結果に入れる（記録は答えたときに残っている）
+            if (result) setSession(x => answer(x, result.ok && !hinted));
+            setResult(null);
+            setQuit(true);
+          }}
+        >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>

@@ -19,11 +19,21 @@ export interface Settings {
   readonly topics: Readonly<Record<string, unknown>>;
 }
 
+/** 分野ごとの、最後に終えたセッションの点数（結果画面で前回と比べる） */
+export interface Score {
+  readonly correct: number;
+  readonly total: number;
+  /** 終えた時刻（ms） */
+  readonly at: number;
+}
+
 export interface SaveData {
   readonly version: number;
   readonly settings: Settings;
   /** キーは `<topicId>/<itemId>` */
   readonly items: Readonly<Record<string, ItemStat>>;
+  /** キーは分野 ID（今日の復習は "review"）。無い記録（古い版）は空として読む */
+  readonly scores: Readonly<Record<string, Score>>;
 }
 
 export const SESSION_SIZES = [10, 20, 30] as const;
@@ -37,7 +47,7 @@ export const DEFAULT_SETTINGS: Settings = {
   topics: {},
 };
 
-export const emptyData = (): SaveData => ({ version: VERSION, settings: DEFAULT_SETTINGS, items: {} });
+export const emptyData = (): SaveData => ({ version: VERSION, settings: DEFAULT_SETTINGS, items: {}, scores: {} });
 
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => typeof x === "object" && x !== null && !Array.isArray(x);
@@ -70,6 +80,18 @@ export function parseStat(raw: unknown): ItemStat | undefined {
   return { ease, interval, due, tries, correct };
 }
 
+export function parseScores(raw: unknown): Record<string, Score> {
+  if (!isObj(raw)) return {};
+  const out: Record<string, Score> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (!isObj(v)) continue;
+    const { correct, total, at } = v;
+    if (int(correct) && int(total) && correct <= total && total > 0 && num(at) && at >= 0)
+      out[k] = { correct, total, at };
+  }
+  return out;
+}
+
 const ITEM_KEY = /^[\w-]+\/[^\s/][^\s]*$/;
 
 export function parseItems(raw: unknown): Record<string, ItemStat> {
@@ -95,5 +117,10 @@ export function parseData(raw: unknown): SaveData {
     if (m) r = m(r);
     v++;
   }
-  return { version: VERSION, settings: parseSettings(r.settings), items: parseItems(r.items) };
+  return {
+    version: VERSION,
+    settings: parseSettings(r.settings),
+    items: parseItems(r.items),
+    scores: parseScores(r.scores),
+  };
 }

@@ -121,6 +121,42 @@ describe("Drill", () => {
     }
   });
 
+  it("やめると途中までの結果。間違えたものだけもう一度解け、前回の点数と比べる", async () => {
+    const st = new Store(memoryStorage());
+    st.update(d => ({ ...d, settings: { ...d.settings, autoNext: false } }));
+    const el = document.body.appendChild(document.createElement("div"));
+    const choices: Topic = { ...topic, items: () => ["a", "b"] };
+    await act(() => render(<Drill topic={choices} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    // 1 問目は正解して次へ、2 問目は間違えて「次へ」を押さずにやめる
+    const id1 = el.querySelector(".prompt")!.textContent![0]!;
+    await click(button(el, id1));
+    await click(button(el, "次へ"));
+    const id2 = el.querySelector(".prompt")!.textContent![0]!;
+    await click(button(el, id2 === "a" ? "b" : "a"));
+    await click(el.querySelector('[aria-label="やめる"]')!);
+    expect(el.querySelector(".result h2")!.textContent).toBe("途中までの結果");
+    expect(el.querySelector(".score")!.textContent).toMatch(/^1 \/ 2/);
+    expect(st.data.scores.stub).toEqual({ correct: 1, total: 2, at: 0 });
+    // 間違えた 1 問だけで、もう一度
+    await click(button(el, "間違えたものだけもう一度"));
+    expect(el.querySelector(".progress")!.textContent).toBe("1/1");
+    await click(button(el, el.querySelector(".prompt")!.textContent![0]!));
+    await click(button(el, "次へ"));
+    expect(el.querySelector(".result h2")!.textContent).toBe("結果");
+    expect(el.querySelector(".result")!.textContent).toContain("前回 1 / 2");
+  });
+
+  it("1 問も答えずにやめるとホームへ（結果は出さない）", async () => {
+    const st = new Store(memoryStorage());
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={topic} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
+    await act(() => void el.querySelector('[aria-label="やめる"]')!.dispatchEvent(ev));
+    expect(ev.defaultPrevented).toBe(false);
+    expect(el.querySelector(".result")).toBeNull();
+    expect(st.data.scores).toEqual({});
+  });
+
   it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {
     const hinted: Topic = {
       ...topic,
