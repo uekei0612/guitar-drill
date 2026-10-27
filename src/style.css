@@ -573,12 +573,13 @@ main:has(.drill-screen.fill) {
   font-size: 1.1rem;
 }
 /* 答えの欄は 1 枚のパネル：上に正誤と解説、下に「次へ」。正解は緑、不正解は赤の薄い地。
-   余った高さはパネルの中に入るので、図との間や画面の下に空白が残らない */
+   余った高さはパネルの中に入るので、図との間に空白が残らない。
+   画面の下には親指のための余白があるので、下端に付くシートではなく四隅を丸めたカードにする */
 .drill-screen.fill .dock-a {
   display: flex;
   flex-direction: column;
-  padding: 0 14px;
-  border-radius: 14px 14px 0 0;
+  padding: 0 14px 14px;
+  border-radius: 14px;
 }
 .drill-screen.fill .dock-a.is-ok {
   background: color-mix(in srgb, var(--ok) 9%, var(--bg));
