@@ -377,7 +377,7 @@ input:focus-visible {
 .prompt:focus {
   outline: none;
 }
-/* ヒントのボタンは図のすぐ下に、横幅いっぱい */
+/* ヒントのボタンは図のすぐ下（右寄せ）。開くと同じ場所に文が出る */
 .drill-screen.fill .board-wrap.with-hint {
   flex-direction: column;
   align-items: center;
@@ -390,19 +390,21 @@ input:focus-visible {
 .drill-screen.fill .board-wrap.with-hint .hint-block {
   margin-top: 0;
 }
+/* ヒントは補助の操作なので、選択肢と同じ重さにしない：枠の無い小さな文字ボタンを右に寄せる
+   （押せる高さの 44px は保つ） */
 .hint-btn {
+  display: block;
   flex: 0 0 auto;
-  width: 100%;
-  min-height: 48px;
-  margin-top: 8px;
-  font-size: 1rem;
-  color: var(--muted);
-  border-style: dashed;
+  width: auto;
+  min-height: 44px;
+  margin: 8px 0 0 auto;
+  padding: 0 12px;
+  font-size: 0.95rem;
+  color: var(--accent);
+  background: transparent;
+  border-color: transparent;
 }
 .actions .hint-btn {
-  flex: 1;
-  width: auto;
-  min-height: 0;
   margin-top: 0;
 }
 .hint-block {
