@@ -63,6 +63,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const [noFill, setNoFill] = useState(false);
   /** 答える前の拡大率。答えたあとはこれより大きくしない（答えた瞬間に図の大きさが変わらないように） */
   const questionScale = useRef<{ index: number; key: string; k: number } | undefined>(undefined);
+  /** 答える前、図が横幅で決まって下に高さが余るとき：図の枠を図の高さに縮め、余りを選択肢のボタンに回す。
+      at は問題とヒントの開閉（変わったら縮める前の枠で測り直す）、k はそのとき決めた拡大率 */
+  const [snug, setSnug] = useState<{ at: string; k: number }>();
   const promptRef = useRef<HTMLParagraphElement>(null);
 
   function newSession(): Session {
@@ -98,6 +101,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const hasBoard = !!q && (!!q.prompt.board || q.answer.kind === "tap" || (!!result && !!q.explanation?.board));
   const textOnly = !!q && !hasBoard;
   const fill = textOnly || (hasBoard && (!!result || !noFill));
+  const snugAt = `${session.index}-${hinted}`;
+  const isSnug = !result && snug?.at === snugAt;
+  const boxAt = `${session.index}-${!!result}-${isSnug}`;
   // 1 画面に収めているあいだは、ページのスクロール（iOS の引っぱり・跳ね返りも）を止める
   useLayoutEffect(() => {
     document.documentElement.classList.toggle("no-scroll", fill);
@@ -127,7 +133,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     const ro = RO
       ? new RO(() => {
           const b = boardRef.current;
-          if (b) setBoardBox({ width: b.clientWidth, height: b.clientHeight, at: `${session.index}-${!!result}` });
+          if (b) setBoardBox({ width: b.clientWidth, height: b.clientHeight, at: boxAt });
         })
       : undefined;
     if (boardRef.current) ro?.observe(boardRef.current);
@@ -136,7 +142,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       window.visualViewport?.removeEventListener("resize", measure);
       ro?.disconnect();
     };
-  }, [fill, !!result, session.index]);
+  }, [fill, !!result, session.index, isSnug]);
 
   function submit(response: Response) {
     if (!q || result) return;
@@ -297,7 +303,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const tall = tallBoard && !stack;
   // 横に並べたときと下に置いたときで、図が大きくなるほうを選ぶ（横に並べた状態で測ってから一度だけ決める）
   // 測った枠がこの問題（答える前／あと）のものか。「次へ」の直後は前の問題の枠が残っていて、それで決めると誤る
-  const boardBox = measured?.at === `${session.index}-${!!result}` ? measured : undefined;
+  const boardBox = measured?.at === boxAt ? measured : undefined;
   if (tall && shown && boardBox) {
     const L = layout(stringCount(ctx.common.tuning), shown.range, ctx.common.lefty, "vertical");
     const TEXT = 110;
@@ -353,6 +359,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     questionScale.current?.index === session.index &&
     questionScale.current.key === boardKey;
   if (keep) scale = questionScale.current!.k;
+  else if (isSnug) scale = snug!.k;
   else if (fill && shown && boardBox) {
     const key = boardKey!;
     scale = fitScale(hintBelow ? hintHeight : 0)!;
@@ -360,6 +367,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       // ヒントを開いて少し縮んだだけなら広げ直さない（画面からはみ出してスクロールになるより、少し小さいほうがよい）
       if (tapping && scale < MIN_TAP_SCALE && !hinted) queueMicrotask(() => setNoFill(true));
       questionScale.current = { index: session.index, key, k: scale };
+      const reserve = hintBelow ? hintHeight : 0;
+      const slack = boardBox.height - reserve - L!.height * scale;
+      if (!tallShape && !hintInRow && scale >= (tapping ? MIN_TAP_SCALE : 0) && slack > 8) {
+        const k = scale;
+        queueMicrotask(() => setSnug({ at: snugAt, k }));
+      }
     } else if (questionScale.current?.index === session.index && questionScale.current.key === key)
       scale = Math.min(scale, questionScale.current.k);
   }
@@ -392,7 +405,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {session.index + 1}/{session.queue.length}
         </span>
       </header>
-      <section class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}`}>
+      <section
+        class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}${isSnug ? " snug" : ""}`}
+      >
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
         </p>
@@ -440,6 +455,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             {a.kind === "choice" && (
               <div
                 class={`choices${a.options.some(o => o.length > 10) ? " wide" : ""}`}
+                style={{
+                  "--rows": a.options.some(o => o.length > 10) ? a.options.length : Math.ceil(a.options.length / 2),
+                }}
                 role="group"
                 aria-label="選択肢"
               >

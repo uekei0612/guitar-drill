@@ -539,6 +539,39 @@ main:has(.drill-screen.fill) {
   align-self: stretch;
   margin-top: 8px;
 }
+/* 答える前に図の下が余るとき：図の枠を図の高さに縮め、余った高さで選択肢のボタンを大きくする
+   （ヒントのすぐ下に続け、ボタンは 1 段 96px まで） */
+.drill-screen.fill .question.snug,
+.drill-screen.fill .question.snug .board-wrap {
+  flex: 0 0 auto;
+}
+.drill-screen.fill .question.snug .board-wrap {
+  min-height: 0;
+}
+.drill-screen.fill .question.snug + .dock {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.question.snug + .dock.stacked > .dock-q {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+.question.snug + .dock .choices {
+  flex: 1 1 auto;
+  grid-auto-rows: 1fr;
+  max-height: calc(var(--rows, 2) * 96px + (var(--rows, 2) - 1) * 8px);
+  margin: 8px 0 0;
+}
+.question.snug + .dock .actions {
+  flex: 1 1 auto;
+  max-height: 72px;
+  margin: 8px 0 0;
+}
+.question.snug + .dock .actions .btn.primary {
+  flex: 1 1 auto;
+  font-size: 1.1rem;
+}
 /* 答えの欄は 1 枚のパネル：上に正誤と解説、下に「次へ」。正解は緑、不正解は赤の薄い地。
    余った高さはパネルの中に入るので、図との間や画面の下に空白が残らない */
 .drill-screen.fill .dock-a {
