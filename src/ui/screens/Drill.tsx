@@ -47,6 +47,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const [taps, setTaps] = useState<Position[]>([]);
   /** ヒントを開いた（正解しても覚えていない扱いにし、このセッションの中でもう一度出す） */
   const [hinted, setHinted] = useState(false);
+  // 図の下のヒント（ボタン、開いたら文）の高さ。図の大きさはこの分を引いて決める
+  const hintRef = useRef<HTMLDivElement>(null);
+  const [hintHeight, setHintHeight] = useState(HINT_BUTTON_HEIGHT);
   const nextRef = useRef<HTMLButtonElement>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -95,6 +98,10 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const textOnly = !!q && !hasBoard;
   const fill = textOnly || (hasBoard && (!!result || !noFill));
   useLayoutEffect(() => {
+    const h = hintRef.current?.offsetHeight;
+    if (h) setHintHeight(h + 8);
+  });
+  useLayoutEffect(() => {
     setBoardBox(undefined);
     if (!fill) {
       setFillHeight(undefined);
@@ -138,6 +145,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     setResult(null);
     setTaps([]);
     setHinted(false);
+    setHintHeight(HINT_BUTTON_HEIGHT);
     setStack(false);
     setNoFill(false);
   }
@@ -280,8 +288,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     L && boardBox
       ? Math.min((tall ? boardBox.width * 0.6 : boardBox.width) / L.width, (boardBox.height - reserve) / L.height, 1.6)
       : undefined;
-  // ヒントのボタンは図のすぐ下に置く（答えるまで。開いたあとも場所は取っておき、図の大きさを変えない）。
-  // そこに置くとタップのマスが小さくなりすぎるときだけ、「答え合わせ」の横に置く
+  // ヒントは図のすぐ下に置き、ボタンを押すと同じ場所で文に変わる（答えるまで）。
+  // そこに置くとタップのマスが小さくなりすぎるときだけ、ボタンは「答え合わせ」の横、文はその上に置く
   const hintInRow =
     tapping &&
     a.kind === "tap" &&
@@ -313,7 +321,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   if (keep) scale = questionScale.current!.k;
   else if (fill && shown && boardBox) {
     const key = boardKey!;
-    scale = fitScale(hintBelow ? HINT_BUTTON_HEIGHT : 0)!;
+    scale = fitScale(hintBelow ? hintHeight : 0)!;
     if (!result) {
       // ヒントを開いて少し縮んだだけなら広げ直さない（画面からはみ出してスクロールになるより、少し小さいほうがよい）
       if (tapping && scale < MIN_TAP_SCALE && !hinted) queueMicrotask(() => setNoFill(true));
@@ -386,7 +394,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               }
             />
             {tall && q.explanation && <p class="side-explain">{q.explanation.text}</p>}
-            {hintBelow && hintButton}
+            {hintBelow && (
+              <div class="hint-block" ref={hintRef}>
+                {!hinted && hintButton}
+                <p class="hint-text" aria-live="polite">
+                  {hinted ? q.hint!.text : ""}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -395,10 +410,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       <div class={`dock${dock ? " stacked" : ""}`}>
         {(!result || dock) && (
           <div class={`dock-q${result ? " off" : ""}`} aria-hidden={result ? true : undefined}>
-            {/* ヒントは答えたあとの解説の場所（最初から高さを取ってある）に出す。図の大きさを変えない */}
-            {/* 図の無い問題は、選択肢の上 */}
+            {/* 図の無い問題のヒントは、選択肢の上 */}
             {q.hint && !shown && !hinted && hintButton}
-            {q.hint && (
+            {q.hint && !hintBelow && (
               <p class="hint-text" aria-live="polite">
                 {hinted && !result ? q.hint.text : ""}
               </p>
