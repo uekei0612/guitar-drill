@@ -376,6 +376,9 @@ input:focus-visible {
 .drill-screen.fill .board-wrap.with-hint .hint-btn {
   margin-top: 0;
 }
+.drill-screen.fill .board-wrap.with-hint .hint-block {
+  margin-top: 0;
+}
 .hint-btn {
   flex: 0 0 auto;
   width: 100%;
@@ -390,6 +393,17 @@ input:focus-visible {
   width: auto;
   min-height: 0;
   margin-top: 0;
+}
+.hint-block {
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: 8px;
+}
+.hint-block .hint-btn {
+  margin-top: 0;
+}
+.hint-block .hint-text {
+  margin: 0;
 }
 .hint-text {
   white-space: pre-line;
