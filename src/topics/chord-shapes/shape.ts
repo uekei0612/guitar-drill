@@ -59,7 +59,7 @@ export function barresOf(s: Shape): Barre[] {
   return out;
 }
 
-/** 押さえ方を見せる範囲（縦 5 フレット）。開放があればナットから */
+/** 押さえ方を見せる範囲（5 フレット）。開放があればナットから */
 export function shapeRange(s: Shape): FretRange {
   const fretted = s.frets.filter((f): f is number => f !== null && f > 0);
   const lo = Math.min(...fretted);
@@ -96,7 +96,7 @@ export function shapeBoard(t: Tuning, s: Shape, root: Note, type: ChordType, mod
   return {
     range: shapeRange(s),
     marks: shapeMarks(t, s, root, type, mode),
-    orientation: "vertical",
+    orientation: "horizontal",
     muted: mutedOf(s),
     barres: mode === "finger" ? barresOf(s) : [],
   };

@@ -201,7 +201,7 @@ export const barreChords: Topic<BarreChordsSettings> = {
           board: {
             range: shapeRange(s),
             marks: [{ pos: rootPos, kind: "root", label: "R" }],
-            orientation: "vertical",
+            orientation: "horizontal",
           },
         },
         answer: {
@@ -210,7 +210,7 @@ export const barreChords: Topic<BarreChordsSettings> = {
           range: shapeRange(s),
           correct: sounding(s).filter(p => p.string !== f.rootString),
           strings,
-          orientation: "vertical",
+          orientation: "horizontal",
           onePerString: true,
         },
         hint: { text: formHint(f, fret) },

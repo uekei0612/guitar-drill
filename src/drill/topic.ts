@@ -38,7 +38,7 @@ export interface Barre {
 export interface Board {
   readonly range: FretRange;
   readonly marks: readonly Mark[];
-  /** 図の向き（無ければ範囲の広さで決める。コードの押さえ方は縦） */
+  /** 図の向き（無ければ範囲の広さで決める。コードの押さえ方は横＝1 弦が上・6 弦が下） */
   readonly orientation?: "horizontal" | "vertical";
   /** 鳴らさない弦（ナットの上に × を出す） */
   readonly muted?: readonly number[];
