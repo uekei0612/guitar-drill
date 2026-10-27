@@ -270,7 +270,7 @@ a {
   min-width: 0;
 }
 /* ドリル中は見出しを少し小さく、長い名前（「セカンダリードミナントと裏コード」）は文字数で縮めて 1 行に収める。
-   220px は「← やめる」「参考」「1/20」と隙間のぶん */
+   220px は「✕」「参考」「1/20」と隙間のぶん */
 .drill-screen .bar h1 {
   font-size: clamp(0.8rem, calc((100vw - 220px) / var(--len, 10)), 1.1rem);
   white-space: nowrap;
@@ -1186,4 +1186,41 @@ main.with-tabs {
 .today .btn {
   margin-top: 8px;
   min-width: 10rem;
+}
+
+/* ドリルの見出し：✕（やめる）と、題名の下の細い進み具合 */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border-radius: 50%;
+  color: var(--muted);
+}
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.drill-screen .bar {
+  gap: 8px;
+}
+.progress-track {
+  height: 4px;
+  margin: 4px 0 8px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.25s ease;
 }
