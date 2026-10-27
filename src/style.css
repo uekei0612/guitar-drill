@@ -333,9 +333,13 @@ input:focus-visible {
   display: grid;
   gap: 8px;
 }
+/* 分野の行は 1 枚のカード。「参考」はカードの右端の区画にして、どの分野の参考かが分かるようにする */
 .topic {
   display: flex;
-  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
 }
 .topic-main {
   flex: 1;
@@ -345,9 +349,6 @@ input:focus-visible {
   align-items: center;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
   color: var(--fg);
   text-decoration: none;
 }
@@ -373,8 +374,20 @@ input:focus-visible {
 .topic-ref {
   display: inline-flex;
   align-items: center;
-  padding: 0 12px;
+  justify-content: center;
+  padding: 0 14px;
   min-width: 44px;
+  border-left: 1px solid var(--line);
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+/* カードは overflow: hidden なので、フォーカスの枠は内側に描く */
+.topic a:focus-visible {
+  outline-offset: -3px;
+}
+.phrase {
+  display: inline-block;
 }
 .prompt {
   font-size: 1.1rem;

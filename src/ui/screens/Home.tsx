@@ -17,7 +17,11 @@ export function Home({ now = Date.now() }: { now?: number }) {
       </header>
       <a class="chart-entry" href={href({ name: "chart", query: "" })}>
         <span class="topic-title">チャート</span>
-        <span class="muted small">スケール・アルペジオを指板で見る、PDF の資料にする</span>
+        <span class="muted small">
+          {/* 句の途中で折り返さないように、句ごとにまとめる */}
+          <span class="phrase">スケール・アルペジオを指板で見る、</span>
+          <span class="phrase">PDF の資料にする</span>
+        </span>
       </a>
       {LEVELS.map(level => {
         const topics = TOPICS.filter(t => t.level === level.id);
