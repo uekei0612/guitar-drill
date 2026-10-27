@@ -59,7 +59,8 @@ describe("Drill", () => {
           const wrong = id === "a" ? "b" : "a";
           expect(el.querySelector(".feedback")!.textContent).toBe(`不正解：あなたの答え ${wrong} ／ 正解 ${id}`);
           // 答えたあとは選択肢をしまい、「次へ」を出す（スマホで 1 画面に収める）
-          expect(el.querySelector(".feedback-line")!.textContent).toBe(`不正解：あなたの答え ${wrong} ／ 正解 ${id}`);
+          // 見た目の行は短く（読み上げは上の .feedback で自分の答えも含めて全部）
+          expect(el.querySelector(".feedback-line")!.textContent).toBe(`不正解（${wrong}）→ ${id}`);
           expect(el.querySelector(".next-bar button")!.textContent).toBe("次へ");
           expect(el.querySelector(".explain")!.textContent).toContain(`${id} だから`);
           missed = true;

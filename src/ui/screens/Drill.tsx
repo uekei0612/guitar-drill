@@ -474,6 +474,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       : a.kind === "choice"
         ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
         : `不正解：正解は図の点${taps.some(t => !a.correct.some(c => same(c, t))) ? "（赤は押し間違い）" : ""}`;
+  // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
+  const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
+  const feedbackLine =
+    result && !result.ok && a.kind === "choice"
+      ? pickedInStrip
+        ? `不正解 → ${a.correct}`
+        : `不正解（${picked}）→ ${a.correct}`
+      : feedback;
 
   return (
     <div
@@ -605,7 +613,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             aria-hidden={result ? undefined : true}
           >
             <p class={`feedback-line ${result ? (result.ok ? "ok" : "ng") : ""}`} aria-hidden="true">
-              {feedback ?? "\u3000"}
+              {feedbackLine ?? "\u3000"}
             </p>
             <section class="explain">
               {q.explanation?.strip && (
