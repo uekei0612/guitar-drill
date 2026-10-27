@@ -1,5 +1,6 @@
 /* 記録の形と検証。保存値は信用せず、版を見て移行し、値を 1 つずつ検証する（壊れた値は既定値）。 */
 import { MAX_EASE, MAX_INTERVAL, MIN_EASE, type ItemStat } from "../drill/schedule";
+import { MAX_DAYS } from "../drill/streak";
 import { TUNINGS } from "../theory";
 
 export const VERSION = 1;
@@ -13,8 +14,20 @@ export interface Settings {
   readonly theme: Theme;
   /** 1 セッションの問題数 */
   readonly sessionSize: number;
+  /** 選択肢の問題で正解したら、少し待って自動で次へ進む */
+  readonly autoNext: boolean;
+  /** 音のある問題（コード・音程など）で、答えたら自動で鳴らす */
+  readonly autoSound: boolean;
   /** 分野ごとの設定。中身は分野の settings.parse で検証してから使う */
   readonly topics: Readonly<Record<string, unknown>>;
+}
+
+/** 分野ごとの、最後に終えたセッションの点数（結果画面で前回と比べる） */
+export interface Score {
+  readonly correct: number;
+  readonly total: number;
+  /** 終えた時刻（ms） */
+  readonly at: number;
 }
 
 export interface SaveData {
@@ -22,6 +35,12 @@ export interface SaveData {
   readonly settings: Settings;
   /** キーは `<topicId>/<itemId>` */
   readonly items: Readonly<Record<string, ItemStat>>;
+  /** キーは分野 ID（今日の復習は "review"）。無い記録（古い版）は空として読む */
+  readonly scores: Readonly<Record<string, Score>>;
+  /** 練習した日（端末のローカル時刻の YYYY-MM-DD、古い順）。無い記録（古い版）は空として読む */
+  readonly days: readonly string[];
+  /** 一度閉じた操作の説明（もう出さない） */
+  readonly tips: readonly string[];
 }
 
 export const SESSION_SIZES = [10, 20, 30] as const;
@@ -31,10 +50,20 @@ export const DEFAULT_SETTINGS: Settings = {
   lefty: false,
   theme: "system",
   sessionSize: 20,
+  autoNext: true,
+  // 既定は鳴らさない（電車などで急に鳴ると困る。マナーモードの iPhone ではどのみち鳴らない）
+  autoSound: false,
   topics: {},
 };
 
-export const emptyData = (): SaveData => ({ version: VERSION, settings: DEFAULT_SETTINGS, items: {} });
+export const emptyData = (): SaveData => ({
+  version: VERSION,
+  settings: DEFAULT_SETTINGS,
+  items: {},
+  scores: {},
+  days: [],
+  tips: [],
+});
 
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => typeof x === "object" && x !== null && !Array.isArray(x);
@@ -51,6 +80,8 @@ export function parseSettings(raw: unknown): Settings {
     sessionSize: (SESSION_SIZES as readonly unknown[]).includes(r.sessionSize)
       ? (r.sessionSize as number)
       : d.sessionSize,
+    autoNext: typeof r.autoNext === "boolean" ? r.autoNext : d.autoNext,
+    autoSound: typeof r.autoSound === "boolean" ? r.autoSound : d.autoSound,
     topics: isObj(r.topics) ? Object.fromEntries(Object.entries(r.topics).filter(([, v]) => isObj(v))) : d.topics,
   };
 }
@@ -64,6 +95,18 @@ export function parseStat(raw: unknown): ItemStat | undefined {
   if (!num(due) || due < 0) return undefined;
   if (!int(tries) || !int(correct) || correct > tries) return undefined;
   return { ease, interval, due, tries, correct };
+}
+
+export function parseScores(raw: unknown): Record<string, Score> {
+  if (!isObj(raw)) return {};
+  const out: Record<string, Score> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (!isObj(v)) continue;
+    const { correct, total, at } = v;
+    if (int(correct) && int(total) && correct <= total && total > 0 && num(at) && at >= 0)
+      out[k] = { correct, total, at };
+  }
+  return out;
 }
 
 const ITEM_KEY = /^[\w-]+\/[^\s/][^\s]*$/;
@@ -91,5 +134,16 @@ export function parseData(raw: unknown): SaveData {
     if (m) r = m(r);
     v++;
   }
-  return { version: VERSION, settings: parseSettings(r.settings), items: parseItems(r.items) };
+  return {
+    version: VERSION,
+    settings: parseSettings(r.settings),
+    items: parseItems(r.items),
+    scores: parseScores(r.scores),
+    days: Array.isArray(r.days)
+      ? [...new Set(r.days.filter((x): x is string => typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x)))]
+          .sort()
+          .slice(-MAX_DAYS)
+      : [],
+    tips: Array.isArray(r.tips) ? [...new Set(r.tips.filter((x): x is string => typeof x === "string"))] : [],
+  };
 }

@@ -1,9 +1,18 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { type Rng, randomRng } from "../../drill/rng";
-import { planSession, review } from "../../drill/schedule";
+import { nextDue, planSession, review } from "../../drill/schedule";
+import { addDay } from "../../drill/streak";
 import { type Session, answer, currentItem, isFinished, startSession, summarize } from "../../drill/session";
-import { type AnyTopic, type Mark, type Question, type Response, grade, itemKey } from "../../drill/topic";
-import { contextOf, store, useData } from "../../state";
+import {
+  type AnyTopic,
+  type Context,
+  type Mark,
+  type Question,
+  type Response,
+  grade,
+  recordKeyOf,
+} from "../../drill/topic";
+import { contextOf, scoped, store, useData } from "../../state";
 import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
@@ -18,12 +27,16 @@ export interface DrillProps {
   readonly rng?: Rng;
   readonly clock?: () => number;
   readonly store?: Store;
+  /** 1 回だけ出題範囲を絞る（分野の設定と同じ形の JSON） */
+  readonly only?: string;
 }
 
 /** タップで答える図の最小の拡大率（1 マス 48 を 44px 以上に保つ） */
 const MIN_TAP_SCALE = 44 / 48;
 /** 図の下のヒントのボタンが取る高さ（style.css の .hint-btn の高さ＋上の余白） */
 const HINT_BUTTON_HEIGHT = 56;
+/** 選択肢の問題で正解したあと、自動で次へ進むまで（正誤を目で確かめる間） */
+export const AUTO_NEXT_MS = 800;
 
 const same = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 
@@ -39,9 +52,48 @@ function tapMarks(correct: readonly Position[], taps: readonly Position[]): Mark
   ];
 }
 
-export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = store }: DrillProps) {
+/** タップで答える問題の、初めてのときだけ出す操作の説明（答え方の種類ごと。問題文の補足とは重ねない） */
+export const TAP_TIPS = {
+  "tap-any": "指板のマスを 1 つタップすると、それで答えになります。",
+  "tap-all": "当てはまるマスを全部タップしてから「答え合わせ」を押します。押したマスをもう一度押すと外せます。",
+  "tap-open":
+    "最初は全部の弦が開放（○）です。押さえるマスは弦ごとに 1 つで、もう一度押すと開放に戻ります。できたら「答え合わせ」。",
+} as const;
+
+/** 参考を、ドリルの上に重ねて開く（ページを移るとセッションが消えるので）。閉じるとドリルの続きに戻る */
+function ReferenceSheet({ topic, ctx, onClose }: { topic: AnyTopic; ctx: Context<unknown>; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    d?.showModal?.();
+    return () => d?.close?.();
+  }, []);
+  const Ref = topic.reference!;
+  return (
+    <dialog
+      ref={ref}
+      class="sheet"
+      aria-labelledby="sheet-h"
+      onClose={onClose}
+      // 外側（暗くした背景）を押しても閉じる
+      onClick={e => e.target === ref.current && ref.current?.close()}
+    >
+      <div class="sheet-inner">
+        <div class="sheet-head">
+          <h2 id="sheet-h">{topic.title}の参考</h2>
+          <button class="btn" onClick={() => ref.current?.close()}>
+            閉じる
+          </button>
+        </div>
+        <Ref ctx={ctx} />
+      </div>
+    </dialog>
+  );
+}
+
+export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = store, only }: DrillProps) {
   const data = useData(st);
-  const ctx = contextOf(topic, data.settings);
+  const ctx = contextOf(topic, scoped(topic, data.settings, only));
   const [session, setSession] = useState<Session>(() => newSession());
   const [result, setResult] = useState<{ ok: boolean; response: Response } | null>(null);
   /** 押したマス（null はまだ触っていない。問題ごとの初期状態を使う） */
@@ -67,12 +119,18 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       at は問題とヒントの開閉（変わったら縮める前の枠で測り直す）、k はそのとき決めた拡大率 */
   const [snug, setSnug] = useState<{ at: string; k: number }>();
   const promptRef = useRef<HTMLParagraphElement>(null);
+  const [refOpen, setRefOpen] = useState(false);
+  /** 「やめる」で途中までの結果を出している */
+  const [quit, setQuit] = useState(false);
+  /** このセッションを始めたときの前回の点数（終えると上書きするので、始めに取っておく） */
+  const [prevScore, setPrevScore] = useState(() => st.data.scores[topic.id]);
 
   function newSession(): Session {
     const d = st.data;
+    const items = topic.items(contextOf(topic, scoped(topic, d.settings, only)));
     return startSession(
-      planSession(topic.items(contextOf(topic, d.settings)), id => d.items[itemKey(topic.id, id)], clock(), rng, {
-        size: d.settings.sessionSize,
+      planSession(items, id => d.items[recordKeyOf(topic, id)], clock(), rng, {
+        size: topic.fitSize ? Math.min(d.settings.sessionSize, items.length) : d.settings.sessionSize,
       }),
     );
   }
@@ -152,9 +210,15 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   function submit(response: Response) {
     if (!q || result) return;
     const ok = grade(q.answer, response);
-    const key = itemKey(topic.id, q.item);
-    st.update(d => ({ ...d, items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) } }));
+    const key = recordKeyOf(topic, q.item);
+    st.update(d => ({
+      ...d,
+      items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) },
+      days: addDay(d.days, clock()),
+    }));
     setResult({ ok, response });
+    // 答えた操作の中で鳴らす（iOS は操作の外では音を出させない）
+    if (q.sound && st.data.settings.autoSound) playSound(q.sound);
   }
 
   function next() {
@@ -167,6 +231,56 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     setNoFill(false);
   }
 
+  // 選択肢の問題で正解したら、少し待って次へ（不正解は解説を読むので止める）。参考を開いたら待つ
+  const autoNext = !!result && result.ok && q?.answer.kind === "choice" && data.settings.autoNext && !refOpen;
+  useEffect(() => {
+    if (!autoNext) return;
+    const id = setTimeout(next, AUTO_NEXT_MS);
+    return () => clearTimeout(id);
+  }, [autoNext, session.index]);
+
+  /** 新しいセッションを始める（queue を渡せばその並びで。間違えたものだけもう一度） */
+  function restart(queue?: readonly string[]) {
+    setPrevScore(st.data.scores[topic.id]);
+    setSession(queue ? startSession(queue) : newSession());
+    setQuit(false);
+    setRefOpen(false);
+  }
+
+  // 終えたら（途中でやめたときも）点数を残す。1 問も答えていなければ残さない
+  const finished = isFinished(session) || quit || (!q && session.queue.length > 0);
+  useEffect(() => {
+    if (!finished) return;
+    const sum = summarize(session);
+    if (sum.total)
+      st.update(d => ({
+        ...d,
+        scores: { ...d.scores, [topic.id]: { correct: sum.correct, total: sum.total, at: clock() } },
+      }));
+  }, [finished]);
+
+  // キーボード：1〜9 で選択肢を選び、答えたあとは Enter で次へ（PC 向け）
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if (!q || refOpen || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
+      if (!result && q.answer.kind === "choice" && /^[1-9]$/.test(e.key)) {
+        const o = q.answer.options[Number(e.key) - 1];
+        if (o !== undefined) {
+          e.preventDefault();
+          submit({ kind: "choice", value: o });
+        }
+      } else if (result && e.key === "Enter" && !(el && /^(BUTTON|A)$/.test(el.tagName))) {
+        // ボタンにフォーカスがあるときは、そのボタンの Enter に任せる
+        e.preventDefault();
+        next();
+      }
+    };
+    addEventListener("keydown", on);
+    return () => removeEventListener("keydown", on);
+  });
+
   if (!session.queue.length)
     return (
       <>
@@ -178,20 +292,36 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             {topic.title}
           </h1>
         </header>
-        <p>
-          今のチューニング（{ctx.common.tuning.name}）では出せる問題がありません。設定でチューニングを変えてください。
-        </p>
-        <div class="actions">
-          <a class="btn" href={href({ name: "settings" })}>
-            設定へ
-          </a>
-        </div>
+        {topic.emptyText ? (
+          <p>{topic.emptyText}</p>
+        ) : (
+          <>
+            <p>
+              今のチューニング（{ctx.common.tuning.name}
+              ）では出せる問題がありません。設定でチューニングを変えてください。
+            </p>
+            <div class="actions">
+              <a class="btn" href={href({ name: "settings" })}>
+                設定へ
+              </a>
+            </div>
+          </>
+        )}
       </>
     );
 
-  if (isFinished(session) || !q) {
+  if (finished || !q) {
     const sum = summarize(session);
     const pct = sum.total ? Math.round((sum.correct / sum.total) * 100) : 0;
+    const now = clock();
+    // 次の復習の予告：今日の復習は全分野、ほかはこの分野の item で
+    const keys = topic.fitSize ? Object.keys(data.items) : topic.items(ctx).map(id => recordKeyOf(topic, id));
+    const upcoming = nextDue(
+      keys.map(k => data.items[k]),
+      now,
+    );
+    const when = upcoming && (upcoming.days === 0 ? "今日" : upcoming.days === 1 ? "明日" : `${upcoming.days} 日後`);
+    const diff = prevScore && sum.total ? pct - Math.round((prevScore.correct / prevScore.total) * 100) : undefined;
     return (
       <>
         <header class="bar">
@@ -203,10 +333,31 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </h1>
         </header>
         <section class="result" aria-live="polite">
-          <h2>結果</h2>
-          <p class="score">
-            {sum.correct} / {sum.total}（{pct}%）
-          </p>
+          <h2>{quit ? "途中までの結果" : "結果"}</h2>
+          {sum.total ? (
+            <p class="score">
+              <strong>{sum.correct}</strong> / {sum.total}
+              <span class="muted">（{pct}%）</span>
+            </p>
+          ) : (
+            <p class="muted">まだ 1 問も答えていません。</p>
+          )}
+          {prevScore && sum.total > 0 && (
+            <p class="muted small">
+              前回 {prevScore.correct} / {prevScore.total}
+              {diff !== undefined && diff !== 0 && (
+                <span class={diff > 0 ? "ok" : "ng"}>
+                  （{diff > 0 ? "+" : "−"}
+                  {Math.abs(diff)} ポイント）
+                </span>
+              )}
+            </p>
+          )}
+          {upcoming && (
+            <p class="next-review">
+              次の復習は<strong>{when}</strong> {upcoming.count} 問
+            </p>
+          )}
           {sum.weak.length > 0 && (
             <>
               <h3>間違えた・ヒントを見たもの</h3>
@@ -216,14 +367,19 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 ))}
               </ul>
               {topic.reference && (
-                <p>
-                  <a href={href({ name: "reference", topicId: topic.id })}>参考で見直す →</a>
-                </p>
+                <button class="link-btn" onClick={() => setRefOpen(true)}>
+                  参考で見直す
+                </button>
               )}
             </>
           )}
           <div class="actions">
-            <button class="btn primary" onClick={() => setSession(newSession())}>
+            {sum.weak.length > 0 && (
+              <button class="btn primary" onClick={() => restart(sum.weak)}>
+                間違えたものだけもう一度（{sum.weak.length} 問）
+              </button>
+            )}
+            <button class={`btn${sum.weak.length ? "" : " primary"}`} onClick={() => restart()}>
               もう一度
             </button>
             <a class="btn" href={href({ name: "home" })}>
@@ -231,11 +387,21 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             </a>
           </div>
         </section>
+        {refOpen && <ReferenceSheet topic={topic} ctx={ctx} onClose={() => setRefOpen(false)} />}
       </>
     );
   }
 
   const a = q.answer;
+  const scopeText = [
+    ctx.common.tuning.id !== "standard" && ctx.common.tuning.name,
+    topic.settings?.describe?.(ctx.settings),
+  ]
+    .filter(Boolean)
+    .join("／");
+  const tipKey: keyof typeof TAP_TIPS | undefined =
+    a.kind === "tap" && !result ? (a.openDefault ? "tap-open" : a.mode === "any" ? "tap-any" : "tap-all") : undefined;
+  const tip = tipKey && !data.tips.includes(tipKey) ? tipKey : undefined;
   const board = q.prompt.board;
   const tapping = a.kind === "tap" && !result;
   const tapStrings =
@@ -392,6 +558,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       : a.kind === "choice"
         ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
         : `不正解：正解は図の点${taps.some(t => !a.correct.some(c => same(c, t))) ? "（赤は押し間違い）" : ""}`;
+  // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
+  const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
+  const feedbackLine =
+    result && !result.ok && a.kind === "choice"
+      ? pickedInStrip
+        ? `不正解 → ${a.correct}`
+        : `不正解（${picked}）→ ${a.correct}`
+      : feedback;
 
   return (
     <div
@@ -400,24 +574,77 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       style={fill && fillHeight ? { height: `${fillHeight}px` } : undefined}
     >
       <header class="bar">
-        <a class="bar-link" href={href({ name: "home" })}>
-          ← やめる
+        {/* やめるは補助の操作なので、色を付けない ✕ にする（題名と同じ重さにしない） */}
+        {/* 1 問でも答えていたら、ホームへ戻らずに途中までの結果を出す */}
+        <a
+          class="icon-btn"
+          href={href({ name: "home" })}
+          aria-label="やめる"
+          onClick={e => {
+            if (!session.results.length && !result) return;
+            e.preventDefault();
+            // 答えて「次へ」を押す前なら、その 1 問も結果に入れる（記録は答えたときに残っている）
+            if (result) setSession(x => answer(x, result.ok && !hinted));
+            setResult(null);
+            setQuit(true);
+          }}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </a>
         <h1 tabIndex={-1} style={{ "--len": topic.title.length }}>
           {topic.title}
         </h1>
+        {/* 参考はホームの行から外したので、ここから（解いている途中でも重ねて開ける） */}
+        {topic.reference && (
+          <button class="bar-link link-btn" onClick={() => setRefOpen(true)} aria-label={`${topic.title}の参考を見る`}>
+            参考
+          </button>
+        )}
         <span class="progress" aria-label={`${session.index + 1} 問目 / ${session.queue.length} 問`}>
           {session.index + 1}/{session.queue.length}
         </span>
       </header>
+      {/* 出題範囲（設定の奥にあって気づきにくい）。押すと設定のこの分野の欄へ。
+          移るとこのセッションは終わるので、まだ 1 問も答えていないあいだだけ出す */}
+      {scopeText && !session.results.length && !result && (
+        <a class="scope-chip" href={href({ name: "settings", open: topic.id })}>
+          <span class="muted">範囲</span> {scopeText}
+          <span aria-hidden="true"> ›</span>
+        </a>
+      )}
+      {/* 進み具合（数は上の「1/20」で読み上げるので、バーは飾り） */}
+      <div class="progress-track" aria-hidden="true">
+        <span style={{ width: `${(session.index / session.queue.length) * 100}%` }} />
+      </div>
       <section
         class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}${isSnug ? " snug" : ""}`}
       >
+        {topic.sourceOf && <p class="q-source">{topic.sourceOf(q.item)}</p>}
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
         </p>
+        {/* 図の無い問題のヒントは、問題文のすぐ下（開くと同じ場所に文が出る） */}
+        {q.hint && !shown && (
+          <div class="hint-block">
+            {!hinted && !result && hintButton}
+            <p class="hint-text" aria-live="polite">
+              {hinted && !result ? q.hint.text : ""}
+            </p>
+          </div>
+        )}
         {shown && (
           <div class={`board-wrap${hintBelow ? " with-hint" : ""}`} ref={boardRef}>
+            {/* 図の上に重ねて出す（並びに入れると図の大きさが変わる）。閉じたら記録してもう出さない */}
+            {tip && (
+              <div class="tap-tip" role="note">
+                <p>{TAP_TIPS[tip]}</p>
+                <button class="btn" onClick={() => st.update(d => ({ ...d, tips: [...d.tips, tip] }))}>
+                  わかった
+                </button>
+              </div>
+            )}
             <Fretboard
               tuning={ctx.common.tuning}
               lefty={ctx.common.lefty}
@@ -453,9 +680,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       <div class={`dock${dock ? " stacked" : ""}`}>
         {(!result || dock) && (
           <div class={`dock-q${result ? " off" : ""}`} aria-hidden={result ? true : undefined}>
-            {/* 図の無い問題のヒントは、選択肢の上 */}
-            {q.hint && !shown && !hinted && hintButton}
-            {q.hint && !hintBelow && (
+            {q.hint && hintInRow && (
               <p class="hint-text" aria-live="polite">
                 {hinted && !result ? q.hint.text : ""}
               </p>
@@ -469,8 +694,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 role="group"
                 aria-label="選択肢"
               >
-                {a.options.map(o => (
+                {a.options.map((o, i) => (
                   <button key={o} class="btn choice" onClick={() => submit({ kind: "choice", value: o })}>
+                    {/* PC では 1〜9 キーで選べるので番号を添える（タッチの画面では出さない） */}
+                    {i < 9 && (
+                      <span class="key-hint" aria-hidden="true">
+                        {i + 1}
+                      </span>
+                    )}
                     {o}
                   </button>
                 ))}
@@ -496,7 +727,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             aria-hidden={result ? undefined : true}
           >
             <p class={`feedback-line ${result ? (result.ok ? "ok" : "ng") : ""}`} aria-hidden="true">
-              {feedback ?? "\u3000"}
+              {feedbackLine ?? "\u3000"}
             </p>
             <section class="explain">
               {q.explanation?.strip && (
@@ -519,10 +750,19 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 </ol>
               )}
               {q.explanation?.text && !tall && <p>{q.explanation.text}</p>}
-              {q.chart && <ChartLink chart={q.chart} />}
+              {(topic.reference || q.chart) && (
+                <div class="explain-links">
+                  {topic.reference && (
+                    <button class="link-btn" onClick={() => setRefOpen(true)}>
+                      参考を見る
+                    </button>
+                  )}
+                  {q.chart && <ChartLink chart={q.chart} />}
+                </div>
+              )}
             </section>
             <div class="actions next-bar">
-              <button ref={nextRef} class="btn primary" onClick={next}>
+              <button ref={nextRef} class={`btn primary${autoNext ? " auto" : ""}`} onClick={next}>
                 次へ
               </button>
               {q.sound && (
@@ -534,6 +774,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </div>
         )}
       </div>
+      {refOpen && <ReferenceSheet topic={topic} ctx={ctx} onClose={() => setRefOpen(false)} />}
       {/* 正誤の読み上げ（見た目の行は上の feedback-line） */}
       <div class="feedback sr-only" aria-live="assertive">
         {result && `${feedback}${!result.ok && a.kind === "tap" ? `（${correctText}）` : ""}`}

@@ -8,6 +8,12 @@
   --on-accent: #fff;
   --ok: #15803d;
   --ng: #b91c1c;
+  /* 進み具合の下地（バー・輪）。--line だと暗色でほとんど見えない */
+  --track: #e2e2e2;
+  /* 角の丸み：小（札・入力欄）／中（ボタン・カード）／大（まとまり・シート） */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
   font-family:
     system-ui,
     -apple-system,
@@ -57,8 +63,9 @@ main {
     --fg: #eee;
     --muted: #aaa;
     --accent: #fb923c;
-    --line: #333;
-    --surface: #1e1e1e;
+    --line: #3a3a3e;
+    --surface: #1f1f23;
+    --track: #45454b;
     --on-accent: #111;
     --ok: #4ade80;
     --ng: #f87171;
@@ -79,8 +86,9 @@ main {
   --fg: #eee;
   --muted: #aaa;
   --accent: #fb923c;
-  --line: #333;
-  --surface: #1e1e1e;
+  --line: #3a3a3e;
+  --surface: #1f1f23;
+  --track: #45454b;
   --on-accent: #111;
   --ok: #4ade80;
   --ng: #f87171;
@@ -270,9 +278,9 @@ a {
   min-width: 0;
 }
 /* ドリル中は見出しを少し小さく、長い名前（「セカンダリードミナントと裏コード」）は文字数で縮めて 1 行に収める。
-   170px は「← やめる」と「1/20」と隙間のぶん */
+   220px は「✕」「参考」「1/20」と隙間のぶん */
 .drill-screen .bar h1 {
-  font-size: clamp(0.8rem, calc((100vw - 170px) / var(--len, 10)), 1.1rem);
+  font-size: clamp(0.8rem, calc((100vw - 220px) / var(--len, 10)), 1.1rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -295,7 +303,7 @@ a {
   min-height: 44px;
   padding: 8px 16px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--fg);
   font: inherit;
@@ -333,58 +341,58 @@ input:focus-visible {
   display: grid;
   gap: 8px;
 }
-/* 分野の行は 1 枚のカード。「参考」はカードの右端の区画にして、どの分野の参考かが分かるようにする */
-.topic {
+/* 分野の行：名前と「覚えた数・復習待ち」、右端に覚えた割合の輪。行全体でドリルへ */
+.topic-row {
   display: flex;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  overflow: hidden;
-}
-.topic-main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 8px;
   align-items: center;
-  min-height: 44px;
-  padding: 10px 12px;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
   color: var(--fg);
   text-decoration: none;
 }
-.topic-title {
-  grid-column: 1 / -1;
+.topic-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
-.meter {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--line);
-  overflow: hidden;
-}
-.meter-bar {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-}
-.topic-pct {
-  font-size: 0.85rem;
+.topic-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.topic-ref {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  min-width: 44px;
-  border-left: 1px solid var(--line);
-  font-size: 0.85rem;
+.due-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
-  text-decoration: none;
+  font-weight: 600;
 }
-/* カードは overflow: hidden なので、フォーカスの枠は内側に描く */
-.topic a:focus-visible {
-  outline-offset: -3px;
+.ring {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+}
+.ring circle {
+  fill: none;
+  stroke-width: 4;
+}
+.ring-track {
+  stroke: var(--track);
+}
+.ring-bar {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+.topic-row:focus-visible {
+  outline-offset: 2px;
 }
 .phrase {
   display: inline-block;
@@ -408,19 +416,20 @@ input:focus-visible {
 .drill-screen.fill .board-wrap.with-hint .hint-block {
   margin-top: 0;
 }
-/* ヒントは補助の操作なので、選択肢と同じ重さにしない：枠の無い小さな文字ボタンを右に寄せる
-   （押せる高さの 44px は保つ） */
+/* ヒントは補助の操作なので、選択肢と同じ重さにしない：細い枠の小さな丸いボタンを、問題（図・問題文）の
+   真下の中央に置く（右端に離して置くと、どの問題のものか分かりにくい。押せる高さの 44px は保つ） */
 .hint-btn {
-  display: block;
+  display: flex;
   flex: 0 0 auto;
   width: auto;
   min-height: 44px;
-  margin: 8px 0 0 auto;
-  padding: 0 12px;
-  font-size: 0.95rem;
+  margin: 8px auto 0;
+  padding: 0 18px;
+  font-size: 0.9rem;
   color: var(--accent);
   background: transparent;
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
 }
 .actions .hint-btn {
   margin-top: 0;
@@ -482,6 +491,7 @@ input:focus-visible {
   padding: 0;
 }
 .strip li {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -490,7 +500,7 @@ input:focus-visible {
   max-width: 33%;
   padding: 4px 6px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 /* 強調する札（正解の側）は正誤の緑。オレンジだと不正解の赤いパネルの中で「これが間違い」に見える */
 .strip li.current {
@@ -507,6 +517,30 @@ input:focus-visible {
 }
 .strip li.current .strip-label {
   color: var(--ok);
+}
+/* 札の右上の小さな印（正解 ✓、自分の答え ✕）。色の見分けにくい人にも分かるように */
+.strip li.current::after,
+.strip li.picked::after {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bg);
+}
+.strip li.current::after {
+  content: "✓" / "";
+  background: var(--ok);
+}
+.strip li.picked::after {
+  content: "✕" / "";
+  background: var(--ng);
 }
 .strip li.picked .strip-label {
   color: var(--ng);
@@ -589,7 +623,7 @@ main:has(.drill-screen.fill) {
 .question.snug + .dock .choices {
   flex: 1 1 auto;
   grid-auto-rows: 1fr;
-  max-height: calc(var(--rows, 2) * 96px + (var(--rows, 2) - 1) * 8px);
+  max-height: calc(var(--rows, 2) * var(--choice-max, 96px) + (var(--rows, 2) - 1) * 8px);
   margin: 8px 0 0;
 }
 .question.snug + .dock .actions {
@@ -608,13 +642,16 @@ main:has(.drill-screen.fill) {
   display: flex;
   flex-direction: column;
   padding: 0 14px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
+/* 正誤は色だけに頼らない：見出しの ✓ / ✗ と枠で示し、地の色は薄くする */
 .drill-screen.fill .dock-a.is-ok {
-  background: color-mix(in srgb, var(--ok) 9%, var(--bg));
+  background: color-mix(in srgb, var(--ok) 5%, var(--bg));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ok) 40%, transparent);
 }
 .drill-screen.fill .dock-a.is-ng {
-  background: color-mix(in srgb, var(--ng) 9%, var(--bg));
+  background: color-mix(in srgb, var(--ng) 5%, var(--bg));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ng) 40%, transparent);
 }
 .drill-screen.fill .dock-a .feedback-line {
   font-size: 1.05rem;
@@ -637,12 +674,25 @@ main:has(.drill-screen.fill) {
 /* 図の無い問題：選択肢は画面の下に大きめに。問題文は大きくして、選択肢の上の空いた高さの中ほどに置く
    （上に寄せると問題文の下が画面の半分ほど空く） */
 /* 中央寄せは上下の auto の余白で行う（justify-content: center だと、長い問題文が上の見出しへはみ出す） */
+/* 問題文は、選択肢の上の空いた高さの上から 1/3 あたりに置く（真ん中だと宙に浮いて見え、選択肢とも離れる）。
+   上下の空きを 1 : 2 で分ける */
 .drill-screen.text-only .prompt {
   font-size: 1.5rem;
   line-height: 1.4;
   text-align: center;
-  margin: auto 0;
-  padding: 16px 0;
+  margin: 0;
+  padding: 16px 0 8px;
+}
+.drill-screen.fill.text-only .question::before,
+.drill-screen.fill.text-only .question::after {
+  content: "";
+  flex: 1 1 0;
+}
+.drill-screen.fill.text-only .question::after {
+  flex-grow: 2;
+}
+.drill-screen.text-only .hint-block .hint-text {
+  text-align: left;
 }
 .drill-screen.text-only .choice {
   min-height: 56px;
@@ -657,9 +707,39 @@ main:has(.drill-screen.fill) {
 .dock .off {
   visibility: hidden;
 }
+/* 答えの欄の高さは答える前から取ってあり、小さい画面では問題文の下のヒントにかかる。
+   見えていないあいだは押す操作を下（ヒント）に通す */
+.dock.stacked {
+  pointer-events: none;
+}
+.dock.stacked > :not(.off) {
+  pointer-events: auto;
+}
 .feedback-line {
   font-weight: 600;
   margin: 8px 0;
+}
+/* 印は見た目だけ（読み上げは「正解」「不正解」の文で足りる） */
+.feedback-line.ok::before,
+.feedback-line.ng::before {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4em;
+  height: 1.4em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  vertical-align: -0.25em;
+  font-size: 0.9em;
+  color: var(--bg);
+}
+.feedback-line.ok::before {
+  content: "✓" / "";
+  background: var(--ok);
+}
+.feedback-line.ng::before {
+  content: "✕" / "";
+  background: var(--ng);
 }
 .side-explain {
   flex: 1;
@@ -782,7 +862,7 @@ input[type="url"] {
   font-size: 16px; /* iOS で入力時に拡大されないように */
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--fg);
 }
@@ -795,6 +875,7 @@ input[type="url"] {
   white-space: nowrap;
 }
 .ref-table {
+  width: 100%;
   border-collapse: collapse;
   margin: 16px 0;
 }
@@ -820,7 +901,7 @@ input[type="url"] {
   gap: 8px;
   padding: 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--surface);
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
 }
@@ -944,16 +1025,6 @@ main.wide {
 .small {
   font-size: 0.85rem;
 }
-.chart-entry {
-  display: grid;
-  gap: 4px;
-  margin-top: 16px;
-  padding: 12px;
-  border: 1px solid var(--accent);
-  border-radius: 10px;
-  color: var(--fg);
-  text-decoration: none;
-}
 .seg {
   display: flex;
   flex-wrap: wrap;
@@ -1033,4 +1104,496 @@ select {
   font-weight: 700;
   text-align: center;
   margin-bottom: 4px;
+}
+
+/* 下のタブ（ドリル／チャート／設定）。ホームバーの分だけ下を空ける */
+:root {
+  --tabbar-h: 56px;
+}
+main.with-tabs {
+  padding-bottom: calc(var(--tabbar-h) + max(24px, env(safe-area-inset-bottom) + 16px));
+}
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  padding: 0 max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.tab {
+  flex: 0 1 8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tabbar-h);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab.current {
+  color: var(--accent);
+  font-weight: 600;
+}
+.tab-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.tab-icon .tab-knob {
+  fill: var(--bg);
+}
+.tab.current .tab-icon .tab-knob {
+  fill: currentColor;
+}
+.tab:focus-visible {
+  outline-offset: -3px;
+}
+
+/* 解説の下の行き先（参考・チャート）。文字のリンクを横に並べる */
+.explain-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 20px;
+}
+.explain-links .chart-link {
+  margin: 0;
+}
+.explain-links a,
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.bar .link-btn {
+  text-decoration: none;
+}
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ドリルの上に重ねる参考（下から出るシート） */
+.sheet {
+  width: 100%;
+  max-width: 40rem;
+  max-height: 85dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 -4px 24px rgb(0 0 0 / 0.25);
+}
+.sheet::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+.sheet-inner {
+  padding: 0 16px max(24px, env(safe-area-inset-bottom));
+}
+.sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.sheet-head h2 {
+  flex: 1;
+  margin: 0;
+}
+
+/* 今日の復習で、問題がどの分野のものか */
+.q-source {
+  margin: 8px 0 -8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ホーム：見出しのアイコンと、次にやること */
+.home-head {
+  gap: 10px;
+}
+.app-icon {
+  border-radius: var(--radius-sm);
+}
+.today {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+.today h2 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+.today-count {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.today-count strong {
+  font-size: 1.6rem;
+}
+.today p.small {
+  margin: 0;
+}
+.today .btn {
+  margin-top: 8px;
+  min-width: 10rem;
+}
+
+/* ドリルの見出し：✕（やめる）と、題名の下の細い進み具合 */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border-radius: 50%;
+  color: var(--muted);
+}
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.drill-screen .bar {
+  gap: 8px;
+}
+.progress-track {
+  height: 4px;
+  margin: 4px 0 8px;
+  border-radius: 2px;
+  background: var(--track);
+  overflow: hidden;
+}
+.progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
+/* マウスで操作する画面（PC）では、選択肢を大きくしすぎない（親指のための 96px は要らない） */
+@media (hover: hover) and (pointer: fine) {
+  .choices {
+    --choice-max: 64px;
+  }
+}
+
+/* 参考ページの見出し：戻るは上の小さな行、題名の前に「参考」の札 */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+/* 長い名前（「セカンダリードミナントと裏コード」）は文字数で縮めて 1 行に収める。80px は札と隙間と左右の余白 */
+.page-head h1 {
+  min-width: 0;
+  font-size: clamp(0.9rem, calc((min(100vw, 40rem) - 80px) / var(--len, 10)), 1.25rem);
+}
+.tag {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* チャート：指板を先に、設定はその下（広い画面では横）。PDF は折りたたみ */
+.chart-quick {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.chart-quick > .field {
+  flex: 0 1 7rem;
+  min-width: 0;
+}
+.chart-quick > .field.grow {
+  flex: 1 1 12rem;
+}
+.chart-form h2 {
+  margin: 0;
+}
+.chart-form {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 1100px) {
+  .chart-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    gap: 32px;
+    align-items: start;
+  }
+  .chart-form {
+    position: sticky;
+    top: 16px;
+    margin-top: 8px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+}
+/* 含める度数：押して切り替える丸いボタン（指板の点と同じ見た目で、入っている度数は塗る） */
+.degree-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.degree-chip {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.degree-chip.on {
+  border-color: var(--fb-tone);
+  background: var(--fb-tone);
+  color: var(--fb-on-dot);
+}
+.degree-chip.root {
+  border-color: var(--fb-root);
+  background: var(--fb-root);
+  color: var(--on-accent);
+  cursor: default;
+}
+.degree-chip:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.chart-pdf {
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.chart-pdf summary {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  cursor: pointer;
+}
+.chart-pdf summary::-webkit-details-marker {
+  display: none;
+}
+.chart-pdf summary h2 {
+  margin: 0;
+}
+.chart-pdf summary::after {
+  content: "";
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+}
+.chart-pdf[open] summary::after {
+  transform: rotate(-135deg);
+}
+.chart-pdf > .form {
+  margin: 0 0 16px;
+}
+
+/* 広い画面のホーム：分野を 2〜3 列に並べる（スマホでは 1 列のまま） */
+main.home {
+  max-width: 60rem;
+}
+main.home .topics {
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+main.home .today {
+  max-width: 40rem;
+}
+
+/* 正解したあと自動で次へ進むとき、「次へ」のボタンに進むまでの時間を帯で見せる */
+.btn.primary.auto {
+  position: relative;
+  overflow: hidden;
+}
+.btn.primary.auto::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: 100%;
+  background: color-mix(in srgb, var(--on-accent) 70%, transparent);
+  transform-origin: left;
+  animation: auto-next 0.8s linear forwards;
+}
+@keyframes auto-next {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.primary.auto::after {
+    animation: none;
+  }
+}
+/* 選択肢の番号（キーボードで選ぶため）。マウスの画面だけ出す */
+.choice {
+  position: relative;
+}
+.key-hint {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .key-hint {
+    display: block;
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+}
+
+/* 結果画面 */
+.result h2 {
+  margin-top: 16px;
+}
+.score {
+  margin: 8px 0 0;
+}
+.score strong {
+  font-size: 2.4rem;
+}
+.next-review {
+  display: inline-block;
+  margin: 12px 0 4px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.next-review strong {
+  margin: 0 0.2em;
+}
+.result h3 {
+  font-size: 0.95rem;
+  margin: 20px 0 4px;
+}
+.weak {
+  margin: 0 0 4px;
+  padding-left: 1.2em;
+}
+.result .actions .btn {
+  flex: 1 1 100%;
+}
+
+/* ホームの見出しの右：連続日数 */
+.streak {
+  margin: 0 0 0 auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.streak strong {
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+/* タップで答える問題の、初めてのときだけの操作の説明（図の上に重ねる） */
+.board-wrap {
+  position: relative;
+}
+.tap-tip {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+}
+.tap-tip p {
+  flex: 1;
+  margin: 0;
+  font-size: 0.9rem;
+}
+.tap-tip .btn {
+  flex: 0 0 auto;
+}
+
+/* ドリルの出題範囲（押すと設定へ） */
+.scope-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: 0 0 2px;
+  font-size: 0.8rem;
+  color: var(--fg);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scope-chip > span:last-child {
+  color: var(--accent);
+}
+.topic-settings {
+  scroll-margin-top: 16px;
 }

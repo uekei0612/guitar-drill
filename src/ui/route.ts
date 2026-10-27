@@ -4,9 +4,11 @@ import { useEffect, useState } from "preact/hooks";
 
 export type Route =
   | { readonly name: "home" }
-  | { readonly name: "drill"; readonly topicId: string }
+  /** only は 1 回だけ出題範囲を絞る（分野の設定と同じ形の JSON。設定そのものは変えない） */
+  | { readonly name: "drill"; readonly topicId: string; readonly only?: string }
   | { readonly name: "reference"; readonly topicId: string }
-  | { readonly name: "settings" }
+  /** open は開いておく分野の出題設定（ドリルの「範囲」から来たとき） */
+  | { readonly name: "settings"; readonly open?: string }
   /** チャート。query は guitar_chart と同じ形の URL パラメーター */
   | { readonly name: "chart"; readonly query: string };
 
@@ -14,9 +16,15 @@ export function parseRoute(hash: string): Route {
   const [path = "", query = ""] = hash.replace(/^#\/?/, "").split("?");
   if (path === "chart") return { name: "chart", query };
   const [name, id] = path.split("/").map(decodeURIComponent);
-  if (name === "drill" && id) return { name, topicId: id };
+  if (name === "drill" && id) {
+    const only = new URLSearchParams(query).get("only");
+    return only ? { name, topicId: id, only } : { name, topicId: id };
+  }
   if (name === "reference" && id) return { name, topicId: id };
-  if (name === "settings") return { name };
+  if (name === "settings") {
+    const open = new URLSearchParams(query).get("open");
+    return open ? { name, open } : { name };
+  }
   return { name: "home" };
 }
 
@@ -25,9 +33,11 @@ export function href(r: Route): string {
     case "home":
       return "#/";
     case "settings":
-      return "#/settings";
+      return r.open ? `#/settings?${new URLSearchParams({ open: r.open })}` : "#/settings";
     case "chart":
       return r.query ? `#/chart?${r.query}` : "#/chart";
+    case "drill":
+      return `#/drill/${encodeURIComponent(r.topicId)}${r.only ? `?${new URLSearchParams({ only: r.only })}` : ""}`;
     default:
       return `#/${r.name}/${encodeURIComponent(r.topicId)}`;
   }

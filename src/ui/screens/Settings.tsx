@@ -1,10 +1,9 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { commonOf, store, useData } from "../../state";
 import { TOPICS } from "../../topics";
 import { SESSION_SIZES, type Settings as S, type Theme, emptyData } from "../../store/schema";
 import { exportJson, importJson } from "../../store/store";
 import { TUNINGS, fmt } from "../../theory";
-import { href } from "../route";
 
 const THEMES: { id: Theme; label: string }[] = [
   { id: "system", label: "端末に合わせる" },
@@ -41,8 +40,15 @@ export function TuningOptions() {
   );
 }
 
-export function Settings() {
+export function Settings({ open }: { open?: string } = {}) {
   const { settings: st, items } = useData();
+  // ドリルの「範囲」から来たら、その分野の欄を開いて見える所まで送る
+  // （画面が変わると App が上へ戻すので、そのあとに送る）
+  useEffect(() => {
+    if (!open) return;
+    const id = setTimeout(() => document.getElementById(`ts-${open}`)?.scrollIntoView({ block: "start" }), 0);
+    return () => clearTimeout(id);
+  }, [open]);
   const [msg, setMsg] = useState("");
   const count = Object.keys(items).length;
 
@@ -62,9 +68,6 @@ export function Settings() {
   return (
     <>
       <header class="bar">
-        <a class="bar-link" href={href({ name: "home" })}>
-          ← ホーム
-        </a>
         <h1 tabIndex={-1}>設定</h1>
       </header>
 
@@ -98,6 +101,14 @@ export function Settings() {
             ))}
           </select>
         </label>
+        <label class="field check">
+          <input type="checkbox" checked={st.autoNext} onChange={e => set({ autoNext: e.currentTarget.checked })} />
+          <span>選択肢の問題で正解したら、自動で次へ進む</span>
+        </label>
+        <label class="field check">
+          <input type="checkbox" checked={st.autoSound} onChange={e => set({ autoSound: e.currentTarget.checked })} />
+          <span>答えたら、コードや音程の音を自動で鳴らす（iPhone はマナーモードだと鳴りません）</span>
+        </label>
       </section>
 
       <h2>分野ごとの出題</h2>
@@ -105,7 +116,7 @@ export function Settings() {
         const View = t.settings!.view!;
         return (
           // 分野ごとの出題設定は折りたたむ（全部開くと縦に長く、目的の分野を探すことになる）
-          <details key={t.id} class="topic-settings">
+          <details key={t.id} id={`ts-${t.id}`} class="topic-settings" open={open === t.id}>
             <summary>{t.title}</summary>
             <div class="form">
               <View

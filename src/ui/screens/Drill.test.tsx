@@ -1,11 +1,14 @@
 // @vitest-environment happy-dom
 import { render } from "preact";
 import { act } from "preact/test-utils";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { seeded } from "../../drill/rng";
 import type { Topic } from "../../drill/topic";
 import { Store, memoryStorage } from "../../store/store";
-import { Drill } from "./Drill";
+import { playSound } from "../../chart/audio";
+import { AUTO_NEXT_MS, Drill } from "./Drill";
+
+vi.mock("../../chart/audio", async orig => ({ ...(await orig<object>()), playSound: vi.fn() }));
 
 /** 「x の答えは x」の 4択と、「1 弦の開放をタップ」 */
 const topic: Topic = {
@@ -34,8 +37,9 @@ afterEach(() => {
 });
 
 const click = (el: Element) => act(() => void el.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-const button = (el: Element, text: string) =>
-  [...el.querySelectorAll("button")].find(b => b.textContent?.startsWith(text))!;
+/** ボタンの文字（選択肢の番号 .key-hint は除く） */
+const label = (b: Element) => b.textContent!.slice(b.querySelector(".key-hint")?.textContent?.length ?? 0);
+const button = (el: Element, text: string) => [...el.querySelectorAll("button")].find(b => label(b).startsWith(text))!;
 
 describe("Drill", () => {
   it("出題 → 回答 → 正誤と解説 → 次へ → 結果、記録も残る", async () => {
@@ -58,7 +62,8 @@ describe("Drill", () => {
           const wrong = id === "a" ? "b" : "a";
           expect(el.querySelector(".feedback")!.textContent).toBe(`不正解：あなたの答え ${wrong} ／ 正解 ${id}`);
           // 答えたあとは選択肢をしまい、「次へ」を出す（スマホで 1 画面に収める）
-          expect(el.querySelector(".feedback-line")!.textContent).toBe(`不正解：あなたの答え ${wrong} ／ 正解 ${id}`);
+          // 見た目の行は短く（読み上げは上の .feedback で自分の答えも含めて全部）
+          expect(el.querySelector(".feedback-line")!.textContent).toBe(`不正解（${wrong}）→ ${id}`);
           expect(el.querySelector(".next-bar button")!.textContent).toBe("次へ");
           expect(el.querySelector(".explain")!.textContent).toContain(`${id} だから`);
           missed = true;
@@ -72,6 +77,132 @@ describe("Drill", () => {
     expect(el.querySelector(".score")!.textContent).toMatch(/^10 \/ 11/);
     expect([...el.querySelectorAll(".weak li")].map(li => li.textContent)).toHaveLength(1);
     expect(Object.keys(st.data.items).sort()).toEqual(["stub/a", "stub/b", "stub/tap"]);
+  });
+
+  it("fitSize の分野（今日の復習）は item の数で終わり、記録は recordKey に書く", async () => {
+    const st = new Store(memoryStorage());
+    const fit: Topic = {
+      ...topic,
+      items: () => ["a", "b"],
+      fitSize: true,
+      recordKey: id => `orig/${id}`,
+      sourceOf: () => "元の分野",
+    };
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={fit} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    expect(el.querySelector(".q-source")!.textContent).toBe("元の分野");
+    for (let i = 0; i < 2; i++) {
+      const id = el.querySelector(".prompt")!.textContent![0]!;
+      await click(button(el, id));
+      await click(button(el, "次へ"));
+    }
+    expect(el.querySelector(".score")!.textContent).toMatch(/^2 \/ 2/);
+    expect(Object.keys(st.data.items).sort()).toEqual(["orig/a", "orig/b"]);
+  });
+
+  it("選択肢の問題で正解したら少し待って次へ。不正解は止まる。1〜4 キーで選べる", async () => {
+    vi.useFakeTimers();
+    try {
+      const st = new Store(memoryStorage());
+      const el = document.body.appendChild(document.createElement("div"));
+      const choices: Topic = { ...topic, items: () => ["a", "b"] };
+      await act(() => render(<Drill topic={choices} store={st} rng={seeded(1)} clock={() => 0} />, el));
+      const progress = () => el.querySelector(".progress")!.textContent;
+      const id = el.querySelector(".prompt")!.textContent![0]!;
+      const n = [...el.querySelectorAll(".choice")].findIndex(b => label(b) === id) + 1;
+      await act(() => void dispatchEvent(new KeyboardEvent("keydown", { key: String(n) })));
+      expect(el.querySelector(".feedback-line")!.textContent).toMatch(/^正解/);
+      await act(() => void vi.advanceTimersByTime(AUTO_NEXT_MS));
+      expect(progress()).toMatch(/^2\//);
+      // 不正解は自動で進まない
+      const id2 = el.querySelector(".prompt")!.textContent![0]!;
+      await click(button(el, id2 === "a" ? "b" : "a"));
+      await act(() => void vi.advanceTimersByTime(AUTO_NEXT_MS * 3));
+      expect(progress()).toMatch(/^2\//);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("やめると途中までの結果。間違えたものだけもう一度解け、前回の点数と比べる", async () => {
+    const st = new Store(memoryStorage());
+    st.update(d => ({ ...d, settings: { ...d.settings, autoNext: false } }));
+    const el = document.body.appendChild(document.createElement("div"));
+    const choices: Topic = { ...topic, items: () => ["a", "b"] };
+    await act(() => render(<Drill topic={choices} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    // 1 問目は正解して次へ、2 問目は間違えて「次へ」を押さずにやめる
+    const id1 = el.querySelector(".prompt")!.textContent![0]!;
+    await click(button(el, id1));
+    await click(button(el, "次へ"));
+    const id2 = el.querySelector(".prompt")!.textContent![0]!;
+    await click(button(el, id2 === "a" ? "b" : "a"));
+    await click(el.querySelector('[aria-label="やめる"]')!);
+    expect(el.querySelector(".result h2")!.textContent).toBe("途中までの結果");
+    expect(el.querySelector(".score")!.textContent).toMatch(/^1 \/ 2/);
+    expect(st.data.scores.stub).toEqual({ correct: 1, total: 2, at: 0 });
+    // 間違えた 1 問だけで、もう一度
+    await click(button(el, "間違えたものだけもう一度"));
+    expect(el.querySelector(".progress")!.textContent).toBe("1/1");
+    await click(button(el, el.querySelector(".prompt")!.textContent![0]!));
+    await click(button(el, "次へ"));
+    expect(el.querySelector(".result h2")!.textContent).toBe("結果");
+    expect(el.querySelector(".result")!.textContent).toContain("前回 1 / 2");
+  });
+
+  it("1 問も答えずにやめるとホームへ（結果は出さない）", async () => {
+    const st = new Store(memoryStorage());
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={topic} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
+    await act(() => void el.querySelector('[aria-label="やめる"]')!.dispatchEvent(ev));
+    expect(ev.defaultPrevented).toBe(false);
+    expect(el.querySelector(".result")).toBeNull();
+    expect(st.data.scores).toEqual({});
+  });
+
+  it("設定で、答えたら音を自動で鳴らす（既定は鳴らさない）", async () => {
+    const sounding: Topic = {
+      ...topic,
+      items: () => ["a"],
+      question: id => ({ ...topic.question(id, undefined as never, seeded(1)), sound: { notes: [60, 64, 67] } }),
+    };
+    for (const autoSound of [false, true]) {
+      vi.mocked(playSound).mockClear();
+      const st = new Store(memoryStorage());
+      st.update(d => ({ ...d, settings: { ...d.settings, autoSound } }));
+      const el = document.body.appendChild(document.createElement("div"));
+      await act(() => render(<Drill topic={sounding} store={st} rng={seeded(1)} clock={() => 0} />, el));
+      await click(button(el, "a"));
+      expect(vi.mocked(playSound).mock.calls.length).toBe(autoSound ? 1 : 0);
+      render(null, el);
+    }
+  });
+
+  it("タップで答える問題は、初めてのときだけ操作の説明を出し、閉じたらもう出さない", async () => {
+    const st = new Store(memoryStorage());
+    const tapOnly: Topic = { ...topic, items: () => ["tap"] };
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={tapOnly} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    expect(el.querySelector(".tap-tip")!.textContent).toContain("1 つタップ");
+    await click(button(el, "わかった"));
+    expect(el.querySelector(".tap-tip")).toBeNull();
+    expect(st.data.tips).toEqual(["tap-any"]);
+  });
+
+  it("出題範囲を出し、設定のその分野の欄へ。答え始めたら出さない", async () => {
+    const st = new Store(memoryStorage());
+    const scoped: Topic<{ n: number }> = {
+      ...(topic as unknown as Topic<{ n: number }>),
+      items: () => ["a", "b"],
+      settings: { defaults: { n: 3 }, parse: () => ({ n: 3 }), describe: s => `${s.n} 個` },
+    };
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={scoped} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    const chip = el.querySelector<HTMLAnchorElement>(".scope-chip")!;
+    expect(chip.textContent).toContain("3 個");
+    expect(chip.getAttribute("href")).toBe("#/settings?open=stub");
+    await click(button(el, el.querySelector(".prompt")!.textContent![0]!));
+    expect(el.querySelector(".scope-chip")).toBeNull();
   });
 
   it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {

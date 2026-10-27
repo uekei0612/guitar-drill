@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seeded } from "./rng";
-import { DAY, type ItemStat, MIN_EASE, RETRY_MS, isMastered, mastery, planSession, review } from "./schedule";
+import { DAY, type ItemStat, MIN_EASE, RETRY_MS, isMastered, mastery, nextDue, planSession, review } from "./schedule";
 import { answer, currentItem, isFinished, startSession, summarize } from "./session";
 
 const T0 = Date.UTC(2026, 9, 25);
@@ -105,5 +105,23 @@ describe("session", () => {
     s = startSession(["a", "b", "c"]);
     s = answer(s, false);
     expect(s.queue).toEqual(["a", "b", "c", "a"]);
+  });
+});
+
+describe("nextDue", () => {
+  const at = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h).getTime();
+  const st = (due: number) => ({ ease: 2.5, interval: 1, due, tries: 1, correct: 1 });
+
+  it("いちばん近い日と、その日の数。期限切れは今日に数える", () => {
+    const now = at(2026, 10, 28, 9);
+    expect(nextDue([st(at(2026, 10, 29, 8)), st(at(2026, 10, 29, 22)), st(at(2026, 11, 2))], now)).toEqual({
+      days: 1,
+      count: 2,
+    });
+    expect(nextDue([st(now - DAY), st(at(2026, 10, 28, 23)), st(at(2026, 10, 30))], now)).toEqual({
+      days: 0,
+      count: 2,
+    });
+    expect(nextDue([undefined], now)).toBeUndefined();
   });
 });

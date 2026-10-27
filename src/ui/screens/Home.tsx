@@ -1,67 +1,126 @@
+import { DAY } from "../../drill/schedule";
+import { localDay, streakOf } from "../../drill/streak";
 import { LEVELS } from "../../drill/topic";
-import { mastery } from "../../drill/schedule";
-import { contextOf, useData } from "../../state";
+import { useData } from "../../state";
 import { TOPICS } from "../../topics";
-import { itemKey } from "../../drill/topic";
+import { REVIEW_ID, nextTopic, progressOf } from "../../topics/review";
 import { href } from "../route";
+
+/** 最後に練習した日の言い方（今日・昨日・N 日前） */
+function dayText(day: string, now: number): string {
+  if (day === localDay(now)) return "今日";
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+  const n = Math.round((new Date(localDay(now) + "T12:00").getTime() - new Date(y, m - 1, d, 12).getTime()) / DAY);
+  return n === 1 ? "昨日" : `${n} 日前`;
+}
+
+/** 覚えた割合の輪（行の右端）。数は行の文字で読み上げるので、輪は飾り */
+function Ring({ frac }: { frac: number }) {
+  const r = 11;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg class="ring" viewBox="0 0 28 28" aria-hidden="true">
+      <circle class="ring-track" cx="14" cy="14" r={r} />
+      {frac > 0 && (
+        <circle
+          class="ring-bar"
+          cx="14"
+          cy="14"
+          r={r}
+          stroke-dasharray={`${c * frac} ${c}`}
+          transform="rotate(-90 14 14)"
+        />
+      )}
+    </svg>
+  );
+}
 
 export function Home({ now = Date.now() }: { now?: number }) {
   const data = useData();
+  const rows = TOPICS.map(t => ({ t, p: progressOf(t, data, now) }));
+  const due = rows.reduce((n, x) => n + x.p.due, 0);
+  const dueTopics = rows.filter(x => x.p.due > 0).length;
+  const next = due ? undefined : nextTopic(data, now);
+  const streak = streakOf(data.days, now);
   return (
     <>
-      <header class="bar">
+      <header class="bar home-head">
+        <img class="app-icon" src={`${import.meta.env.BASE_URL}icon.svg`} alt="" width={32} height={32} />
         <h1 tabIndex={-1}>guitar-drill</h1>
-        <a class="bar-link" href={href({ name: "settings" })}>
-          設定
-        </a>
+        {/* 続ける動機：連続日数と最後に練習した日（まだ練習していなければ出さない） */}
+        {streak.last && (
+          <p class="streak">
+            {streak.streak > 0 ? (
+              <>
+                <strong>{streak.streak}</strong> 日連続
+                {/* 昨日まで続いていて今日はまだ：途切れる前に気づけるように */}
+                {streak.last !== localDay(now) && "・今日はまだ"}
+              </>
+            ) : (
+              <>最後の練習 {dayText(streak.last, now)}</>
+            )}
+          </p>
+        )}
       </header>
-      <a class="chart-entry" href={href({ name: "chart", query: "" })}>
-        <span class="topic-title">チャート</span>
-        <span class="muted small">
-          {/* 句の途中で折り返さないように、句ごとにまとめる */}
-          <span class="phrase">スケール・アルペジオを指板で見る、</span>
-          <span class="phrase">PDF の資料にする</span>
-        </span>
-      </a>
+
+      {/* 次にやること：期限の来た問題があれば全分野まとめて復習、無ければ続きの分野 */}
+      <section class="today" aria-labelledby="today-h">
+        {due > 0 ? (
+          <>
+            <h2 id="today-h">今日の復習</h2>
+            <p class="today-count">
+              <strong>{due}</strong> 問<span class="muted">（{dueTopics} 分野）</span>
+            </p>
+            <a class="btn primary" href={href({ name: "drill", topicId: REVIEW_ID })}>
+              復習を始める
+            </a>
+          </>
+        ) : next ? (
+          <>
+            <h2 id="today-h">{next.progress.learned > 0 ? "続きから" : "はじめる"}</h2>
+            <p class="today-count">
+              <strong>{next.topic.title}</strong>
+              {next.progress.learned > 0 && (
+                <span class="muted">
+                  （覚えた {next.progress.learned} / {next.progress.total}）
+                </span>
+              )}
+            </p>
+            {/* まだ何も解いていないときは「復習が無い」と言っても意味が無いので出さない */}
+            {Object.keys(data.items).length > 0 && <p class="muted small">今日の復習はありません。</p>}
+            <a class="btn primary" href={href({ name: "drill", topicId: next.topic.id })}>
+              {next.progress.learned > 0 ? "続きをやる" : "始める"}
+            </a>
+          </>
+        ) : (
+          <>
+            <h2 id="today-h">今日の復習はありません</h2>
+            <p class="muted small">全分野を覚えました。期限が来たらここに出ます。</p>
+          </>
+        )}
+      </section>
+
       {LEVELS.map(level => {
-        const topics = TOPICS.filter(t => t.level === level.id);
+        const list = rows.filter(x => x.t.level === level.id);
         return (
           <section key={level.id} aria-labelledby={`lv-${level.id}`}>
             <h2 id={`lv-${level.id}`}>{level.label}</h2>
-            {topics.length ? (
+            {list.length ? (
               <ul class="topics">
-                {topics.map(t => {
-                  const ctx = contextOf(t, data.settings);
-                  const m = mastery(t.items(ctx), id => data.items[itemKey(t.id, id)], now);
-                  const pct = Math.round(m * 100);
-                  return (
-                    <li key={t.id} class="topic">
-                      <a class="topic-main" href={href({ name: "drill", topicId: t.id })}>
+                {list.map(({ t, p }) => (
+                  <li key={t.id}>
+                    <a class="topic-row" href={href({ name: "drill", topicId: t.id })}>
+                      <span class="topic-text">
                         <span class="topic-title">{t.title}</span>
-                        <span
-                          class="meter"
-                          role="meter"
-                          aria-label="習熟度"
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-valuenow={pct}
-                        >
-                          <span class="meter-bar" style={{ width: `${pct}%` }} />
+                        <span class="topic-sub">
+                          覚えた {p.learned} / {p.total}
+                          {p.due > 0 && <span class="due-badge">復習 {p.due}</span>}
                         </span>
-                        <span class="topic-pct">{pct}%</span>
-                      </a>
-                      {t.reference && (
-                        <a
-                          class="topic-ref"
-                          href={href({ name: "reference", topicId: t.id })}
-                          aria-label={`${t.title}の参考`}
-                        >
-                          参考
-                        </a>
-                      )}
-                    </li>
-                  );
-                })}
+                      </span>
+                      <Ring frac={p.total ? p.learned / p.total : 0} />
+                    </a>
+                  </li>
+                ))}
               </ul>
             ) : (
               <p class="muted">準備中</p>

@@ -14,15 +14,44 @@ describe("schema", () => {
       DEFAULT_SETTINGS,
     );
     expect(
-      parseSettings({ tuning: "drop_d", lefty: true, theme: "dark", sessionSize: 30, topics: { a: { x: 1 }, b: 3 } }),
+      parseSettings({
+        tuning: "drop_d",
+        lefty: true,
+        theme: "dark",
+        sessionSize: 30,
+        autoNext: false,
+        autoSound: true,
+        topics: { a: { x: 1 }, b: 3 },
+      }),
     ).toEqual({
       ...DEFAULT_SETTINGS,
       tuning: "drop_d",
       lefty: true,
       theme: "dark",
       sessionSize: 30,
+      autoNext: false,
+      autoSound: true,
       topics: { a: { x: 1 } },
     });
+  });
+
+  it("前回の点数：壊れたものは捨て、無い記録（古い版）は空として読む", () => {
+    expect(parseData({ version: 1, items: {} }).scores).toEqual({});
+    expect(parseData({ version: 1 }).days).toEqual([]);
+    expect(parseData({ version: 1, days: ["2026-10-28", "x", 3, "2026-10-27", "2026-10-28"] }).days).toEqual([
+      "2026-10-27",
+      "2026-10-28",
+    ]);
+    expect(
+      parseData({
+        version: 1,
+        scores: {
+          a: { correct: 3, total: 5, at: 1 },
+          b: { correct: 6, total: 5, at: 1 },
+          c: { correct: 0, total: 0, at: 1 },
+        },
+      }).scores,
+    ).toEqual({ a: { correct: 3, total: 5, at: 1 } });
   });
 
   it("成績は 1 件ずつ検証し、壊れたものだけ捨てる", () => {

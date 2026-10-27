@@ -128,6 +128,8 @@ export interface CommonSettings {
 /** 分野ごとの設定。既定値と、保存値の検証を分野が持つ */
 export interface TopicSettingsDef<S> {
   readonly defaults: S;
+  /** 今の出題範囲を短く（ドリルの画面の上に出す。例「6・5 弦／12 フレットまで」） */
+  describe?(value: S): string;
   /** 保存値を検証して返す。読めない値は既定値に戻す */
   parse(raw: unknown): S;
   /** 設定画面に出す部品（無ければ設定画面には出さない） */
@@ -152,12 +154,24 @@ export interface Topic<S = Record<string, never>> {
   question(item: ItemId, ctx: Context<S>, rng: Rng): Question;
   /** 参考ページ（覚え方・一覧） */
   readonly reference?: ComponentType<{ ctx: Context<S> }>;
+  /** 記録のキー（既定は itemKey(id, item)）。分野をまたぐ出題（今日の復習）が、元の分野の記録に書くため */
+  recordKey?(item: ItemId): string;
+  /** 1 回の問題数を item の数までにする（繰り返して埋めない） */
+  readonly fitSize?: boolean;
+  /** 問題の上に小さく出す、その item の出どころ（今日の復習で、どの分野の問題か） */
+  sourceOf?(item: ItemId): string;
+  /** 出せる問題が無いときの文 */
+  readonly emptyText?: string;
 }
 
 /** 分野の一覧に入れるときの型（分野ごとに設定の型が違うので消す） */
 export type AnyTopic = Topic<any>;
 
 export const itemKey = (topicId: string, item: ItemId): string => `${topicId}/${item}`;
+
+/** 分野の item の記録のキー */
+export const recordKeyOf = (topic: AnyTopic, item: ItemId): string =>
+  topic.recordKey?.(item) ?? itemKey(topic.id, item);
 
 const samePos = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 

@@ -112,6 +112,10 @@ export const openChords: Topic<OpenChordsSettings> = {
   title: "ローコードの押さえ方",
   settings: {
     defaults: DEFAULTS,
+    describe: s => {
+      const on = GROUPS.filter(g => s[g.key]).map(g => g.label.replace(/（.*$/, ""));
+      return on.length ? `基本 ${BASE.length} 個＋${on.join("・")}` : `基本 ${BASE.length} 個`;
+    },
     parse(raw) {
       const r = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
       return Object.fromEntries(
