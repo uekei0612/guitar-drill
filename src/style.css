@@ -270,9 +270,9 @@ a {
   min-width: 0;
 }
 /* ドリル中は見出しを少し小さく、長い名前（「セカンダリードミナントと裏コード」）は文字数で縮めて 1 行に収める。
-   170px は「← やめる」と「1/20」と隙間のぶん */
+   220px は「← やめる」「参考」「1/20」と隙間のぶん */
 .drill-screen .bar h1 {
-  font-size: clamp(0.8rem, calc((100vw - 170px) / var(--len, 10)), 1.1rem);
+  font-size: clamp(0.8rem, calc((100vw - 220px) / var(--len, 10)), 1.1rem);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -333,58 +333,58 @@ input:focus-visible {
   display: grid;
   gap: 8px;
 }
-/* 分野の行は 1 枚のカード。「参考」はカードの右端の区画にして、どの分野の参考かが分かるようにする */
-.topic {
+/* 分野の行：名前と「覚えた数・復習待ち」、右端に覚えた割合の輪。行全体でドリルへ */
+.topic-row {
   display: flex;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  overflow: hidden;
-}
-.topic-main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 4px 8px;
   align-items: center;
-  min-height: 44px;
-  padding: 10px 12px;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
   color: var(--fg);
   text-decoration: none;
 }
-.topic-title {
-  grid-column: 1 / -1;
+.topic-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
-.meter {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--line);
-  overflow: hidden;
-}
-.meter-bar {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-}
-.topic-pct {
-  font-size: 0.85rem;
+.topic-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.topic-ref {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  min-width: 44px;
-  border-left: 1px solid var(--line);
-  font-size: 0.85rem;
+.due-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
-  text-decoration: none;
+  font-weight: 600;
 }
-/* カードは overflow: hidden なので、フォーカスの枠は内側に描く */
-.topic a:focus-visible {
-  outline-offset: -3px;
+.ring {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+}
+.ring circle {
+  fill: none;
+  stroke-width: 4;
+}
+.ring-track {
+  stroke: var(--line);
+}
+.ring-bar {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+.topic-row:focus-visible {
+  outline-offset: 2px;
 }
 .phrase {
   display: inline-block;
@@ -944,16 +944,6 @@ main.wide {
 .small {
   font-size: 0.85rem;
 }
-.chart-entry {
-  display: grid;
-  gap: 4px;
-  margin-top: 16px;
-  padding: 12px;
-  border: 1px solid var(--accent);
-  border-radius: 10px;
-  color: var(--fg);
-  text-decoration: none;
-}
 .seg {
   display: flex;
   flex-wrap: wrap;
@@ -1107,6 +1097,9 @@ main.with-tabs {
   align-items: center;
   min-height: 44px;
 }
+.bar .link-btn {
+  text-decoration: none;
+}
 .link-btn {
   padding: 0;
   border: 0;
@@ -1150,4 +1143,47 @@ main.with-tabs {
 .sheet-head h2 {
   flex: 1;
   margin: 0;
+}
+
+/* 今日の復習で、問題がどの分野のものか */
+.q-source {
+  margin: 8px 0 -8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ホーム：見出しのアイコンと、次にやること */
+.home-head {
+  gap: 10px;
+}
+.app-icon {
+  border-radius: 8px;
+}
+.today {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+.today h2 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+.today-count {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.today-count strong {
+  font-size: 1.6rem;
+}
+.today p.small {
+  margin: 0;
+}
+.today .btn {
+  margin-top: 8px;
+  min-width: 10rem;
 }
