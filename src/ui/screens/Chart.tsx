@@ -112,356 +112,379 @@ export function Chart({ query }: { query: string }) {
       <header class="bar">
         <h1 tabIndex={-1}>チャート</h1>
       </header>
-      <p class="muted">スケール・アルペジオを指板で確かめ、PDF の資料にする（旧 guitar_chart）。</p>
 
-      <section class="form chart-form" aria-label="何を出すか">
-        <div class="seg" role="radiogroup" aria-label="選び方">
-          <label class="check">
-            <input
-              type="radio"
-              name="source"
-              checked={s.chartType !== "custom"}
-              onChange={() => set({ chartType: presetValue.startsWith("arp:") ? "arpeggio" : "scale" })}
-            />
-            <span>一覧から選ぶ</span>
-          </label>
-          <label class="check">
-            <input
-              type="radio"
-              name="source"
-              checked={s.chartType === "custom"}
-              onChange={() => set({ chartType: "custom" })}
-            />
-            <span>カスタムで作る</span>
-          </label>
-        </div>
-        <label class="field">
-          <span>スケール／アルペジオ</span>
-          <select
-            value={presetValue}
-            disabled={s.chartType === "custom"}
-            onChange={e => {
-              const [kind, id] = e.currentTarget.value.split(":") as [string, string];
-              const c = kind === "arp" ? CHART_ARPEGGIOS.find(x => x.id === id)! : CHART_SCALES.find(x => x.id === id)!;
-              // 一覧で選んだものをカスタムの出発点にもする（guitar_chart と同じ）
-              set(
-                kind === "arp"
-                  ? { chartType: "arpeggio", arpeggio: id, custom: c.intervals, box: null }
-                  : { chartType: "scale", scale: id, custom: c.intervals, box: null },
-              );
-            }}
-          >
-            <optgroup label="スケール">
-              {CHART_SCALES.map(c => (
-                <option key={c.id} value={`scale:${c.id}`}>
-                  {c.name}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="アルペジオ（コードトーン）">
-              {CHART_ARPEGGIOS.map(c => (
-                <option key={c.id} value={`arp:${c.id}`}>
-                  {c.name}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-        </label>
-        <fieldset class="field" disabled={s.chartType !== "custom"}>
-          <legend>含める度数（R は固定）</legend>
-          <div class="chips">
-            {CHROMATIC_DEGREES.map((d, semi) => (
-              <label key={d} class="check">
-                <input
-                  type="checkbox"
-                  checked={semi === 0 || s.custom.includes(semi)}
-                  disabled={semi === 0}
-                  onChange={e => {
-                    const on = e.currentTarget.checked;
-                    const next = on ? [...s.custom, semi] : s.custom.filter(x => x !== semi);
-                    if (next.length >= 2) set({ custom: [...new Set([0, ...next])].sort((a, b) => a - b) });
-                  }}
-                />
-                <span>{degreeText(d)}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <div class="row3">
-          <label class="field">
-            <span>キー</span>
-            <select value={s.root} onChange={e => set({ root: Number(e.currentTarget.value) })}>
-              {NOTE_NAMES.map((_, p) => (
-                <option key={p} value={p}>
-                  {noteName(p, s.flat)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label class="field">
-            <span>チューニング</span>
-            <select
-              value={s.tuning}
-              onChange={e => {
-                const v = e.currentTarget.value;
-                // 自分で決めるときは、今のチューニングから始める
-                set(v === "custom" ? { tuning: "custom", customTuning: tuningPcs(s) } : { tuning: v });
-              }}
-            >
-              <TuningOptions />
-              <optgroup label="カスタム">
-                <option value="custom">自分で決める…</option>
-              </optgroup>
-            </select>
-          </label>
-          <label class="field">
-            <span>カポ</span>
-            <select value={s.capo} onChange={e => set({ capo: Number(e.currentTarget.value) })}>
-              {Array.from({ length: MAX_CAPO + 1 }, (_, f) => (
-                <option key={f} value={f}>
-                  {f === 0 ? "なし" : `${f} フレット`}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {s.tuning === "custom" && (
-          <fieldset class="field">
-            <legend>自分で決めるチューニング（左が低い弦）</legend>
-            <div class="chips">
-              {s.customTuning.map((p, i) => (
-                <select
-                  key={i}
-                  aria-label={`低い方から ${i + 1} 本目`}
-                  value={p}
-                  onChange={e =>
-                    set({ customTuning: s.customTuning.map((x, j) => (j === i ? Number(e.currentTarget.value) : x)) })
-                  }
-                >
-                  {NOTE_NAMES.map((_, q) => (
-                    <option key={q} value={q}>
-                      {noteName(q, s.flat)}
+      {/* 指板を先に見せる。よく変えるスケールとキーだけ指板の上に置き、ほかの設定は下（広い画面では横）にまとめる */}
+      <div class="chart-layout">
+        <section class="chart-view" aria-label="指板">
+          <div class="chart-quick">
+            <label class="field grow">
+              <span>スケール／アルペジオ</span>
+              <select
+                value={s.chartType === "custom" ? "custom" : presetValue}
+                onChange={e => {
+                  const [kind, id] = e.currentTarget.value.split(":") as [string, string];
+                  const c =
+                    kind === "arp" ? CHART_ARPEGGIOS.find(x => x.id === id)! : CHART_SCALES.find(x => x.id === id)!;
+                  // 一覧で選んだものをカスタムの出発点にもする（guitar_chart と同じ）
+                  set(
+                    kind === "arp"
+                      ? { chartType: "arpeggio", arpeggio: id, custom: c.intervals, box: null }
+                      : { chartType: "scale", scale: id, custom: c.intervals, box: null },
+                  );
+                }}
+              >
+                {/* カスタムのときは「カスタム」と出す（一覧から選び直すと一覧に戻る） */}
+                {s.chartType === "custom" && (
+                  <option value="custom" disabled>
+                    カスタム
+                  </option>
+                )}
+                <optgroup label="スケール">
+                  {CHART_SCALES.map(c => (
+                    <option key={c.id} value={`scale:${c.id}`}>
+                      {c.name}
                     </option>
                   ))}
-                </select>
+                </optgroup>
+                <optgroup label="アルペジオ（コードトーン）">
+                  {CHART_ARPEGGIOS.map(c => (
+                    <option key={c.id} value={`arp:${c.id}`}>
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </label>
+            <label class="field">
+              <span>キー</span>
+              <select value={s.root} onChange={e => set({ root: Number(e.currentTarget.value) })}>
+                {NOTE_NAMES.map((_, p) => (
+                  <option key={p} value={p}>
+                    {noteName(p, s.flat)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p class="chart-meta">
+            {chart.name}（{noteName(s.root, s.flat)}）　構成音：{chart.degrees.map(degreeText).join(" - ")}
+            {s.capo ? `　カポ ${s.capo}f` : ""}
+          </p>
+          <div class="chips chart-toggles">
+            <label class="check">
+              <input
+                type="radio"
+                name="label"
+                checked={s.label === "degree"}
+                onChange={() => set({ label: "degree" })}
+              />
+              <span>度数</span>
+            </label>
+            <label class="check">
+              <input type="radio" name="label" checked={s.label === "note"} onChange={() => set({ label: "note" })} />
+              <span>音名</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" checked={s.flat} onChange={e => set({ flat: e.currentTarget.checked })} />
+              <span>♭表記</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" checked={s.lefty} onChange={e => set({ lefty: e.currentTarget.checked })} />
+              <span>左利き</span>
+            </label>
+            {hasBoxes && (
+              <label class="check">
+                <input
+                  type="checkbox"
+                  checked={s.caged}
+                  onChange={e => set({ caged: e.currentTarget.checked, box: null })}
+                />
+                <span>CAGED ボックス</span>
+              </label>
+            )}
+          </div>
+          {s.caged && boxes.length > 0 && (
+            <div class="chips box-select" role="group" aria-label="ボックスを 1 つだけ出す">
+              <button
+                class={`btn${s.box == null ? " primary" : ""}`}
+                aria-pressed={s.box == null}
+                onClick={() => set({ box: null })}
+              >
+                すべて
+              </button>
+              {boxes.map((_, i) => (
+                <button
+                  key={i}
+                  class={`btn box-btn box-btn--${i}${s.box === i + 1 ? " primary" : ""}`}
+                  aria-pressed={s.box === i + 1}
+                  onClick={() => set({ box: s.box === i + 1 ? null : i + 1 })}
+                >
+                  Box {i + 1}
+                </button>
               ))}
-              <button class="btn" disabled={s.customTuning.length <= 4} onClick={() => setS(removeLowString)}>
-                − 弦
-              </button>
-              <button class="btn" disabled={s.customTuning.length >= 8} onClick={() => setS(addLowString)}>
-                ＋ 弦
-              </button>
+            </div>
+          )}
+          <div class="chart-board">
+            <Fretboard
+              tuning={t}
+              range={{ minFret: 0, maxFret: CHART_FRETS }}
+              orientation={wide ? "horizontal" : "vertical"}
+              lefty={s.lefty}
+              label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
+              marks={marks}
+              bands={bands}
+              capo={s.capo}
+              stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
+              hitLabel={p =>
+                `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
+                  mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
+                }`
+              }
+              onTap={p => {
+                const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
+                if (next) setS(next);
+              }}
+            />
+          </div>
+          <div class="actions chart-actions">
+            <button class="btn" onClick={() => playAscending(chart.intervals, s.root)}>
+              ▶ 試聴
+            </button>
+            <button
+              class="btn"
+              onClick={() => {
+                const svg = document.querySelector<SVGSVGElement>(".chart-board svg");
+                if (svg)
+                  exportSvgPng(svg, `${chart.nameEn} - ${noteName(s.root, s.flat)}.png`).catch((e: Error) =>
+                    setMsg(e.message),
+                  );
+              }}
+            >
+              画像保存
+            </button>
+            <button class="btn" onClick={() => void shareUrl(`${chart.name} ${noteName(s.root, s.flat)}`).then(setMsg)}>
+              リンクを共有
+            </button>
+            <span class="muted small" role="status">
+              {msg}
+            </span>
+          </div>
+          <p class="muted small">
+            指板をタップすると構成音を足し引きできます（カスタムになります）。キーは上の「キー」で変えます。
+          </p>
+          {/* 見て覚えたら、同じスケール・キーだけでドリルを 1 回（設定の出題範囲は変えない） */}
+          {s.chartType === "scale" && BOX_SCALES.includes(s.scale) && (
+            <div class="actions">
+              <a
+                class="btn primary"
+                href={href({
+                  name: "drill",
+                  topicId: "scale-boxes",
+                  only: JSON.stringify({ scales: [s.scale], roots: [s.root] }),
+                })}
+              >
+                このボックスをドリルで確かめる
+              </a>
+            </div>
+          )}
+        </section>
+
+        <section class="form chart-form" aria-labelledby="chart-settings-h">
+          <h2 id="chart-settings-h">詳しい設定</h2>
+          <div class="seg" role="radiogroup" aria-label="選び方">
+            <label class="check">
+              <input
+                type="radio"
+                name="source"
+                checked={s.chartType !== "custom"}
+                onChange={() => set({ chartType: presetValue.startsWith("arp:") ? "arpeggio" : "scale" })}
+              />
+              <span>一覧から選ぶ</span>
+            </label>
+            <label class="check">
+              <input
+                type="radio"
+                name="source"
+                checked={s.chartType === "custom"}
+                onChange={() => set({ chartType: "custom" })}
+              />
+              <span>カスタムで作る</span>
+            </label>
+          </div>
+          <fieldset class="field">
+            <legend>含める度数（押すとカスタムになります。R は固定）</legend>
+            <div class="degree-chips">
+              {CHROMATIC_DEGREES.map((d, semi) => {
+                const on = semi === 0 || chart.intervals.includes(semi);
+                return (
+                  <button
+                    key={d}
+                    class={`degree-chip${on ? " on" : ""}${semi === 0 ? " root" : ""}`}
+                    aria-pressed={on}
+                    disabled={semi === 0}
+                    onClick={() => {
+                      const next = toggleDegree(s, semi);
+                      if (next) setS(next);
+                    }}
+                  >
+                    {semi === 0 ? "R" : degreeText(d)}
+                  </button>
+                );
+              })}
             </div>
           </fieldset>
-        )}
-      </section>
-
-      <section aria-label="指板">
-        <p class="chart-meta">
-          {chart.name}（{noteName(s.root, s.flat)}）　構成音：{chart.degrees.map(degreeText).join(" - ")}
-          {s.capo ? `　カポ ${s.capo}f` : ""}
-        </p>
-        <div class="chips chart-toggles">
-          <label class="check">
-            <input type="radio" name="label" checked={s.label === "degree"} onChange={() => set({ label: "degree" })} />
-            <span>度数</span>
-          </label>
-          <label class="check">
-            <input type="radio" name="label" checked={s.label === "note"} onChange={() => set({ label: "note" })} />
-            <span>音名</span>
-          </label>
-          <label class="check">
-            <input type="checkbox" checked={s.flat} onChange={e => set({ flat: e.currentTarget.checked })} />
-            <span>♭表記</span>
-          </label>
-          <label class="check">
-            <input type="checkbox" checked={s.lefty} onChange={e => set({ lefty: e.currentTarget.checked })} />
-            <span>左利き</span>
-          </label>
-          {hasBoxes && (
-            <label class="check">
-              <input
-                type="checkbox"
-                checked={s.caged}
-                onChange={e => set({ caged: e.currentTarget.checked, box: null })}
-              />
-              <span>CAGED ボックス</span>
-            </label>
-          )}
-        </div>
-        {s.caged && boxes.length > 0 && (
-          <div class="chips box-select" role="group" aria-label="ボックスを 1 つだけ出す">
-            <button
-              class={`btn${s.box == null ? " primary" : ""}`}
-              aria-pressed={s.box == null}
-              onClick={() => set({ box: null })}
-            >
-              すべて
-            </button>
-            {boxes.map((_, i) => (
-              <button
-                key={i}
-                class={`btn box-btn box-btn--${i}${s.box === i + 1 ? " primary" : ""}`}
-                aria-pressed={s.box === i + 1}
-                onClick={() => set({ box: s.box === i + 1 ? null : i + 1 })}
+          <div class="row3">
+            <label class="field">
+              <span>チューニング</span>
+              <select
+                value={s.tuning}
+                onChange={e => {
+                  const v = e.currentTarget.value;
+                  // 自分で決めるときは、今のチューニングから始める
+                  set(v === "custom" ? { tuning: "custom", customTuning: tuningPcs(s) } : { tuning: v });
+                }}
               >
-                Box {i + 1}
-              </button>
-            ))}
-          </div>
-        )}
-        <div class="actions chart-actions">
-          <button class="btn" onClick={() => playAscending(chart.intervals, s.root)}>
-            ▶ 試聴
-          </button>
-          <button
-            class="btn"
-            onClick={() => {
-              const svg = document.querySelector<SVGSVGElement>(".chart-board svg");
-              if (svg)
-                exportSvgPng(svg, `${chart.nameEn} - ${noteName(s.root, s.flat)}.png`).catch((e: Error) =>
-                  setMsg(e.message),
-                );
-            }}
-          >
-            画像保存
-          </button>
-          <button class="btn" onClick={() => void shareUrl(`${chart.name} ${noteName(s.root, s.flat)}`).then(setMsg)}>
-            リンクを共有
-          </button>
-          <span class="muted small" role="status">
-            {msg}
-          </span>
-        </div>
-        <div class="chart-board">
-          <Fretboard
-            tuning={t}
-            range={{ minFret: 0, maxFret: CHART_FRETS }}
-            orientation={wide ? "horizontal" : "vertical"}
-            lefty={s.lefty}
-            label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
-            marks={marks}
-            bands={bands}
-            capo={s.capo}
-            stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
-            hitLabel={p =>
-              `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
-                mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
-              }`
-            }
-            onTap={p => {
-              const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
-              if (next) setS(next);
-            }}
-          />
-        </div>
-        <p class="muted small">
-          指板をタップすると構成音を足し引きできます（カスタムになります）。キーは上の「キー」で変えます。
-        </p>
-        {/* 見て覚えたら、同じスケール・キーだけでドリルを 1 回（設定の出題範囲は変えない） */}
-        {s.chartType === "scale" && BOX_SCALES.includes(s.scale) && (
-          <div class="actions">
-            <a
-              class="btn primary"
-              href={href({
-                name: "drill",
-                topicId: "scale-boxes",
-                only: JSON.stringify({ scales: [s.scale], roots: [s.root] }),
-              })}
-            >
-              このボックスをドリルで確かめる
-            </a>
-          </div>
-        )}
-      </section>
-
-      <section class="form" aria-labelledby="pdf-h">
-        <h2 id="pdf-h">PDF の資料</h2>
-        <p class="muted small">
-          上の設定（スケール・キー・チューニング・カポ）で A4 横の資料を作ります。資料の文字は英語です。
-        </p>
-        <fieldset class="field">
-          <legend>含めるセクション</legend>
-          {chart.kind === "scale" && hasBoxes && (
-            <label class="check">
-              <input
-                type="checkbox"
-                checked={s.includeBoxes}
-                onChange={e => set({ includeBoxes: e.currentTarget.checked })}
-              />
-              <span>ボックス図（5 パターン）</span>
+                <TuningOptions />
+                <optgroup label="カスタム">
+                  <option value="custom">自分で決める…</option>
+                </optgroup>
+              </select>
             </label>
-          )}
-          <label class="check">
-            <input
-              type="checkbox"
-              checked={s.includeDegrees}
-              onChange={e => set({ includeDegrees: e.currentTarget.checked })}
-            />
-            <span>度数付き全指板（キー {noteName(s.root, s.flat)}）</span>
-          </label>
-          <label class="check">
-            <input
-              type="checkbox"
-              checked={s.includeAllKeys}
-              onChange={e => set({ includeAllKeys: e.currentTarget.checked })}
-            />
-            <span>全 12 キー</span>
-          </label>
-          <label class="field">
-            <span>1 ページあたりのキー数</span>
-            <select
-              value={s.keysPerPage}
-              disabled={!s.includeAllKeys}
-              onChange={e => set({ keysPerPage: Number(e.currentTarget.value) })}
-            >
-              {KEYS_PER_PAGE.map(k => (
-                <option key={k} value={k}>
-                  {k} キー（{Math.ceil(12 / k)} ページ）
-                </option>
-              ))}
-            </select>
-          </label>
-        </fieldset>
-        {(() => {
-          const plan = pdfPlan(s);
-          const none = !plan.boxes && !plan.degrees && !plan.allKeys;
-          const make = async (open: boolean) => {
-            setPdfBusy(true);
-            try {
-              const { renderPdf } = await import("../../chart/pdf/render-pdf");
-              const blob = await renderPdf(buildPdfPages(s));
-              if (open) {
-                const url = URL.createObjectURL(blob);
-                if (!window.open(url, "_blank"))
-                  setMsg("新しいタブを開けませんでした（ポップアップを許可してください）");
-                setTimeout(() => URL.revokeObjectURL(url), 60_000);
-              } else downloadBlob(blob, pdfFileName(s));
-            } catch (e) {
-              setMsg(`PDF を作れませんでした：${(e as Error).message}`);
-            } finally {
-              setPdfBusy(false);
-            }
-          };
-          return (
-            <>
-              {none && <p class="ng">少なくとも 1 つのセクションを選んでください。</p>}
-              <div class="actions">
-                <button class="btn" disabled={none} aria-expanded={preview} onClick={() => setPreview(v => !v)}>
-                  {preview ? "プレビューを閉じる" : `プレビュー（${pageCount(s)} ページ）`}
+            <label class="field">
+              <span>カポ</span>
+              <select value={s.capo} onChange={e => set({ capo: Number(e.currentTarget.value) })}>
+                {Array.from({ length: MAX_CAPO + 1 }, (_, f) => (
+                  <option key={f} value={f}>
+                    {f === 0 ? "なし" : `${f} フレット`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {s.tuning === "custom" && (
+            <fieldset class="field">
+              <legend>自分で決めるチューニング（左が低い弦）</legend>
+              <div class="chips">
+                {s.customTuning.map((p, i) => (
+                  <select
+                    key={i}
+                    aria-label={`低い方から ${i + 1} 本目`}
+                    value={p}
+                    onChange={e =>
+                      set({ customTuning: s.customTuning.map((x, j) => (j === i ? Number(e.currentTarget.value) : x)) })
+                    }
+                  >
+                    {NOTE_NAMES.map((_, q) => (
+                      <option key={q} value={q}>
+                        {noteName(q, s.flat)}
+                      </option>
+                    ))}
+                  </select>
+                ))}
+                <button class="btn" disabled={s.customTuning.length <= 4} onClick={() => setS(removeLowString)}>
+                  − 弦
                 </button>
-                <button class="btn primary" disabled={none || pdfBusy} onClick={() => void make(false)}>
-                  {pdfBusy ? "作成中…" : "PDF をダウンロード"}
-                </button>
-                <button class="btn" disabled={none || pdfBusy} onClick={() => void make(true)}>
-                  開いて印刷
+                <button class="btn" disabled={s.customTuning.length >= 8} onClick={() => setS(addLowString)}>
+                  ＋ 弦
                 </button>
               </div>
-              {preview && !none && <PdfPreview pages={buildPdfPages(s)} />}
-            </>
-          );
-        })()}
-      </section>
+            </fieldset>
+          )}
+        </section>
+      </div>
+
+      {/* PDF は使うときだけ開く */}
+      <details class="chart-pdf">
+        <summary>
+          <h2 id="pdf-h">PDF の資料</h2>
+        </summary>
+        <section class="form" aria-labelledby="pdf-h">
+          <p class="muted small">
+            上の設定（スケール・キー・チューニング・カポ）で A4 横の資料を作ります。資料の文字は英語です。
+          </p>
+          <fieldset class="field">
+            <legend>含めるセクション</legend>
+            {chart.kind === "scale" && hasBoxes && (
+              <label class="check">
+                <input
+                  type="checkbox"
+                  checked={s.includeBoxes}
+                  onChange={e => set({ includeBoxes: e.currentTarget.checked })}
+                />
+                <span>ボックス図（5 パターン）</span>
+              </label>
+            )}
+            <label class="check">
+              <input
+                type="checkbox"
+                checked={s.includeDegrees}
+                onChange={e => set({ includeDegrees: e.currentTarget.checked })}
+              />
+              <span>度数付き全指板（キー {noteName(s.root, s.flat)}）</span>
+            </label>
+            <label class="check">
+              <input
+                type="checkbox"
+                checked={s.includeAllKeys}
+                onChange={e => set({ includeAllKeys: e.currentTarget.checked })}
+              />
+              <span>全 12 キー</span>
+            </label>
+            <label class="field">
+              <span>1 ページあたりのキー数</span>
+              <select
+                value={s.keysPerPage}
+                disabled={!s.includeAllKeys}
+                onChange={e => set({ keysPerPage: Number(e.currentTarget.value) })}
+              >
+                {KEYS_PER_PAGE.map(k => (
+                  <option key={k} value={k}>
+                    {k} キー（{Math.ceil(12 / k)} ページ）
+                  </option>
+                ))}
+              </select>
+            </label>
+          </fieldset>
+          {(() => {
+            const plan = pdfPlan(s);
+            const none = !plan.boxes && !plan.degrees && !plan.allKeys;
+            const make = async (open: boolean) => {
+              setPdfBusy(true);
+              try {
+                const { renderPdf } = await import("../../chart/pdf/render-pdf");
+                const blob = await renderPdf(buildPdfPages(s));
+                if (open) {
+                  const url = URL.createObjectURL(blob);
+                  if (!window.open(url, "_blank"))
+                    setMsg("新しいタブを開けませんでした（ポップアップを許可してください）");
+                  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                } else downloadBlob(blob, pdfFileName(s));
+              } catch (e) {
+                setMsg(`PDF を作れませんでした：${(e as Error).message}`);
+              } finally {
+                setPdfBusy(false);
+              }
+            };
+            return (
+              <>
+                {none && <p class="ng">少なくとも 1 つのセクションを選んでください。</p>}
+                <div class="actions">
+                  <button class="btn" disabled={none} aria-expanded={preview} onClick={() => setPreview(v => !v)}>
+                    {preview ? "プレビューを閉じる" : `プレビュー（${pageCount(s)} ページ）`}
+                  </button>
+                  <button class="btn primary" disabled={none || pdfBusy} onClick={() => void make(false)}>
+                    {pdfBusy ? "作成中…" : "PDF をダウンロード"}
+                  </button>
+                  <button class="btn" disabled={none || pdfBusy} onClick={() => void make(true)}>
+                    開いて印刷
+                  </button>
+                </div>
+                {preview && !none && <PdfPreview pages={buildPdfPages(s)} />}
+              </>
+            );
+          })()}
+        </section>
+      </details>
     </>
   );
 }
