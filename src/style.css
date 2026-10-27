@@ -655,7 +655,7 @@ main:has(.drill-screen.fill) {
 }
 /* 1 画面に収まらない問題（12 フレットまでを全部タップなど）：マスの 44px を保つためにスクロールさせるが、
    「答え合わせ」は画面の下に固定して、いつでも押せるようにする */
-.drill-screen:not(.fill) .dock {
+.drill-screen:not(.fill) .dock:has(> .dock-q) {
   position: sticky;
   bottom: 0;
   z-index: 1;
