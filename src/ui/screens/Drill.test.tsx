@@ -178,6 +178,17 @@ describe("Drill", () => {
     }
   });
 
+  it("タップで答える問題は、初めてのときだけ操作の説明を出し、閉じたらもう出さない", async () => {
+    const st = new Store(memoryStorage());
+    const tapOnly: Topic = { ...topic, items: () => ["tap"] };
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={tapOnly} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    expect(el.querySelector(".tap-tip")!.textContent).toContain("1 つタップ");
+    await click(button(el, "わかった"));
+    expect(el.querySelector(".tap-tip")).toBeNull();
+    expect(st.data.tips).toEqual(["tap-any"]);
+  });
+
   it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {
     const hinted: Topic = {
       ...topic,
