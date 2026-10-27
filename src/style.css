@@ -472,15 +472,24 @@ input:focus-visible {
   border: 1px solid var(--line);
   border-radius: 8px;
 }
+/* 強調する札（正解の側）は正誤の緑。オレンジだと不正解の赤いパネルの中で「これが間違い」に見える */
 .strip li.current {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  border-color: var(--ok);
+  box-shadow: inset 0 0 0 1px var(--ok);
+}
+/* 不正解のとき、自分の答えが並びにあればそれを赤で示す */
+.strip li.picked {
+  border-color: var(--ng);
+  border-style: dashed;
 }
 .strip-label {
   font-weight: 600;
 }
 .strip li.current .strip-label {
-  color: var(--accent);
+  color: var(--ok);
+}
+.strip li.picked .strip-label {
+  color: var(--ng);
 }
 .strip-sub {
   font-size: 0.8rem;

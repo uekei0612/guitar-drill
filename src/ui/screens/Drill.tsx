@@ -490,7 +490,16 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               {q.explanation?.strip && (
                 <ol class="strip" aria-label={q.explanation.stripLabel}>
                   {q.explanation.strip.map((x, i) => (
-                    <li key={i} class={x.current ? "current" : undefined}>
+                    <li
+                      key={i}
+                      class={
+                        x.current
+                          ? "current"
+                          : result && !result.ok && picked !== undefined && x.label === picked
+                            ? "picked"
+                            : undefined
+                      }
+                    >
                       <span class="strip-label">{x.label}</span>
                       {x.sub && <span class="strip-sub">{x.sub}</span>}
                     </li>
