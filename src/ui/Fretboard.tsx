@@ -179,17 +179,20 @@ export function Fretboard({
           {f.fret}
         </text>
       ))}
-      {L.stringLabels.map(l => (
-        <text
-          key={`sl${l.string}`}
-          class={stringNames ? "fb-stringname" : "fb-fretno"}
-          x={l.x}
-          y={l.y}
-          aria-hidden="true"
-        >
-          {stringNames ? stringNames[l.string - 1] : l.string}
-        </text>
-      ))}
+      {L.stringLabels
+        // 横向きで開放の欄が無いと、× は弦の札と同じ場所に書く。その弦は × だけにする
+        .filter(l => L.orientation === "vertical" || range.minFret === 0 || !muted.includes(l.string))
+        .map(l => (
+          <text
+            key={`sl${l.string}`}
+            class={stringNames ? "fb-stringname" : "fb-fretno"}
+            x={l.x}
+            y={l.y}
+            aria-hidden="true"
+          >
+            {stringNames ? stringNames[l.string - 1] : l.string}
+          </text>
+        ))}
       {muted.map(s => {
         const p = L.headPoint(s);
         return (

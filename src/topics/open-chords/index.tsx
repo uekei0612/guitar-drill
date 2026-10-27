@@ -155,14 +155,14 @@ export const openChords: Topic<OpenChordsSettings> = {
       return {
         item: id,
         prompt: {
-          text: `${name} を押さえる：押さえるマスと、鳴らす開放弦（いちばん上の欄）をタップ。鳴らさない弦は押さない`,
+          text: `${name} を押さえる：押さえるマスと、鳴らす開放弦（ナットの手前の欄）をタップ。鳴らさない弦は押さない`,
         },
         answer: {
           kind: "tap",
           mode: "all",
           range: { minFret: 0, maxFret: Math.max(4, range.maxFret) },
           correct: sounding(c.shape),
-          orientation: "vertical",
+          orientation: "horizontal",
           onePerString: true,
         },
         hint: rootHint(

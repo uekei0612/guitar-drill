@@ -49,7 +49,7 @@ describe("ローコードの押さえ方", () => {
 
   it("押さえ方：開放弦も含めて 1 弦 1 か所、鳴らさない弦は押さない", () => {
     const q = openChords.question("C:play", ctx(), seeded(1));
-    expect(q.answer).toMatchObject({ kind: "tap", mode: "all", onePerString: true, orientation: "vertical" });
+    expect(q.answer).toMatchObject({ kind: "tap", mode: "all", onePerString: true, orientation: "horizontal" });
     const ok = [
       { string: 5, fret: 3 },
       { string: 4, fret: 2 },
