@@ -189,6 +189,22 @@ describe("Drill", () => {
     expect(st.data.tips).toEqual(["tap-any"]);
   });
 
+  it("出題範囲を出し、設定のその分野の欄へ。答え始めたら出さない", async () => {
+    const st = new Store(memoryStorage());
+    const scoped: Topic<{ n: number }> = {
+      ...(topic as unknown as Topic<{ n: number }>),
+      items: () => ["a", "b"],
+      settings: { defaults: { n: 3 }, parse: () => ({ n: 3 }), describe: s => `${s.n} 個` },
+    };
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={scoped} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    const chip = el.querySelector<HTMLAnchorElement>(".scope-chip")!;
+    expect(chip.textContent).toContain("3 個");
+    expect(chip.getAttribute("href")).toBe("#/settings?open=stub");
+    await click(button(el, el.querySelector(".prompt")!.textContent![0]!));
+    expect(el.querySelector(".scope-chip")).toBeNull();
+  });
+
   it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {
     const hinted: Topic = {
       ...topic,

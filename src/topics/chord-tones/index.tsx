@@ -116,6 +116,10 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
     title: cfg.title,
     settings: {
       defaults,
+      describe: s => {
+        const on = cfg.groups.filter(g => s[g.key]).map(g => g.label.replace(/（.*$/, ""));
+        return on.length ? `基本＋${on.join("・")}` : "基本の型";
+      },
       parse(raw) {
         const r = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
         return Object.fromEntries(

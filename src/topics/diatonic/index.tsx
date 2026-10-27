@@ -99,6 +99,7 @@ export const diatonic: Topic<DiatonicSettings> = {
   title: "ダイアトニックコード",
   settings: {
     defaults: DEFAULTS,
+    describe: s => `${s.size === 4 ? "4和音" : "3和音"}${s.borrowDominant ? "／マイナーの Ⅴ・Ⅶ を借りる" : ""}`,
     parse,
     view: ({ value, onChange }) => (
       <>

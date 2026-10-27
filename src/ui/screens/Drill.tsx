@@ -393,6 +393,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   }
 
   const a = q.answer;
+  const scopeText = [
+    ctx.common.tuning.id !== "standard" && ctx.common.tuning.name,
+    topic.settings?.describe?.(ctx.settings),
+  ]
+    .filter(Boolean)
+    .join("／");
   const tipKey: keyof typeof TAP_TIPS | undefined =
     a.kind === "tap" && !result ? (a.openDefault ? "tap-open" : a.mode === "any" ? "tap-any" : "tap-all") : undefined;
   const tip = tipKey && !data.tips.includes(tipKey) ? tipKey : undefined;
@@ -600,6 +606,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {session.index + 1}/{session.queue.length}
         </span>
       </header>
+      {/* 出題範囲（設定の奥にあって気づきにくい）。押すと設定のこの分野の欄へ。
+          移るとこのセッションは終わるので、まだ 1 問も答えていないあいだだけ出す */}
+      {scopeText && !session.results.length && !result && (
+        <a class="scope-chip" href={href({ name: "settings", open: topic.id })}>
+          <span class="muted">範囲</span> {scopeText}
+          <span aria-hidden="true"> ›</span>
+        </a>
+      )}
       {/* 進み具合（数は上の「1/20」で読み上げるので、バーは飾り） */}
       <div class="progress-track" aria-hidden="true">
         <span style={{ width: `${(session.index / session.queue.length) * 100}%` }} />
