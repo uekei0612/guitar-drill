@@ -128,6 +128,8 @@ export interface CommonSettings {
 /** 分野ごとの設定。既定値と、保存値の検証を分野が持つ */
 export interface TopicSettingsDef<S> {
   readonly defaults: S;
+  /** 今の出題範囲を短く（ドリルの画面の上に出す。例「6・5 弦／12 フレットまで」） */
+  describe?(value: S): string;
   /** 保存値を検証して返す。読めない値は既定値に戻す */
   parse(raw: unknown): S;
   /** 設定画面に出す部品（無ければ設定画面には出さない） */

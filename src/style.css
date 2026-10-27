@@ -1576,3 +1576,24 @@ main.home .today {
 .tap-tip .btn {
   flex: 0 0 auto;
 }
+
+/* ドリルの出題範囲（押すと設定へ） */
+.scope-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: 0 0 2px;
+  font-size: 0.8rem;
+  color: var(--fg);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scope-chip > span:last-child {
+  color: var(--accent);
+}
+.topic-settings {
+  scroll-margin-top: 16px;
+}

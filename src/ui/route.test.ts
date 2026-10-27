@@ -12,4 +12,12 @@ describe("route", () => {
     expect(href({ name: "drill", topicId: "diatonic" })).toBe("#/drill/diatonic");
     expect(parseRoute("#/drill/diatonic")).toEqual({ name: "drill", topicId: "diatonic" });
   });
+
+  it("設定の open（開いておく分野）を往復できる", () => {
+    expect(parseRoute(href({ name: "settings", open: "fret-notes" }))).toEqual({
+      name: "settings",
+      open: "fret-notes",
+    });
+    expect(href({ name: "settings" })).toBe("#/settings");
+  });
 });

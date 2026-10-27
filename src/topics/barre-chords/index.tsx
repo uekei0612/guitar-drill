@@ -131,6 +131,7 @@ export const barreChords: Topic<BarreChordsSettings> = {
   title: "ハイコードの押さえ方",
   settings: {
     defaults: DEFAULTS,
+    describe: s => ["基本 4 型", s.majorSeventh && "M7", s.halfDiminished && "m7(♭5)"].filter(Boolean).join("＋"),
     parse(raw) {
       const r = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
       return {

@@ -94,6 +94,8 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
   title: "スケールのボックス",
   settings: {
     defaults: DEFAULTS,
+    describe: s =>
+      `${s.scales.map(scaleName).join("・")}／キー ${s.roots.map(p => rootName(s.scales[0]!, p)).join("・")}`,
     parse,
     view: ({ value, onChange }) => (
       <>

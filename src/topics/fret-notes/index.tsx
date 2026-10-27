@@ -111,6 +111,7 @@ export const fretNotes: Topic<FretNotesSettings> = {
   title: "指板の音名",
   settings: {
     defaults: DEFAULTS,
+    describe: s => `${s.strings.join("・")} 弦／${s.maxFret} フレットまで${s.accidentals ? "／♯♭も" : ""}`,
     parse,
     view: ({ value, onChange, common }) => (
       <>

@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { commonOf, store, useData } from "../../state";
 import { TOPICS } from "../../topics";
 import { SESSION_SIZES, type Settings as S, type Theme, emptyData } from "../../store/schema";
@@ -40,8 +40,15 @@ export function TuningOptions() {
   );
 }
 
-export function Settings() {
+export function Settings({ open }: { open?: string } = {}) {
   const { settings: st, items } = useData();
+  // ドリルの「範囲」から来たら、その分野の欄を開いて見える所まで送る
+  // （画面が変わると App が上へ戻すので、そのあとに送る）
+  useEffect(() => {
+    if (!open) return;
+    const id = setTimeout(() => document.getElementById(`ts-${open}`)?.scrollIntoView({ block: "start" }), 0);
+    return () => clearTimeout(id);
+  }, [open]);
   const [msg, setMsg] = useState("");
   const count = Object.keys(items).length;
 
@@ -109,7 +116,7 @@ export function Settings() {
         const View = t.settings!.view!;
         return (
           // 分野ごとの出題設定は折りたたむ（全部開くと縦に長く、目的の分野を探すことになる）
-          <details key={t.id} class="topic-settings">
+          <details key={t.id} id={`ts-${t.id}`} class="topic-settings" open={open === t.id}>
             <summary>{t.title}</summary>
             <div class="form">
               <View
