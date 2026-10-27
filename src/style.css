@@ -219,6 +219,11 @@ main {
   stroke-width: 3;
   stroke-dasharray: 4 3;
 }
+.fb-selected--open {
+  stroke: var(--fg);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
 .fb-hit {
   fill: transparent;
   cursor: pointer;
