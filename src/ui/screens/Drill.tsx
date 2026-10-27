@@ -98,6 +98,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const hasBoard = !!q && (!!q.prompt.board || q.answer.kind === "tap" || (!!result && !!q.explanation?.board));
   const textOnly = !!q && !hasBoard;
   const fill = textOnly || (hasBoard && (!!result || !noFill));
+  // 1 画面に収めているあいだは、ページのスクロール（iOS の引っぱり・跳ね返りも）を止める
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle("no-scroll", fill);
+    return () => document.documentElement.classList.remove("no-scroll");
+  }, [fill]);
   useLayoutEffect(() => {
     const h = hintRef.current?.offsetHeight;
     if (h) setHintHeight(h + 8);

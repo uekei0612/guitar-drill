@@ -21,6 +21,13 @@
 /* 画面のズームを止める（ピンチとダブルタップ。iOS Safari のピンチは main.tsx で止める） */
 html {
   touch-action: pan-x pan-y;
+  /* 端まで来たときの跳ね返りや、引っぱって再読み込みを止める */
+  overscroll-behavior: none;
+}
+/* ドリルを 1 画面に収めているあいだは動かさない（iOS の指の操作は main.tsx でも止める） */
+html.no-scroll,
+html.no-scroll body {
+  overflow: hidden;
 }
 body {
   margin: 0;
