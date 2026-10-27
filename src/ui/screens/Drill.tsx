@@ -450,8 +450,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       style={fill && fillHeight ? { height: `${fillHeight}px` } : undefined}
     >
       <header class="bar">
-        <a class="bar-link" href={href({ name: "home" })}>
-          ← やめる
+        {/* やめるは補助の操作なので、色を付けない ✕ にする（題名と同じ重さにしない） */}
+        <a class="icon-btn" href={href({ name: "home" })} aria-label="やめる（ホームへ）">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </a>
         <h1 tabIndex={-1} style={{ "--len": topic.title.length }}>
           {topic.title}
@@ -466,6 +469,10 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {session.index + 1}/{session.queue.length}
         </span>
       </header>
+      {/* 進み具合（数は上の「1/20」で読み上げるので、バーは飾り） */}
+      <div class="progress-track" aria-hidden="true">
+        <span style={{ width: `${(session.index / session.queue.length) * 100}%` }} />
+      </div>
       <section
         class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}${isSnug ? " snug" : ""}`}
       >
