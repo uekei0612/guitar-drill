@@ -724,8 +724,43 @@ main:has(.drill-screen.fill) {
   min-height: 44px;
 }
 .check input {
+  /* 項目名が 2 行に折り返しても縮まないように */
+  flex: 0 0 auto;
   width: 22px;
   height: 22px;
+}
+/* 設定：分野ごとの出題設定（折りたたみ） */
+.topic-settings {
+  border-top: 1px solid var(--line);
+}
+.topic-settings:last-of-type {
+  border-bottom: 1px solid var(--line);
+}
+.topic-settings summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.topic-settings summary::-webkit-details-marker {
+  display: none;
+}
+/* 開閉の印（display: flex にすると既定の三角が消えるので自前で描く） */
+.topic-settings summary::after {
+  content: "";
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+}
+.topic-settings[open] summary::after {
+  transform: rotate(-135deg);
+}
+.topic-settings > .form {
+  margin: 0 0 16px;
 }
 select,
 input[type="url"] {
