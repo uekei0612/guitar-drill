@@ -29,6 +29,7 @@ import { downloadBlob, exportSvgPng, shareUrl } from "../export-image";
 import { PdfPreview } from "../PdfPreview";
 import { href } from "../route";
 import { TuningOptions } from "./Settings";
+import { BOX_SCALES } from "../../topics/scale-boxes";
 
 /** 指板に出すフレット（guitar_chart と同じ 15 まで） */
 export const CHART_FRETS = 15;
@@ -357,6 +358,21 @@ export function Chart({ query }: { query: string }) {
         <p class="muted small">
           指板をタップすると構成音を足し引きできます（カスタムになります）。キーは上の「キー」で変えます。
         </p>
+        {/* 見て覚えたら、同じスケール・キーだけでドリルを 1 回（設定の出題範囲は変えない） */}
+        {s.chartType === "scale" && BOX_SCALES.includes(s.scale) && (
+          <div class="actions">
+            <a
+              class="btn primary"
+              href={href({
+                name: "drill",
+                topicId: "scale-boxes",
+                only: JSON.stringify({ scales: [s.scale], roots: [s.root] }),
+              })}
+            >
+              このボックスをドリルで確かめる
+            </a>
+          </div>
+        )}
       </section>
 
       <section class="form" aria-labelledby="pdf-h">
