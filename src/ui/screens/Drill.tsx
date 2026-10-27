@@ -44,7 +44,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const ctx = contextOf(topic, data.settings);
   const [session, setSession] = useState<Session>(() => newSession());
   const [result, setResult] = useState<{ ok: boolean; response: Response } | null>(null);
-  const [taps, setTaps] = useState<Position[]>([]);
+  /** 押したマス（null はまだ触っていない。問題ごとの初期状態を使う） */
+  const [touched, setTaps] = useState<Position[] | null>(null);
   /** ヒントを開いた（正解しても覚えていない扱いにし、このセッションの中でもう一度出す） */
   const [hinted, setHinted] = useState(false);
   // 図の下のヒント（ボタン、開いたら文）の高さ。図の大きさはこの分を引いて決める
@@ -143,7 +144,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   function next() {
     setSession(s => answer(s, result!.ok && !hinted));
     setResult(null);
-    setTaps([]);
+    setTaps(null);
     setHinted(false);
     setHintHeight(HINT_BUTTON_HEIGHT);
     setStack(false);
@@ -221,6 +222,34 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const a = q.answer;
   const board = q.prompt.board;
   const tapping = a.kind === "tap" && !result;
+  const tapStrings =
+    a.kind === "tap" ? (a.strings ?? Array.from({ length: stringCount(ctx.common.tuning) }, (_, i) => i + 1)) : [];
+  const openDefault = a.kind === "tap" && !!a.openDefault;
+  const taps = touched ?? (openDefault ? tapStrings.map(s => ({ string: s, fret: 0 })) : []);
+  // 開放から始める問題で、何も押していない弦は鳴らさない（×）
+  const mutedNow = tapping && openDefault ? tapStrings.filter(s => !taps.some(t => t.string === s)) : undefined;
+  function tap(p: Position) {
+    if (a.kind !== "tap") return;
+    if (a.mode === "any") {
+      setTaps([p]);
+      submit({ kind: "tap", positions: [p] });
+      return;
+    }
+    const others = a.onePerString ? taps.filter(t => t.string !== p.string) : taps;
+    const on = taps.some(t => same(t, p));
+    if (openDefault)
+      // 開放の欄：開放と × を切り替える。押さえたマスをもう一度押すと開放に戻す
+      setTaps(
+        p.fret === 0
+          ? on
+            ? others
+            : [...others, p]
+          : on
+            ? [...others, { string: p.string, fret: 0 }]
+            : [...others, p],
+      );
+    else setTaps(on ? taps.filter(t => !same(t, p)) : [...others, p]);
+  }
   const hintMarks = hinted && !result ? (q.hint?.marks ?? []) : [];
   // 答えたあとは図を 1 枚にする：解説の図があればそれに置き換え、押したところを重ねる
   // （問題の図と解説の図を縦に並べるとスマホで画面に収まらないため）
@@ -244,7 +273,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         ? {
             range: a.kind === "tap" ? a.range : board!.range,
             orientation: (a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation,
-            muted: board?.muted,
+            muted: mutedNow ?? board?.muted,
             barres: board?.barres,
             marks:
               a.kind === "tap" && result
@@ -377,21 +406,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               }
               tapStrings={tapping && a.kind === "tap" ? a.strings : undefined}
               tapFrets={tapping && a.kind === "tap" ? a.frets : undefined}
-              onTap={
-                tapping
-                  ? p => {
-                      if (a.mode === "any") {
-                        setTaps([p]);
-                        submit({ kind: "tap", positions: [p] });
-                      } else
-                        setTaps(ts =>
-                          ts.some(t => same(t, p))
-                            ? ts.filter(t => !same(t, p))
-                            : [...(a.onePerString ? ts.filter(t => t.string !== p.string) : ts), p],
-                        );
-                    }
-                  : undefined
-              }
+              onTap={tapping ? tap : undefined}
             />
             {tall && q.explanation && <p class="side-explain">{q.explanation.text}</p>}
             {hintBelow && (

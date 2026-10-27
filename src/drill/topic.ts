@@ -82,6 +82,9 @@ export interface FretTapAnswer {
   readonly orientation?: "horizontal" | "vertical";
   /** 1 本の弦に 1 か所だけ（同じ弦の別のマスを押すと置き換える。コードの押さえ方） */
   readonly onePerString?: boolean;
+  /** 最初から全部の弦の開放を押した状態で始める（押さえるマスだけ押せばよい）。
+      開放の欄を押すと、その弦を鳴らさない（×）と開放とを切り替える。onePerString と一緒に使う */
+  readonly openDefault?: boolean;
 }
 
 export type Answer = ChoiceAnswer | FretTapAnswer;
