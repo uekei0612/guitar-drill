@@ -4,7 +4,6 @@ import { TOPICS } from "../../topics";
 import { SESSION_SIZES, type Settings as S, type Theme, emptyData } from "../../store/schema";
 import { exportJson, importJson } from "../../store/store";
 import { TUNINGS, fmt } from "../../theory";
-import { href } from "../route";
 
 const THEMES: { id: Theme; label: string }[] = [
   { id: "system", label: "端末に合わせる" },
@@ -62,9 +61,6 @@ export function Settings() {
   return (
     <>
       <header class="bar">
-        <a class="bar-link" href={href({ name: "home" })}>
-          ← ホーム
-        </a>
         <h1 tabIndex={-1}>設定</h1>
       </header>
 

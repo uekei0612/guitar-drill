@@ -109,9 +109,6 @@ export function Chart({ query }: { query: string }) {
   return (
     <>
       <header class="bar">
-        <a class="bar-link" href={href({ name: "home" })}>
-          ← ホーム
-        </a>
         <h1 tabIndex={-1}>チャート</h1>
       </header>
       <p class="muted">スケール・アルペジオを指板で確かめ、PDF の資料にする（旧 guitar_chart）。</p>

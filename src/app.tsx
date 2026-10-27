@@ -8,6 +8,7 @@ import { Drill } from "./ui/screens/Drill";
 import { Home } from "./ui/screens/Home";
 import { Reference } from "./ui/screens/Reference";
 import { Settings } from "./ui/screens/Settings";
+import { TabBar, tabOf } from "./ui/TabBar";
 import { UpdatePrompt } from "./ui/UpdatePrompt";
 
 export function App() {
@@ -41,7 +42,12 @@ export function App() {
           {APP_ENV}（{APP_VERSION}）
         </div>
       )}
-      <main class={route.name === "chart" ? "wide" : undefined}>{screen}</main>
+      <main
+        class={[route.name === "chart" && "wide", tabOf(route) && "with-tabs"].filter(Boolean).join(" ") || undefined}
+      >
+        {screen}
+      </main>
+      <TabBar route={route} />
       <UpdatePrompt busy={route.name === "drill"} />
     </>
   );
