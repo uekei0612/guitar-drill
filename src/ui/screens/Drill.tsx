@@ -480,6 +480,15 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
         </p>
+        {/* 図の無い問題のヒントは、問題文のすぐ下（開くと同じ場所に文が出る） */}
+        {q.hint && !shown && (
+          <div class="hint-block">
+            {!hinted && !result && hintButton}
+            <p class="hint-text" aria-live="polite">
+              {hinted && !result ? q.hint.text : ""}
+            </p>
+          </div>
+        )}
         {shown && (
           <div class={`board-wrap${hintBelow ? " with-hint" : ""}`} ref={boardRef}>
             <Fretboard
@@ -517,9 +526,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       <div class={`dock${dock ? " stacked" : ""}`}>
         {(!result || dock) && (
           <div class={`dock-q${result ? " off" : ""}`} aria-hidden={result ? true : undefined}>
-            {/* 図の無い問題のヒントは、選択肢の上 */}
-            {q.hint && !shown && !hinted && hintButton}
-            {q.hint && !hintBelow && (
+            {q.hint && hintInRow && (
               <p class="hint-text" aria-live="polite">
                 {hinted && !result ? q.hint.text : ""}
               </p>
