@@ -621,10 +621,15 @@ main:has(.drill-screen.fill) {
 .drill-screen.fill .next-bar .btn.primary {
   flex-grow: 3;
 }
-/* 図の無い問題：問題文を大きく、選択肢は画面の下に大きめに */
+/* 図の無い問題：選択肢は画面の下に大きめに。問題文は大きくして、選択肢の上の空いた高さの中ほどに置く
+   （上に寄せると問題文の下が画面の半分ほど空く） */
+/* 中央寄せは上下の auto の余白で行う（justify-content: center だと、長い問題文が上の見出しへはみ出す） */
 .drill-screen.text-only .prompt {
-  font-size: 1.3rem;
-  margin-top: 16px;
+  font-size: 1.5rem;
+  line-height: 1.4;
+  text-align: center;
+  margin: auto 0;
+  padding: 16px 0;
 }
 .drill-screen.text-only .choice {
   min-height: 56px;
