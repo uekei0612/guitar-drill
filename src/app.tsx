@@ -1,7 +1,8 @@
 import { useEffect } from "preact/hooks";
 import { APP_ENV, APP_VERSION } from "./env";
-import { useData } from "./state";
+import { store, useData } from "./state";
 import { topicById } from "./topics";
+import { REVIEW_ID, reviewTopic } from "./topics/review";
 import { useRoute } from "./ui/route";
 import { Chart } from "./ui/screens/Chart";
 import { Drill } from "./ui/screens/Drill";
@@ -27,7 +28,12 @@ export function App() {
     scrollTo(0, 0);
   }, [route]);
 
-  const topic = route.name === "drill" || route.name === "reference" ? topicById(route.topicId) : undefined;
+  const topic =
+    route.name === "drill" && route.topicId === REVIEW_ID
+      ? reviewTopic(store)
+      : route.name === "drill" || route.name === "reference"
+        ? topicById(route.topicId)
+        : undefined;
   let screen;
   if (route.name === "settings") screen = <Settings />;
   else if (route.name === "chart") screen = <Chart key={route.query} query={route.query} />;

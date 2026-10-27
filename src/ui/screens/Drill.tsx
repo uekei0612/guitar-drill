@@ -9,7 +9,7 @@ import {
   type Question,
   type Response,
   grade,
-  itemKey,
+  recordKeyOf,
 } from "../../drill/topic";
 import { contextOf, scoped, store, useData } from "../../state";
 import type { Store } from "../../store/store";
@@ -112,16 +112,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
 
   function newSession(): Session {
     const d = st.data;
+    const items = topic.items(contextOf(topic, scoped(topic, d.settings, only)));
     return startSession(
-      planSession(
-        topic.items(contextOf(topic, scoped(topic, d.settings, only))),
-        id => d.items[itemKey(topic.id, id)],
-        clock(),
-        rng,
-        {
-          size: d.settings.sessionSize,
-        },
-      ),
+      planSession(items, id => d.items[recordKeyOf(topic, id)], clock(), rng, {
+        size: topic.fitSize ? Math.min(d.settings.sessionSize, items.length) : d.settings.sessionSize,
+      }),
     );
   }
 
@@ -200,7 +195,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   function submit(response: Response) {
     if (!q || result) return;
     const ok = grade(q.answer, response);
-    const key = itemKey(topic.id, q.item);
+    const key = recordKeyOf(topic, q.item);
     st.update(d => ({ ...d, items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) } }));
     setResult({ ok, response });
   }
@@ -226,14 +221,21 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             {topic.title}
           </h1>
         </header>
-        <p>
-          今のチューニング（{ctx.common.tuning.name}）では出せる問題がありません。設定でチューニングを変えてください。
-        </p>
-        <div class="actions">
-          <a class="btn" href={href({ name: "settings" })}>
-            設定へ
-          </a>
-        </div>
+        {topic.emptyText ? (
+          <p>{topic.emptyText}</p>
+        ) : (
+          <>
+            <p>
+              今のチューニング（{ctx.common.tuning.name}
+              ）では出せる問題がありません。設定でチューニングを変えてください。
+            </p>
+            <div class="actions">
+              <a class="btn" href={href({ name: "settings" })}>
+                設定へ
+              </a>
+            </div>
+          </>
+        )}
       </>
     );
 
@@ -454,6 +456,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         <h1 tabIndex={-1} style={{ "--len": topic.title.length }}>
           {topic.title}
         </h1>
+        {/* 参考はホームの行から外したので、ここから（解いている途中でも重ねて開ける） */}
+        {topic.reference && (
+          <button class="bar-link link-btn" onClick={() => setRefOpen(true)} aria-label={`${topic.title}の参考を見る`}>
+            参考
+          </button>
+        )}
         <span class="progress" aria-label={`${session.index + 1} 問目 / ${session.queue.length} 問`}>
           {session.index + 1}/{session.queue.length}
         </span>
@@ -461,6 +469,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       <section
         class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}${isSnug ? " snug" : ""}`}
       >
+        {topic.sourceOf && <p class="q-source">{topic.sourceOf(q.item)}</p>}
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
         </p>

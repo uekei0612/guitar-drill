@@ -74,6 +74,27 @@ describe("Drill", () => {
     expect(Object.keys(st.data.items).sort()).toEqual(["stub/a", "stub/b", "stub/tap"]);
   });
 
+  it("fitSize の分野（今日の復習）は item の数で終わり、記録は recordKey に書く", async () => {
+    const st = new Store(memoryStorage());
+    const fit: Topic = {
+      ...topic,
+      items: () => ["a", "b"],
+      fitSize: true,
+      recordKey: id => `orig/${id}`,
+      sourceOf: () => "元の分野",
+    };
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={fit} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    expect(el.querySelector(".q-source")!.textContent).toBe("元の分野");
+    for (let i = 0; i < 2; i++) {
+      const id = el.querySelector(".prompt")!.textContent![0]!;
+      await click(button(el, id));
+      await click(button(el, "次へ"));
+    }
+    expect(el.querySelector(".score")!.textContent).toMatch(/^2 \/ 2/);
+    expect(Object.keys(st.data.items).sort()).toEqual(["orig/a", "orig/b"]);
+  });
+
   it("ヒント：開くと問題文の下に出て、正解しても覚えていない扱い（あとでもう一度出る）", async () => {
     const hinted: Topic = {
       ...topic,
