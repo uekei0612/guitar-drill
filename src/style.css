@@ -780,8 +780,11 @@ main:has(.drill-screen.fill) {
   flex: 1 1 auto;
   min-height: 50px;
 }
+/* 押せない主ボタンは、色を薄めずに灰色の普通のボタンにする（暗色で薄めると茶色に暗い字になって読めない） */
 .btn.primary:disabled {
-  opacity: 0.45;
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
 }
 /* 1 画面に収まらない問題（12 フレットまでを全部タップなど）：マスの 44px を保つためにスクロールさせるが、
    「答え合わせ」は画面の下に固定して、いつでも押せるようにする */
