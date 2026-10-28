@@ -8,6 +8,8 @@
   --on-accent: #fff;
   --ok: #15803d;
   --ng: #b91c1c;
+  /* 惜しい（△）：正解と不正解のあいだ */
+  --near: #a16207;
   /* 進み具合の下地（バー・輪）。--line だと暗色でほとんど見えない */
   --track: #e2e2e2;
   /* 角の丸み：小（札・入力欄）／中（ボタン・カード）／大（まとまり・シート） */
@@ -69,6 +71,7 @@ main {
     --on-accent: #111;
     --ok: #4ade80;
     --ng: #f87171;
+    --near: #facc15;
     --fb-board: #2a241c;
     --fb-wire: #6d6252;
     --fb-nut: #d8ccb6;
@@ -92,6 +95,7 @@ main {
   --on-accent: #111;
   --ok: #4ade80;
   --ng: #f87171;
+  --near: #facc15;
   --fb-board: #2a241c;
   --fb-wire: #6d6252;
   --fb-nut: #d8ccb6;
@@ -283,6 +287,9 @@ a {
 }
 .ng {
   color: var(--ng);
+}
+.near {
+  color: var(--near);
 }
 .bar {
   display: flex;
@@ -677,6 +684,10 @@ main:has(.drill-screen.fill) {
   background: color-mix(in srgb, var(--ng) 5%, var(--bg));
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ng) 40%, transparent);
 }
+.drill-screen.fill .dock-a.is-near {
+  background: color-mix(in srgb, var(--near) 6%, var(--bg));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--near) 45%, transparent);
+}
 .drill-screen.fill .dock-a .feedback-line {
   font-size: 1.05rem;
   margin: 10px 0 4px;
@@ -748,7 +759,8 @@ main:has(.drill-screen.fill) {
 }
 /* 印は見た目だけ（読み上げは「正解」「不正解」の文で足りる） */
 .feedback-line.ok::before,
-.feedback-line.ng::before {
+.feedback-line.ng::before,
+.feedback-line.near::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -767,6 +779,10 @@ main:has(.drill-screen.fill) {
 .feedback-line.ng::before {
   content: "✕" / "";
   background: var(--ng);
+}
+.feedback-line.near::before {
+  content: "△" / "";
+  background: var(--near);
 }
 .side-explain {
   flex: 1;

@@ -3,7 +3,7 @@ import { STANDARD } from "../theory";
 import { TOPICS } from "../topics";
 import { checkTopic, problemsOf } from "./check";
 import { pick, seeded, shuffle } from "./rng";
-import { type Question, type Topic, grade } from "./topic";
+import { type Question, type Topic, grade, nearMiss } from "./topic";
 
 const ctx = { common: { tuning: STANDARD, lefty: false }, settings: {} };
 const range = { minFret: 0, maxFret: 12 };
@@ -39,6 +39,33 @@ describe("grade", () => {
     expect(grade(all, { kind: "tap", positions: [correct[0]!, correct[0]!, correct[1]!] })).toBe(true);
     expect(grade(all, { kind: "tap", positions: [correct[0]!] })).toBe(false);
     expect(grade(all, { kind: "tap", positions: [...correct, { string: 1, fret: 0 }] })).toBe(false);
+  });
+
+  it("惜しい：コードの押さえ方で、違うのが鳴らさない弦だけ", () => {
+    // Am（x02210）
+    const correct = [
+      { string: 5, fret: 0 },
+      { string: 4, fret: 2 },
+      { string: 3, fret: 2 },
+      { string: 2, fret: 1 },
+      { string: 1, fret: 0 },
+    ];
+    const am = { kind: "tap", mode: "all", range, correct, onePerString: true } as const;
+    const tap = (...extra: { string: number; fret: number }[]) => ({
+      kind: "tap" as const,
+      positions: [...correct, ...extra],
+    });
+    // 6 弦を開放のまま・6 弦を押さえた：惜しい
+    expect(nearMiss(am, tap({ string: 6, fret: 0 }))).toBe(true);
+    expect(nearMiss(am, tap({ string: 6, fret: 3 }))).toBe(true);
+    // 全部合っている・鳴らす弦も違う・鳴らす弦を × にした（構成音が抜ける）：惜しいではない
+    expect(nearMiss(am, tap())).toBe(false);
+    expect(nearMiss(am, { kind: "tap", positions: [{ string: 6, fret: 0 }, ...correct.slice(1)] })).toBe(false);
+    expect(
+      nearMiss(am, { kind: "tap", positions: [{ string: 6, fret: 0 }, { string: 5, fret: 2 }, ...correct.slice(1)] }),
+    ).toBe(false);
+    // コードの押さえ方でない問題には無い
+    expect(nearMiss({ ...am, onePerString: false }, tap({ string: 6, fret: 0 }))).toBe(false);
   });
 });
 

@@ -38,6 +38,8 @@ export interface FretboardProps {
   readonly mutedWrong?: readonly number[];
   /** 縦向きで、弦ごとの札を上にも書く */
   readonly labelsBothEnds?: boolean;
+  /** 横向きで、ネック方向を画面の幅に収まるまで詰める（layout の fitAlong） */
+  readonly fitAlong?: boolean;
   /** 弦ごとの札（1 弦から。開放弦の音名など）。無ければ弦の番号を書く */
   readonly stringNames?: readonly string[];
 }
@@ -87,6 +89,7 @@ export function Fretboard({
   capo = 0,
   stringNames,
   labelsBothEnds = false,
+  fitAlong = false,
   tapStrings,
   tapFrets,
   muted = [],
@@ -98,6 +101,7 @@ export function Fretboard({
   const L = layout(stringCount(tuning), range, lefty, orientation ?? chooseOrientation(range), {
     headRow: muted.length > 0,
     labelsBothEnds,
+    fitAlong,
   });
   const canTap = (p: Position) =>
     (!tapStrings || tapStrings.includes(p.string)) &&
