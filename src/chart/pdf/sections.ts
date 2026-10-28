@@ -124,6 +124,11 @@ function drawNoteDot(c: Canvas, cx: number, sy: number, radius: number, isRoot: 
   }
 }
 
+/** 点の半径（弦・フレットの間隔の 0.42 倍。小さすぎ・大きすぎは丸める） */
+const DOT_MIN = 2.4 * MM;
+const DOT_MAX = 3.6 * MM;
+const dotRadius = (spacing: number) => Math.max(Math.min(spacing * 0.42, DOT_MAX), DOT_MIN);
+
 function placeScaleDots(
   c: Canvas,
   geom: Geom,
@@ -133,9 +138,8 @@ function placeScaleDots(
   numFrets: number,
   tuning: readonly number[],
   capo: number,
+  radius = dotRadius(Math.min(geom.stringSpacing, geom.fretSpacing)),
 ) {
-  const r0 = Math.min(geom.stringSpacing, geom.fretSpacing) * 0.42;
-  const radius = Math.max(Math.min(r0, 3.6 * MM), 2.4 * MM);
   const labels = labelsOf(chart);
   tuning.forEach((open, sIdx) => {
     const sy = y + sIdx * geom.stringSpacing;
@@ -196,27 +200,51 @@ export function renumberBoxes(
 }
 
 // ---- 1. 全 12 キー ----
+const ALL_KEYS_MARGIN_X = 12 * MM;
+const ALL_KEYS_TOP = PAGE_H - 22 * MM;
+const ALL_KEYS_BOTTOM = 21 * MM;
+/** 見出し（キー名）のベースラインから指板の上の点まで／指板の下の点からフレット番号の上まで（字の高さ込み） */
+const KEY_TITLE_H = 3.5 * MM;
+const FRET_NUM_H = 3.4 * MM;
+/** 隣の弦の点どうしが重ならない間隔（最小の点 2 つぶん＋すき間） */
+const MIN_STRING_SPACING = 2 * DOT_MIN + 0.2 * MM;
+
+/** 1 キーぶんの段の配置。点の大きさを先に決め、見出しと番号が点にかからないように指板の高さを残りで取る */
+function allKeysSlot(keysPerPage: number, numStrings: number) {
+  const slotH = (ALL_KEYS_TOP - ALL_KEYS_BOTTOM) / keysPerPage;
+  const fixed = KEY_TITLE_H + 1 * MM + FRET_NUM_H + 1 * MM;
+  const gaps = Math.max(numStrings - 1, 1);
+  const r = dotRadius((slotH - fixed - 2 * DOT_MAX) / gaps);
+  const h = slotH - fixed - 2 * r;
+  return { slotH, r, h, stringSpacing: h / gaps };
+}
+
+/** 1 ページに並べられるキーの数の上限（弦が多いほど少ない） */
+export function maxKeysPerPage(numStrings: number, choices: readonly number[] = [1, 2, 3, 4]): number {
+  const fits = choices.filter(k => allKeysSlot(k, numStrings).stringSpacing >= MIN_STRING_SPACING);
+  return fits.length ? Math.max(...fits) : 1;
+}
+
 export function sectionAllKeys(c: Canvas, s: Subject, ctx: Ctx, keysPerPage: number, numFrets = 15) {
-  const marginX = 12 * MM,
-    marginTop = 12 * MM;
+  const marginX = ALL_KEYS_MARGIN_X;
   const keys = NOTES.map((_, p) => p);
+  const { slotH, r, h } = allKeysSlot(keysPerPage, s.tuning.length);
   for (let i = 0; i < keys.length; i += keysPerPage) {
     const chunk = keys.slice(i, i + keysPerPage);
-    c.text(marginX, PAGE_H - marginTop, `${s.chart.nameEn} — Full Fretboard (All Keys)`, 15, BLACK, { bold: true });
-    const legendY = PAGE_H - marginTop - 4 * MM;
+    c.text(marginX, PAGE_H - 12 * MM, `${s.chart.nameEn} — Full Fretboard (All Keys)`, 15, BLACK, { bold: true });
+    const legendY = PAGE_H - 16 * MM;
     c.text(marginX, legendY, `${tuningHeader(s)} (highest string on top).`, 8.5, BLACK);
-    drawLegend(c, marginX + 88 * MM, legendY);
-    const topY = PAGE_H - marginTop - 10 * MM;
-    const bottomY = 21 * MM;
-    const slotH = (topY - bottomY) / chunk.length;
+    // 凡例は右に寄せる（チューニングとカポの説明が長くても重ならない）
+    drawLegend(c, PAGE_W - marginX - 78 * MM, legendY);
     const fbW = PAGE_W - 2 * marginX;
     chunk.forEach((key, j) => {
-      const slotTop = topY - j * slotH;
-      const y = slotTop - slotH + 8 * MM;
-      const h = slotH - 13 * MM;
-      c.text(marginX, y + h + 3 * MM, `${NOTES[key]} ${s.chart.shortName}`, 11, BLACK, { bold: true });
-      const geom = drawFretboardGrid(c, marginX, y, fbW, h, numFrets, 6 * MM, -4 * MM, s.tuning.length, s.capo);
-      placeScaleDots(c, geom, y, key, s.chart, numFrets, s.tuning, s.capo);
+      const slotTop = ALL_KEYS_TOP - j * slotH;
+      const titleY = slotTop - KEY_TITLE_H;
+      const y = titleY - 1 * MM - r - h;
+      c.text(marginX, titleY, `${NOTES[key]} ${s.chart.shortName}`, 11, BLACK, { bold: true });
+      const numY = -(r + FRET_NUM_H);
+      const geom = drawFretboardGrid(c, marginX, y, fbW, h, numFrets, 6 * MM, numY, s.tuning.length, s.capo);
+      placeScaleDots(c, geom, y, key, s.chart, numFrets, s.tuning, s.capo, r);
     });
     c.text(marginX, 13 * MM, `Intervals: ${degreeString(s.chart)}`, 7, SUBTLE);
     finishPage(c, ctx);
