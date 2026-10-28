@@ -52,14 +52,6 @@ function tapMarks(correct: readonly Position[], taps: readonly Position[]): Mark
   ];
 }
 
-/** タップで答える問題の、初めてのときだけ出す操作の説明（答え方の種類ごと。問題文の補足とは重ねない） */
-export const TAP_TIPS = {
-  "tap-any": "指板のマスを 1 つタップすると、それで答えになります。",
-  "tap-all": "当てはまるマスを全部タップしてから「答え合わせ」を押します。押したマスをもう一度押すと外せます。",
-  "tap-open":
-    "最初は全部の弦が開放（○）です。押さえるマスは弦ごとに 1 つで、もう一度押すと開放に戻ります。できたら「答え合わせ」。",
-} as const;
-
 /** 参考を、ドリルの上に重ねて開く（ページを移るとセッションが消えるので）。閉じるとドリルの続きに戻る */
 function ReferenceSheet({ topic, ctx, onClose }: { topic: AnyTopic; ctx: Context<unknown>; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -399,9 +391,6 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   ]
     .filter(Boolean)
     .join("／");
-  const tipKey: keyof typeof TAP_TIPS | undefined =
-    a.kind === "tap" && !result ? (a.openDefault ? "tap-open" : a.mode === "any" ? "tap-any" : "tap-all") : undefined;
-  const tip = tipKey && !data.tips.includes(tipKey) ? tipKey : undefined;
   const board = q.prompt.board;
   const tapping = a.kind === "tap" && !result;
   const tapStrings =
@@ -636,15 +625,6 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         )}
         {shown && (
           <div class={`board-wrap${hintBelow ? " with-hint" : ""}`} ref={boardRef}>
-            {/* 図の上に重ねて出す（並びに入れると図の大きさが変わる）。閉じたら記録してもう出さない */}
-            {tip && (
-              <div class="tap-tip" role="note">
-                <p>{TAP_TIPS[tip]}</p>
-                <button class="btn" onClick={() => st.update(d => ({ ...d, tips: [...d.tips, tip] }))}>
-                  わかった
-                </button>
-              </div>
-            )}
             <Fretboard
               tuning={ctx.common.tuning}
               lefty={ctx.common.lefty}

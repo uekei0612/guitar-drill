@@ -39,8 +39,6 @@ export interface SaveData {
   readonly scores: Readonly<Record<string, Score>>;
   /** 練習した日（端末のローカル時刻の YYYY-MM-DD、古い順）。無い記録（古い版）は空として読む */
   readonly days: readonly string[];
-  /** 一度閉じた操作の説明（もう出さない） */
-  readonly tips: readonly string[];
 }
 
 export const SESSION_SIZES = [10, 20, 30] as const;
@@ -62,7 +60,6 @@ export const emptyData = (): SaveData => ({
   items: {},
   scores: {},
   days: [],
-  tips: [],
 });
 
 type Obj = Record<string, unknown>;
@@ -144,6 +141,5 @@ export function parseData(raw: unknown): SaveData {
           .sort()
           .slice(-MAX_DAYS)
       : [],
-    tips: Array.isArray(r.tips) ? [...new Set(r.tips.filter((x): x is string => typeof x === "string"))] : [],
   };
 }

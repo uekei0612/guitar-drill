@@ -178,17 +178,6 @@ describe("Drill", () => {
     }
   });
 
-  it("タップで答える問題は、初めてのときだけ操作の説明を出し、閉じたらもう出さない", async () => {
-    const st = new Store(memoryStorage());
-    const tapOnly: Topic = { ...topic, items: () => ["tap"] };
-    const el = document.body.appendChild(document.createElement("div"));
-    await act(() => render(<Drill topic={tapOnly} store={st} rng={seeded(1)} clock={() => 0} />, el));
-    expect(el.querySelector(".tap-tip")!.textContent).toContain("1 つタップ");
-    await click(button(el, "わかった"));
-    expect(el.querySelector(".tap-tip")).toBeNull();
-    expect(st.data.tips).toEqual(["tap-any"]);
-  });
-
   it("出題範囲を出し、設定のその分野の欄へ。答え始めたら出さない", async () => {
     const st = new Store(memoryStorage());
     const scoped: Topic<{ n: number }> = {
