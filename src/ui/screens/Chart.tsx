@@ -104,6 +104,11 @@ export function Chart({ query }: { query: string }) {
     selected: s.box === i + 1,
     dimmed: s.box != null && s.box !== i + 1,
   }));
+  // ボックスを 1 つだけ出すときは、そのボックスの前後 1 フレットまでに寄せて大きく描く
+  const iso = s.box != null ? boxes[s.box - 1] : undefined;
+  const range = iso
+    ? { minFret: Math.max(0, iso[0] - 1), maxFret: Math.min(CHART_FRETS, iso[1] + 1) }
+    : { minFret: 0, maxFret: CHART_FRETS };
   const inChart = (p: Position) => chart.intervals.includes(mod(pcAt(t, p) - s.root, 12));
   const presetValue = s.chartType === "arpeggio" ? `arp:${s.arpeggio}` : `scale:${s.scale}`;
 
@@ -111,211 +116,162 @@ export function Chart({ query }: { query: string }) {
     <>
       <header class="bar">
         <h1 tabIndex={-1}>チャート</h1>
+        <button
+          class="bar-link link-btn"
+          onClick={() => playAscending(chart.intervals, s.root)}
+          aria-label={`${chart.name} ${noteName(s.root, s.flat)} を試聴`}
+        >
+          ▶ 試聴
+        </button>
       </header>
 
-      {/* 指板を先に見せる。よく変えるスケールとキーだけ指板の上に置き、ほかの設定は下（広い画面では横）にまとめる */}
-      <div class="chart-layout">
-        <section class="chart-view" aria-label="指板">
-          <div class="chart-quick">
-            <label class="field grow">
-              <span>スケール／アルペジオ</span>
-              <select
-                value={s.chartType === "custom" ? "custom" : presetValue}
-                onChange={e => {
-                  const [kind, id] = e.currentTarget.value.split(":") as [string, string];
-                  const c =
-                    kind === "arp" ? CHART_ARPEGGIOS.find(x => x.id === id)! : CHART_SCALES.find(x => x.id === id)!;
-                  // 一覧で選んだものをカスタムの出発点にもする（guitar_chart と同じ）
-                  set(
-                    kind === "arp"
-                      ? { chartType: "arpeggio", arpeggio: id, custom: c.intervals, box: null }
-                      : { chartType: "scale", scale: id, custom: c.intervals, box: null },
-                  );
-                }}
-              >
-                {/* カスタムのときは「カスタム」と出す（一覧から選び直すと一覧に戻る） */}
-                {s.chartType === "custom" && (
-                  <option value="custom" disabled>
-                    カスタム
-                  </option>
-                )}
-                <optgroup label="スケール">
-                  {CHART_SCALES.map(c => (
-                    <option key={c.id} value={`scale:${c.id}`}>
-                      {c.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="アルペジオ（コードトーン）">
-                  {CHART_ARPEGGIOS.map(c => (
-                    <option key={c.id} value={`arp:${c.id}`}>
-                      {c.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </label>
-            <label class="field">
-              <span>キー</span>
-              <select value={s.root} onChange={e => set({ root: Number(e.currentTarget.value) })}>
-                {NOTE_NAMES.map((_, p) => (
-                  <option key={p} value={p}>
-                    {noteName(p, s.flat)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <p class="chart-meta">
-            {chart.name}（{noteName(s.root, s.flat)}）　構成音：{chart.degrees.map(degreeText).join(" - ")}
-            {s.capo ? `　カポ ${s.capo}f` : ""}
-          </p>
-          <div class="chips chart-toggles">
-            <label class="check">
-              <input
-                type="radio"
-                name="label"
-                checked={s.label === "degree"}
-                onChange={() => set({ label: "degree" })}
-              />
-              <span>度数</span>
-            </label>
-            <label class="check">
-              <input type="radio" name="label" checked={s.label === "note"} onChange={() => set({ label: "note" })} />
-              <span>音名</span>
-            </label>
-            <label class="check">
-              <input type="checkbox" checked={s.flat} onChange={e => set({ flat: e.currentTarget.checked })} />
-              <span>♭表記</span>
-            </label>
-            <label class="check">
-              <input type="checkbox" checked={s.lefty} onChange={e => set({ lefty: e.currentTarget.checked })} />
-              <span>左利き</span>
-            </label>
-            {hasBoxes && (
-              <label class="check">
-                <input
-                  type="checkbox"
-                  checked={s.caged}
-                  onChange={e => set({ caged: e.currentTarget.checked, box: null })}
-                />
-                <span>CAGED ボックス</span>
-              </label>
-            )}
-          </div>
-          {s.caged && boxes.length > 0 && (
-            <div class="chips box-select" role="group" aria-label="ボックスを 1 つだけ出す">
-              <button
-                class={`btn${s.box == null ? " primary" : ""}`}
-                aria-pressed={s.box == null}
-                onClick={() => set({ box: null })}
-              >
-                すべて
-              </button>
-              {boxes.map((_, i) => (
-                <button
-                  key={i}
-                  class={`btn box-btn box-btn--${i}${s.box === i + 1 ? " primary" : ""}`}
-                  aria-pressed={s.box === i + 1}
-                  onClick={() => set({ box: s.box === i + 1 ? null : i + 1 })}
-                >
-                  Box {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
-          {/* 試聴・保存・共有は指板の前に（縦の指板は長く、下に置くとスクロールしないと届かない） */}
-          <div class="actions chart-actions">
-            <button class="btn" onClick={() => playAscending(chart.intervals, s.root)}>
-              ▶ 試聴
-            </button>
-            <button
-              class="btn"
-              onClick={() => {
-                const svg = document.querySelector<SVGSVGElement>(".chart-board svg");
-                if (svg)
-                  exportSvgPng(svg, `${chart.nameEn} - ${noteName(s.root, s.flat)}.png`).catch((e: Error) =>
-                    setMsg(e.message),
-                  );
+      {/* 指板の上は、よく変えるもの（スケール・キー・点の文字・ボックス）だけ。ほかは下にたたむ */}
+      <section class="chart-view" aria-label="指板">
+        <div class="chart-quick">
+          <label class="field grow">
+            <span>スケール／アルペジオ</span>
+            <select
+              value={s.chartType === "custom" ? "custom" : presetValue}
+              onChange={e => {
+                const [kind, id] = e.currentTarget.value.split(":") as [string, string];
+                const c =
+                  kind === "arp" ? CHART_ARPEGGIOS.find(x => x.id === id)! : CHART_SCALES.find(x => x.id === id)!;
+                // 一覧で選んだものをカスタムの出発点にもする（guitar_chart と同じ）
+                set(
+                  kind === "arp"
+                    ? { chartType: "arpeggio", arpeggio: id, custom: c.intervals, box: null }
+                    : { chartType: "scale", scale: id, custom: c.intervals, box: null },
+                );
               }}
             >
-              画像保存
-            </button>
-            <button class="btn" onClick={() => void shareUrl(`${chart.name} ${noteName(s.root, s.flat)}`).then(setMsg)}>
-              リンクを共有
-            </button>
-            <span class="muted small" role="status">
-              {msg}
+              {/* カスタムのときは「カスタム」と出す（一覧から選び直すと一覧に戻る） */}
+              {s.chartType === "custom" && (
+                <option value="custom" disabled>
+                  カスタム
+                </option>
+              )}
+              <optgroup label="スケール">
+                {CHART_SCALES.map(c => (
+                  <option key={c.id} value={`scale:${c.id}`}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="アルペジオ（コードトーン）">
+                {CHART_ARPEGGIOS.map(c => (
+                  <option key={c.id} value={`arp:${c.id}`}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </label>
+          <label class="field">
+            <span>キー</span>
+            <select value={s.root} onChange={e => set({ root: Number(e.currentTarget.value) })}>
+              {NOTE_NAMES.map((_, p) => (
+                <option key={p} value={p}>
+                  {noteName(p, s.flat)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {/* 構成音は指板の点と同じ見た目の小さな丸で（名前は上の選択と同じなので繰り返さない） */}
+        <p class="chart-tones">
+          <span class="sr-only">構成音：</span>
+          {chart.degrees.map((d, i) => (
+            <span key={d} class={`tone-dot${i === 0 ? " root" : ""}`}>
+              {i === 0 ? "R" : degreeText(d)}
             </span>
+          ))}
+          {s.capo > 0 && <span class="muted small">カポ {s.capo}f</span>}
+        </p>
+        <div class="chart-bar">
+          <div class="toggle-group" role="group" aria-label="点の文字">
+            <button aria-pressed={s.label === "degree"} onClick={() => set({ label: "degree" })}>
+              度数
+            </button>
+            <button aria-pressed={s.label === "note"} onClick={() => set({ label: "note" })}>
+              音名
+            </button>
           </div>
-          <div class="chart-board">
-            <Fretboard
-              tuning={t}
-              range={{ minFret: 0, maxFret: CHART_FRETS }}
-              orientation={wide ? "horizontal" : "vertical"}
-              lefty={s.lefty}
-              label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
-              marks={marks}
-              bands={bands}
-              capo={s.capo}
-              stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
-              labelsBothEnds
-              hitLabel={p =>
-                `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
-                  mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
-                }`
-              }
-              onTap={p => {
-                const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
-                if (next) setS(next);
-              }}
-            />
-          </div>
-          <p class="muted small">
-            指板をタップすると構成音を足し引きできます（カスタムになります）。キーは上の「キー」で変えます。
-          </p>
-          {/* 見て覚えたら、同じスケール・キーだけでドリルを 1 回（設定の出題範囲は変えない） */}
-          {s.chartType === "scale" && BOX_SCALES.includes(s.scale) && (
-            <div class="actions">
-              <a
-                class="btn primary"
-                href={href({
-                  name: "drill",
-                  topicId: "scale-boxes",
-                  only: JSON.stringify({ scales: [s.scale], roots: [s.root] }),
-                })}
-              >
-                {/* ボックスを出していないときは「この」ボックスが無いので、キーで言う */}
-                {s.caged ? "このボックスをドリルで確かめる" : "このキーのボックスをドリルで確かめる"}
-              </a>
+          {hasBoxes && (
+            <div class="toggle-group">
+              <button aria-pressed={s.caged} onClick={() => set({ caged: !s.caged, box: null })}>
+                CAGED ボックス
+              </button>
             </div>
           )}
-        </section>
-
-        <section class="form chart-form" aria-labelledby="chart-settings-h">
-          <h2 id="chart-settings-h">詳しい設定</h2>
-          <div class="seg" role="radiogroup" aria-label="選び方">
-            <label class="check">
-              <input
-                type="radio"
-                name="source"
-                checked={s.chartType !== "custom"}
-                onChange={() => set({ chartType: presetValue.startsWith("arp:") ? "arpeggio" : "scale" })}
-              />
-              <span>一覧から選ぶ</span>
-            </label>
-            <label class="check">
-              <input
-                type="radio"
-                name="source"
-                checked={s.chartType === "custom"}
-                onChange={() => set({ chartType: "custom" })}
-              />
-              <span>カスタムで作る</span>
-            </label>
+        </div>
+        {s.caged && boxes.length > 0 && (
+          <div class="toggle-group box-select" role="group" aria-label="ボックスを 1 つだけ出す">
+            <button aria-pressed={s.box == null} onClick={() => set({ box: null })}>
+              全部
+            </button>
+            {boxes.map((_, i) => (
+              <button
+                key={i}
+                aria-pressed={s.box === i + 1}
+                aria-label={`ボックス ${i + 1}`}
+                onClick={() => set({ box: s.box === i + 1 ? null : i + 1 })}
+              >
+                <span class={`box-dot box-dot--${i}`} aria-hidden="true" />
+                {i + 1}
+              </button>
+            ))}
           </div>
+        )}
+        <div class="chart-board">
+          <Fretboard
+            tuning={t}
+            range={range}
+            orientation={wide ? "horizontal" : "vertical"}
+            lefty={s.lefty}
+            label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
+            marks={marks}
+            // 1 つに寄せたときは、隣のボックスの帯を重ねない
+            bands={iso ? bands.filter(b => b.selected) : bands}
+            capo={s.capo}
+            stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
+            labelsBothEnds
+            hitLabel={p =>
+              `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
+                mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
+              }`
+            }
+            onTap={p => {
+              const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
+              if (next) setS(next);
+            }}
+          />
+        </div>
+        <p class="muted small">指板をタップすると、その音を足したり外したりできます（カスタムになります）。</p>
+        {/* 見て覚えたら、同じスケール・キーだけでドリルを 1 回（設定の出題範囲は変えない） */}
+        {s.chartType === "scale" && BOX_SCALES.includes(s.scale) && (
+          <a
+            class="chart-drill"
+            href={href({
+              name: "drill",
+              topicId: "scale-boxes",
+              only: JSON.stringify({ scales: [s.scale], roots: [s.root] }),
+            })}
+          >
+            {/* ボックスを出していないときは「この」ボックスが無いので、キーで言う */}
+            {s.caged ? "このボックスをドリルで確かめる" : "このキーのボックスをドリルで確かめる"}
+            <span aria-hidden="true"> ›</span>
+          </a>
+        )}
+      </section>
+
+      {/* たまにしか変えない設定は、たたんでおく */}
+      <details class="chart-pdf">
+        <summary>
+          <h2 id="chart-settings-h">詳しい設定</h2>
+        </summary>
+        <section class="form" aria-labelledby="chart-settings-h">
           <fieldset class="field">
-            <legend>含める度数（押すとカスタムになります。R は固定）</legend>
+            <legend>構成音（押して足す・外す。R は固定）</legend>
             <div class="degree-chips">
               {CHROMATIC_DEGREES.map((d, semi) => {
                 const on = semi === 0 || chart.intervals.includes(semi);
@@ -393,15 +349,46 @@ export function Chart({ query }: { query: string }) {
               </div>
             </fieldset>
           )}
+          <div class="seg">
+            <label class="check">
+              <input type="checkbox" checked={s.flat} onChange={e => set({ flat: e.currentTarget.checked })} />
+              <span>♭で書く（A♯ でなく B♭）</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" checked={s.lefty} onChange={e => set({ lefty: e.currentTarget.checked })} />
+              <span>左利き</span>
+            </label>
+          </div>
         </section>
-      </div>
+      </details>
 
-      {/* PDF は使うときだけ開く */}
-      <details class="chart-pdf">
+      {/* 保存・共有・PDF は使うときだけ開く */}
+      <details class="chart-pdf chart-share">
         <summary>
-          <h2 id="pdf-h">PDF の資料</h2>
+          <h2 id="share-h">保存・共有・PDF</h2>
         </summary>
-        <section class="form" aria-labelledby="pdf-h">
+        <section class="form" aria-labelledby="share-h">
+          <div class="actions">
+            <button
+              class="btn"
+              onClick={() => {
+                const svg = document.querySelector<SVGSVGElement>(".chart-board svg");
+                if (svg)
+                  exportSvgPng(svg, `${chart.nameEn} - ${noteName(s.root, s.flat)}.png`).catch((e: Error) =>
+                    setMsg(e.message),
+                  );
+              }}
+            >
+              指板を画像で保存
+            </button>
+            <button class="btn" onClick={() => void shareUrl(`${chart.name} ${noteName(s.root, s.flat)}`).then(setMsg)}>
+              リンクを共有
+            </button>
+          </div>
+          <p class="muted small" role="status">
+            {msg}
+          </p>
+          <h3 id="pdf-h">PDF の資料</h3>
           <p class="muted small">
             上の設定（スケール・キー・チューニング・カポ）で A4 横の資料を作ります。資料の文字は英語です。
           </p>
