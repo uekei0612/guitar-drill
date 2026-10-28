@@ -10,6 +10,7 @@ import {
   type Question,
   type Response,
   grade,
+  nearMiss,
   recordKeyOf,
 } from "../../drill/topic";
 import { contextOf, scoped, store, useData } from "../../state";
@@ -84,7 +85,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const data = useData(st);
   const ctx = contextOf(topic, scoped(topic, data.settings, only));
   const [session, setSession] = useState<Session>(() => newSession());
-  const [result, setResult] = useState<{ ok: boolean; response: Response } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; near: boolean; response: Response } | null>(null);
   /** 押したマス（null はまだ触っていない。問題ごとの初期状態を使う） */
   const [touched, setTaps] = useState<Position[] | null>(null);
   /** ヒントを開いた（正解しても覚えていない扱いにし、このセッションの中でもう一度出す） */
@@ -199,13 +200,15 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   function submit(response: Response) {
     if (!q || result) return;
     const ok = grade(q.answer, response);
+    // 惜しい（鳴らさない弦だけ違う）は △ で見せるが、記録は不正解と同じ（× まで含めて覚えるまで出し直す）
+    const near = !ok && nearMiss(q.answer, response);
     const key = recordKeyOf(topic, q.item);
     st.update(d => ({
       ...d,
       items: { ...d.items, [key]: review(d.items[key], ok && !hinted, clock()) },
       days: addDay(d.days, clock()),
     }));
-    setResult({ ok, response });
+    setResult({ ok, near, response });
     // 答えた操作の中で鳴らす（iOS は操作の外では音を出させない）
     if (q.sound && st.data.settings.autoSound) playSound(q.sound);
   }
@@ -563,16 +566,18 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     ? undefined
     : result.ok
       ? `正解${hinted ? "（ヒントあり）" : ""}：${a.kind === "choice" ? a.correct : "全部合っています"}`
-      : a.kind === "choice"
-        ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
-        : a.mode === "all"
-          ? `不正解：${[
-              missed.length && `押し忘れ ${missed.length}`,
-              wrongTaps.length && `押し間違い ${wrongTaps.length}`,
-            ]
-              .filter(Boolean)
-              .join("・")}`
-          : "不正解：赤が押したところ";
+      : result.near
+        ? "惜しい：押さえるマスは合っています。鳴らさない弦（×）だけ違います"
+        : a.kind === "choice"
+          ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
+          : a.mode === "all"
+            ? `不正解：${[
+                missed.length && `押し忘れ ${missed.length}`,
+                wrongTaps.length && `押し間違い ${wrongTaps.length}`,
+              ]
+                .filter(Boolean)
+                .join("・")}`
+            : "不正解：赤が押したところ";
   // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
   const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
   const feedbackLine =
@@ -740,16 +745,22 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         )}
         {(result || dock) && (
           <div
-            class={`dock-a${result ? (result.ok ? " is-ok" : " is-ng") : " off"}`}
+            class={`dock-a${result ? (result.ok ? " is-ok" : result.near ? " is-near" : " is-ng") : " off"}`}
             aria-hidden={result ? undefined : true}
           >
-            <p class={`feedback-line ${result ? (result.ok ? "ok" : "ng") : ""}`} aria-hidden="true">
+            <p
+              class={`feedback-line ${result ? (result.ok ? "ok" : result.near ? "near" : "ng") : ""}`}
+              aria-hidden="true"
+            >
               {feedbackLine ?? "\u3000"}
             </p>
             {/* 全部押す問題で間違えたときの図の見方（行を短く保つため、正誤の行とは分ける） */}
             {result && !result.ok && a.kind === "tap" && a.mode === "all" && (
               <p class="feedback-legend muted small" aria-hidden="true">
-                {[missed.length && "点線の輪＝押し忘れ", wrongTaps.length && "赤＝押し間違い"]
+                {[
+                  missed.length && "点線の輪＝押し忘れ",
+                  wrongTaps.length && (result.near ? "赤＝鳴らさない弦" : "赤＝押し間違い"),
+                ]
                   .filter(Boolean)
                   .join("　")}
               </p>
