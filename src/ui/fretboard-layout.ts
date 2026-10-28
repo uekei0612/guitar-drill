@@ -72,6 +72,8 @@ export interface LayoutOptions {
   readonly headLabels?: boolean;
   /** 縦向きで開放の欄が無いときも、ナット側に × などを書く帯を取る */
   readonly headRow?: boolean;
+  /** 縦向きで、弦ごとの札を下だけでなく上（ナット側）にも置く（長い図で、最初の画面から何弦か読めるように） */
+  readonly labelsBothEnds?: boolean;
 }
 
 export const chooseOrientation = (range: FretRange): Orientation =>
@@ -85,7 +87,7 @@ export function layout(
   range: FretRange,
   lefty: boolean,
   orientation: Orientation = chooseOrientation(range),
-  { headLabels = true, headRow = false }: LayoutOptions = {},
+  { headLabels = true, headRow = false, labelsBothEnds = false }: LayoutOptions = {},
 ): Layout {
   const horizontal = orientation === "horizontal";
   const n = range.maxFret - range.minFret + 1;
@@ -103,7 +105,8 @@ export function layout(
   const headPad = horizontal && headLabels ? LABEL : 0;
   const hasOpen = range.minFret === 0;
   const topPad = !horizontal && headRow && !hasOpen ? LABEL : 0;
-  const along0 = PAD + topPad + (flipAlong ? 0 : headPad);
+  const namePad = !horizontal && labelsBothEnds ? LABEL : 0;
+  const along0 = PAD + namePad + topPad + (flipAlong ? 0 : headPad);
   const across0 = horizontal ? PAD : LABEL;
   const alongEnd = along0 + n * AL;
 
@@ -173,7 +176,12 @@ export function layout(
   const stringLabels =
     horizontal && !headLabels
       ? []
-      : Array.from({ length: strings }, (_, s) => ({ ...pt(labelAlong, acrossMid(s)), string: s + 1 }));
+      : [
+          ...Array.from({ length: strings }, (_, s) => ({ ...pt(labelAlong, acrossMid(s)), string: s + 1 })),
+          ...(namePad
+            ? Array.from({ length: strings }, (_, s) => ({ ...pt(PAD + namePad / 2, acrossMid(s)), string: s + 1 }))
+            : []),
+        ];
 
   const span = (lo: number, hi: number) => {
     const a1 = Math.max(lo, range.minFret) - range.minFret,
