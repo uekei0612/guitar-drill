@@ -24,7 +24,7 @@ export interface Mark {
   /** root = ルート、tone = そのほかの音、target = 問われている点、hint = 薄く出す参考の点、
       ok / wrong = 答え合わせ（正しく押した点／押し間違えた点）、
       open / openRoot = コードの押さえ方で鳴らす開放弦（白抜きの ○。openRoot はルート）、
-      wrongOpen = 開放のままにして間違えた弦（赤い ○） */
+      wrongOpen = 開放のままにして間違えた弦（灰色の ○） */
   readonly kind: "root" | "tone" | "target" | "hint" | "ok" | "wrong" | "wrongOpen" | "open" | "openRoot";
   /** 薄く出す（答え合わせで、答えでない点） */
   readonly dim?: boolean;

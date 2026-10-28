@@ -276,7 +276,7 @@ describe("Drill", () => {
     expect(el.querySelector(".feedback-line")!.textContent).toMatch(/^正解/);
   });
 
-  it("全部押す問題の答え合わせ：押し忘れは点線の輪、答えでない点は薄く、開放のままの弦は赤い ○ と赤い ×", async () => {
+  it("全部押す問題の答え合わせ：押し忘れは点線の輪、答えでない点は薄く、開放のままの弦は灰色の ○ と赤い ×", async () => {
     // Am（x02210）。開放のまま答える：6 弦は × のはず、4・3 弦は押さえるはず
     const am = [
       { string: 5, fret: 0 },
@@ -320,7 +320,9 @@ describe("Drill", () => {
     await click(el.querySelector('[aria-label="2弦 1フレット"]')!);
     await click(button(el, "答え合わせ"));
     expect(el.querySelector(".feedback-line")!.textContent).toBe("不正解：押し忘れ 2・押し間違い 3");
-    expect(el.querySelector(".feedback-legend")!.textContent).toBe("点線の輪＝押し忘れ　赤＝押し間違い");
+    expect(el.querySelector(".feedback-legend")!.textContent).toBe(
+      "点線＝押し忘れ　灰色＝押し間違い　赤い ×＝鳴らさない弦",
+    );
     expect(el.querySelectorAll(".fb-missed")).toHaveLength(2);
     // 4・3 弦の開放は赤い ○、6 弦は点を重ねず × を赤く
     expect(el.querySelectorAll(".fb-mark--wrongOpen")).toHaveLength(2);
@@ -366,7 +368,7 @@ describe("Drill", () => {
     expect(line.classList.contains("near")).toBe(true);
     expect(line.textContent).toBe("惜しい：鳴らさない弦（×）だけ違います");
     expect(el.querySelector(".feedback.sr-only")!.textContent).toMatch(/^惜しい：押さえるマスは合っています/);
-    expect(el.querySelector(".feedback-legend")!.textContent).toBe("赤＝鳴らさない弦");
+    expect(el.querySelector(".feedback-legend")!.textContent).toBe("赤い ×＝鳴らさない弦");
     expect(el.querySelectorAll(".fb-muted.wrong")).toHaveLength(1);
     expect(Object.values(st.data.items)[0]!.interval).toBe(0);
   });

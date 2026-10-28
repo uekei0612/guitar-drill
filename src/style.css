@@ -81,6 +81,7 @@ main {
     --fb-on-dot: #111;
     --fb-ok: #4ade80;
     --fb-wrong: #f87171;
+    --fb-ghost: #77736c;
     color-scheme: dark;
   }
 }
@@ -105,6 +106,7 @@ main {
   --fb-on-dot: #111;
   --fb-ok: #4ade80;
   --fb-wrong: #f87171;
+  --fb-ghost: #77736c;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -123,6 +125,8 @@ main {
   --fb-on-dot: #fff;
   --fb-ok: #15803d;
   --fb-wrong: #b91c1c;
+  /* 押し間違い：正解の点と混ざらないよう、色を抜いた灰色 */
+  --fb-ghost: #a8a29a;
 }
 .fretboard {
   display: block;
@@ -223,17 +227,17 @@ main {
   fill: var(--fb-ok);
 }
 .fb-mark--wrong circle {
-  fill: var(--fb-wrong);
+  fill: var(--fb-ghost);
 }
 .fb-mark--wrongOpen circle {
   fill: var(--fb-board);
-  stroke: var(--fb-wrong);
+  stroke: var(--fb-ghost);
   stroke-width: 3;
 }
 .fb-mark.dim {
   opacity: 0.3;
 }
-/* 押し忘れた正解：点線の輪（押し間違いの赤い塗りと形でも分ける） */
+/* 押し忘れた正解：赤い点線の輪（押し間違いの灰色の塗りとは、色でも形でも分ける） */
 .fb-missed {
   fill: none;
   stroke: var(--fb-wrong);
