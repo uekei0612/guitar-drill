@@ -32,6 +32,10 @@ export interface FretboardProps {
   readonly muted?: readonly number[];
   /** バレー（指で複数の弦をまとめて押さえる）の帯 */
   readonly barres?: readonly Barre[];
+  /** 押し忘れた正解（答え合わせ。点線の輪で囲む） */
+  readonly missed?: readonly Position[];
+  /** 鳴らさない弦なのに開放のままにした弦（× を赤く書く） */
+  readonly mutedWrong?: readonly number[];
   /** 弦ごとの札（1 弦から。開放弦の音名など）。無ければ弦の番号を書く */
   readonly stringNames?: readonly string[];
 }
@@ -83,6 +87,8 @@ export function Fretboard({
   tapStrings,
   tapFrets,
   muted = [],
+  missed = [],
+  mutedWrong = [],
   barres = [],
   scale,
 }: FretboardProps) {
@@ -196,7 +202,13 @@ export function Fretboard({
       {muted.map(s => {
         const p = L.headPoint(s);
         return (
-          <text key={`x${s}`} class="fb-muted" x={p.x} y={p.y} aria-hidden="true">
+          <text
+            key={`x${s}`}
+            class={`fb-muted${mutedWrong.includes(s) ? " wrong" : ""}`}
+            x={p.x}
+            y={p.y}
+            aria-hidden="true"
+          >
             ×
           </text>
         );
@@ -221,7 +233,11 @@ export function Fretboard({
         const c = L.cellAt(m.pos);
         if (!c) return null;
         return (
-          <g key={`m${m.pos.string}:${m.pos.fret}`} class={`fb-mark fb-mark--${m.kind}`} aria-hidden="true">
+          <g
+            key={`m${m.pos.string}:${m.pos.fret}`}
+            class={`fb-mark fb-mark--${m.kind}${m.dim ? " dim" : ""}`}
+            aria-hidden="true"
+          >
             <circle cx={c.c.x} cy={c.c.y} r={L.r} />
             {(m.label ?? (m.kind === "target" ? "?" : "")) && (
               <text x={c.c.x} y={c.c.y}>
@@ -241,6 +257,19 @@ export function Fretboard({
             cx={c.c.x}
             cy={c.c.y}
             r={p.fret === 0 ? L.r * 0.55 : L.r + 3}
+            aria-hidden="true"
+          />
+        ) : null;
+      })}
+      {missed.map(p => {
+        const c = L.cellAt(p);
+        return c ? (
+          <circle
+            key={`miss${p.string}:${p.fret}`}
+            class="fb-missed"
+            cx={c.c.x}
+            cy={c.c.y}
+            r={L.r + 5}
             aria-hidden="true"
           />
         ) : null;
