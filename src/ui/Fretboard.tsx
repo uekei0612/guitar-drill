@@ -36,6 +36,8 @@ export interface FretboardProps {
   readonly missed?: readonly Position[];
   /** 鳴らさない弦なのに開放のままにした弦（× を赤く書く） */
   readonly mutedWrong?: readonly number[];
+  /** 縦向きで、弦ごとの札を上にも書く */
+  readonly labelsBothEnds?: boolean;
   /** 弦ごとの札（1 弦から。開放弦の音名など）。無ければ弦の番号を書く */
   readonly stringNames?: readonly string[];
 }
@@ -84,6 +86,7 @@ export function Fretboard({
   bands = [],
   capo = 0,
   stringNames,
+  labelsBothEnds = false,
   tapStrings,
   tapFrets,
   muted = [],
@@ -94,6 +97,7 @@ export function Fretboard({
 }: FretboardProps) {
   const L = layout(stringCount(tuning), range, lefty, orientation ?? chooseOrientation(range), {
     headRow: muted.length > 0,
+    labelsBothEnds,
   });
   const canTap = (p: Position) =>
     (!tapStrings || tapStrings.includes(p.string)) &&
@@ -188,14 +192,8 @@ export function Fretboard({
       {L.stringLabels
         // 横向きで開放の欄が無いと、× は弦の札と同じ場所に書く。その弦は × だけにする
         .filter(l => L.orientation === "vertical" || range.minFret === 0 || !muted.includes(l.string))
-        .map(l => (
-          <text
-            key={`sl${l.string}`}
-            class={stringNames ? "fb-stringname" : "fb-fretno"}
-            x={l.x}
-            y={l.y}
-            aria-hidden="true"
-          >
+        .map((l, i) => (
+          <text key={`sl${i}`} class={stringNames ? "fb-stringname" : "fb-fretno"} x={l.x} y={l.y} aria-hidden="true">
             {stringNames ? stringNames[l.string - 1] : l.string}
           </text>
         ))}

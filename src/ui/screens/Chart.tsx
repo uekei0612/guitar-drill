@@ -224,28 +224,7 @@ export function Chart({ query }: { query: string }) {
               ))}
             </div>
           )}
-          <div class="chart-board">
-            <Fretboard
-              tuning={t}
-              range={{ minFret: 0, maxFret: CHART_FRETS }}
-              orientation={wide ? "horizontal" : "vertical"}
-              lefty={s.lefty}
-              label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
-              marks={marks}
-              bands={bands}
-              capo={s.capo}
-              stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
-              hitLabel={p =>
-                `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
-                  mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
-                }`
-              }
-              onTap={p => {
-                const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
-                if (next) setS(next);
-              }}
-            />
-          </div>
+          {/* 試聴・保存・共有は指板の前に（縦の指板は長く、下に置くとスクロールしないと届かない） */}
           <div class="actions chart-actions">
             <button class="btn" onClick={() => playAscending(chart.intervals, s.root)}>
               ▶ 試聴
@@ -268,6 +247,29 @@ export function Chart({ query }: { query: string }) {
             <span class="muted small" role="status">
               {msg}
             </span>
+          </div>
+          <div class="chart-board">
+            <Fretboard
+              tuning={t}
+              range={{ minFret: 0, maxFret: CHART_FRETS }}
+              orientation={wide ? "horizontal" : "vertical"}
+              lefty={s.lefty}
+              label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
+              marks={marks}
+              bands={bands}
+              capo={s.capo}
+              stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
+              labelsBothEnds
+              hitLabel={p =>
+                `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
+                  mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
+                }`
+              }
+              onTap={p => {
+                const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
+                if (next) setS(next);
+              }}
+            />
           </div>
           <p class="muted small">
             指板をタップすると構成音を足し引きできます（カスタムになります）。キーは上の「キー」で変えます。
