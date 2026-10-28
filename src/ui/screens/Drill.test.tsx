@@ -86,11 +86,13 @@ describe("Drill", () => {
       items: () => ["a", "b"],
       fitSize: true,
       recordKey: id => `orig/${id}`,
-      sourceOf: () => "元の分野",
+      sourceOf: () => ({ ...topic, title: "元の分野", reference: () => <p>元の分野の参考</p> }),
     };
     const el = document.body.appendChild(document.createElement("div"));
     await act(() => render(<Drill topic={fit} store={st} rng={seeded(1)} clock={() => 0} />, el));
     expect(el.querySelector(".q-source")!.textContent).toBe("元の分野");
+    // 参考は出題元の分野のものを開く
+    expect(el.querySelector('[aria-label="元の分野の参考を見る"]')).not.toBeNull();
     for (let i = 0; i < 2; i++) {
       const id = el.querySelector(".prompt")!.textContent![0]!;
       await click(button(el, id));

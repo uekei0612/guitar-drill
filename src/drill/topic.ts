@@ -164,8 +164,8 @@ export interface Topic<S = Record<string, never>> {
   recordKey?(item: ItemId): string;
   /** 1 回の問題数を item の数までにする（繰り返して埋めない） */
   readonly fitSize?: boolean;
-  /** 問題の上に小さく出す、その item の出どころ（今日の復習で、どの分野の問題か） */
-  sourceOf?(item: ItemId): string;
+  /** その item の出どころの分野（今日の復習で、どの分野の問題か）。名前を問題の上に小さく出し、参考はその分野のものを開く */
+  sourceOf?(item: ItemId): Topic<any>;
   /** 出せる問題が無いときの文 */
   readonly emptyText?: string;
 }

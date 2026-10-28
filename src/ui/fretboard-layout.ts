@@ -167,8 +167,10 @@ export function layout(
     const f = range.minFret + a;
     if (INLAYS.includes(f)) inlays.push(pt(alongMid(a), mid));
     if (DOUBLE_INLAYS.includes(f)) inlays.push(pt(alongMid(a), mid - AC), pt(alongMid(a), mid + AC));
-    // フレット番号：ポジションマークのあるフレットと、範囲の最初のフレット
-    if (INLAYS.includes(f) || DOUBLE_INLAYS.includes(f) || (a === 0 && !hasOpen))
+    // フレット番号：ポジションマークのあるフレットと、範囲の最初のフレット。
+    // 横向きで最初のフレットのすぐ隣の番号は書かない（「6 7」と詰まって読みにくい。点は残る）
+    const nextToStart = horizontal && a === 1 && !hasOpen;
+    if (((INLAYS.includes(f) || DOUBLE_INLAYS.includes(f)) && !nextToStart) || (a === 0 && !hasOpen))
       fretLabels.push({ ...pt(alongMid(a), horizontal ? across0 + strings * AC + LABEL / 2 : LABEL / 2), fret: f });
   }
 

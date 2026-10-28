@@ -65,7 +65,7 @@ export function reviewTopic(st: Store, clock: () => number = Date.now): AnyTopic
       const { t, item } = split(id);
       return { ...t.question(item, contextOf(t, st.data.settings), rng), item: id };
     },
-    sourceOf: id => split(id).t.title,
+    sourceOf: id => split(id).t,
     recordKey: id => {
       const { t, item } = split(id);
       return itemKey(t.id, item);

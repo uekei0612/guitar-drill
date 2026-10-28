@@ -382,6 +382,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   }
 
   const a = q.answer;
+  // 参考は、今日の復習なら出題元の分野のものを開く
+  const refTopic = topic.sourceOf?.(q.item) ?? topic;
+  const refCtx = refTopic === topic ? ctx : contextOf(refTopic, data.settings);
   const scopeText = [
     ctx.common.tuning.id !== "standard" && ctx.common.tuning.name,
     topic.settings?.describe?.(ctx.settings),
@@ -609,8 +612,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {topic.title}
         </h1>
         {/* 参考はホームの行から外したので、ここから（解いている途中でも重ねて開ける） */}
-        {topic.reference && (
-          <button class="bar-link link-btn" onClick={() => setRefOpen(true)} aria-label={`${topic.title}の参考を見る`}>
+        {refTopic.reference && (
+          <button
+            class="bar-link link-btn"
+            onClick={() => setRefOpen(true)}
+            aria-label={`${refTopic.title}の参考を見る`}
+          >
             参考
           </button>
         )}
@@ -633,7 +640,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       <section
         class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}${isSnug ? " snug" : ""}`}
       >
-        {topic.sourceOf && <p class="q-source">{topic.sourceOf(q.item)}</p>}
+        {refTopic !== topic && <p class="q-source">{refTopic.title}</p>}
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
           {/* 答え方は問いと分けて小さく（問いが埋もれないように。読み上げは問いに続けて） */}
@@ -768,9 +775,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 </ol>
               )}
               {q.explanation?.text && !tall && <p>{q.explanation.text}</p>}
-              {(topic.reference || q.chart) && (
+              {(refTopic.reference || q.chart) && (
                 <div class="explain-links">
-                  {topic.reference && (
+                  {refTopic.reference && (
                     <button class="link-btn" onClick={() => setRefOpen(true)}>
                       参考を見る
                     </button>
@@ -792,7 +799,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </div>
         )}
       </div>
-      {refOpen && <ReferenceSheet topic={topic} ctx={ctx} onClose={() => setRefOpen(false)} />}
+      {refOpen && <ReferenceSheet topic={refTopic} ctx={refCtx} onClose={() => setRefOpen(false)} />}
       {/* 正誤の読み上げ（見た目の行は上の feedback-line） */}
       <div class="feedback sr-only" aria-live="assertive">
         {result && `${feedback}${!result.ok && a.kind === "tap" ? `（${correctText}）` : ""}`}
