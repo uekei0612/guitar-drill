@@ -65,7 +65,6 @@ export const hex = (h: string, a?: number): Rgba => ({
   a,
 });
 export const rgb = (r: number, g: number, b: number, a?: number): Rgba => ({ r, g, b, a });
-export const opaque = (c: Rgba): Rgba => ({ ...c, a: undefined });
 export const cssColor = (c: Rgba): string =>
   `rgb(${Math.round(c.r * 255)} ${Math.round(c.g * 255)} ${Math.round(c.b * 255)}${c.a === undefined ? "" : ` / ${c.a}`})`;
 
