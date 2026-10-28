@@ -40,16 +40,13 @@ export const AUTO_NEXT_MS = 800;
 
 const same = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 
-/** タップの答え合わせ：正しく押した点・押し間違えた点・押し忘れた点 */
+/** タップの答え合わせ（解説の図が無いとき）：正しく押した点と押し忘れた点。押し間違いは別に足す */
 function tapMarks(correct: readonly Position[], taps: readonly Position[]): Mark[] {
-  return [
-    ...correct.map(p => ({
-      pos: p,
-      kind: taps.some(t => same(t, p)) ? ("ok" as const) : ("target" as const),
-      label: "",
-    })),
-    ...taps.filter(t => !correct.some(c => same(c, t))).map(p => ({ pos: p, kind: "wrong" as const })),
-  ];
+  return correct.map(p => ({
+    pos: p,
+    kind: taps.some(t => same(t, p)) ? ("ok" as const) : ("target" as const),
+    label: "",
+  }));
 }
 
 /** 参考を、ドリルの上に重ねて開く（ページを移るとセッションが消えるので）。閉じるとドリルの続きに戻る */
@@ -385,6 +382,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   }
 
   const a = q.answer;
+  // 参考は、今日の復習なら出題元の分野のものを開く
+  const refTopic = topic.sourceOf?.(q.item) ?? topic;
+  const refCtx = refTopic === topic ? ctx : contextOf(refTopic, data.settings);
   const scopeText = [
     ctx.common.tuning.id !== "standard" && ctx.common.tuning.name,
     topic.settings?.describe?.(ctx.settings),
@@ -422,6 +422,22 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     else setTaps(on ? taps.filter(t => !same(t, p)) : [...others, p]);
   }
   const hintMarks = hinted && !result ? (q.hint?.marks ?? []) : [];
+  // 答え合わせ：押し間違えた点と、押し忘れた正解（全部押す問題で間違えたときだけ。どれか 1 つの問題は正解の点で足りる）
+  const wrongTaps = a.kind === "tap" ? taps.filter(t => !a.correct.some(c => same(c, t))) : [];
+  const missed =
+    result && !result.ok && a.kind === "tap" && a.mode === "all"
+      ? a.correct.filter(c => !taps.some(t => same(t, c)))
+      : [];
+  // コードの押さえ方で、鳴らさない弦を開放のままにした：その弦の × を赤くする（開放の欄に点を重ねると × が隠れる）
+  const answerMuted = q.explanation?.board?.muted ?? board?.muted ?? [];
+  const mutedWrong =
+    result && openDefault
+      ? wrongTaps.filter(t => t.fret === 0 && answerMuted.includes(t.string)).map(t => t.string)
+      : [];
+  // 開放の押し間違い（押さえる弦を開放のままにした）は、開放の ○ と同じ形の赤い輪にする（塗りつぶすと強すぎる）
+  const wrongMarks: Mark[] = wrongTaps
+    .filter(t => !(t.fret === 0 && mutedWrong.includes(t.string)))
+    .map(p => ({ pos: p, kind: openDefault && p.fret === 0 ? "wrongOpen" : "wrong" }));
   // 答えたあとは図を 1 枚にする：解説の図があればそれに置き換え、押したところを重ねる
   // （問題の図と解説の図を縦に並べるとスマホで画面に収まらないため）
   const ex = result ? q.explanation?.board : undefined;
@@ -435,8 +451,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           marks:
             a.kind === "tap"
               ? [
-                  ...ex.marks,
-                  ...taps.filter(t => !a.correct.some(c => same(c, t))).map(p => ({ pos: p, kind: "wrong" as const })),
+                  // 全部押す問題は、答えでない点（問題で見せた点・音の並び）を薄くして、答えの点を目立たせる
+                  ...ex.marks.map(m =>
+                    a.mode === "all" && !a.correct.some(c => same(c, m.pos)) ? { ...m, dim: true } : m,
+                  ),
+                  ...wrongMarks,
                 ]
               : ex.marks,
         }
@@ -448,7 +467,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             barres: board?.barres,
             marks:
               a.kind === "tap" && result
-                ? [...(board?.marks ?? []), ...tapMarks(a.correct, taps)]
+                ? [...(board?.marks ?? []), ...tapMarks(a.correct, taps), ...wrongMarks]
                 : hintMarks.length
                   ? [...hintMarks, ...(board?.marks ?? [])]
                   : board?.marks,
@@ -546,7 +565,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       ? `正解${hinted ? "（ヒントあり）" : ""}：${a.kind === "choice" ? a.correct : "全部合っています"}`
       : a.kind === "choice"
         ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
-        : `不正解：正解は図の点${taps.some(t => !a.correct.some(c => same(c, t))) ? "（赤は押し間違い）" : ""}`;
+        : a.mode === "all"
+          ? `不正解：${[
+              missed.length && `押し忘れ ${missed.length}`,
+              wrongTaps.length && `押し間違い ${wrongTaps.length}`,
+            ]
+              .filter(Boolean)
+              .join("・")}`
+          : "不正解：赤が押したところ";
   // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
   const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
   const feedbackLine =
@@ -586,8 +612,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           {topic.title}
         </h1>
         {/* 参考はホームの行から外したので、ここから（解いている途中でも重ねて開ける） */}
-        {topic.reference && (
-          <button class="bar-link link-btn" onClick={() => setRefOpen(true)} aria-label={`${topic.title}の参考を見る`}>
+        {refTopic.reference && (
+          <button
+            class="bar-link link-btn"
+            onClick={() => setRefOpen(true)}
+            aria-label={`${refTopic.title}の参考を見る`}
+          >
             参考
           </button>
         )}
@@ -610,9 +640,11 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       <section
         class={`question${result ? " answered" : ""}${tall ? " tall" : ""}${keep ? " keep" : ""}${isSnug ? " snug" : ""}`}
       >
-        {topic.sourceOf && <p class="q-source">{topic.sourceOf(q.item)}</p>}
+        {refTopic !== topic && <p class="q-source">{refTopic.title}</p>}
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
+          {/* 答え方は問いと分けて小さく（問いが埋もれないように。読み上げは問いに続けて） */}
+          {q.prompt.how && <span class="prompt-how">{q.prompt.how}</span>}
         </p>
         {/* 図の無い問題のヒントは、問題文のすぐ下（開くと同じ場所に文が出る） */}
         {q.hint && !shown && (
@@ -630,15 +662,19 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               lefty={ctx.common.lefty}
               {...shown}
               scale={scale}
-              label={result && q.explanation ? q.explanation.text : q.prompt.text}
+              label={
+                result && q.explanation ? q.explanation.text : [q.prompt.text, q.prompt.how].filter(Boolean).join("。")
+              }
               selected={
                 result && ex && a.kind === "choice"
                   ? (board?.marks ?? []).filter(m => m.kind === "target").map(m => m.pos)
                   : result
-                    ? // 答えたあとは開放の ○ を消す（正解の点と重なって読みにくい）
-                      taps.filter(t => t.fret !== 0)
+                    ? // 答えたあとは押したところを輪で出さない（正解の点・押し間違いの赤・押し忘れの点線で見せる）
+                      []
                     : taps
               }
+              missed={missed}
+              mutedWrong={mutedWrong}
               tapStrings={tapping && a.kind === "tap" ? a.strings : undefined}
               tapFrets={tapping && a.kind === "tap" ? a.frets : undefined}
               onTap={tapping ? tap : undefined}
@@ -689,12 +725,13 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             )}
             {a.kind === "tap" && a.mode === "all" && (
               <div class="actions">
+                {/* 開放から始める問題は、最初から開放を押した状態なので数を出さない（押していないのに 6 と出る） */}
                 <button
                   class="btn primary"
                   disabled={taps.length === 0}
                   onClick={() => submit({ kind: "tap", positions: taps })}
                 >
-                  答え合わせ（{taps.length}）
+                  {openDefault ? "答え合わせ" : `答え合わせ（${taps.length}）`}
                 </button>
                 {q.hint && hintInRow && hintButton}
               </div>
@@ -709,6 +746,14 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             <p class={`feedback-line ${result ? (result.ok ? "ok" : "ng") : ""}`} aria-hidden="true">
               {feedbackLine ?? "\u3000"}
             </p>
+            {/* 全部押す問題で間違えたときの図の見方（行を短く保つため、正誤の行とは分ける） */}
+            {result && !result.ok && a.kind === "tap" && a.mode === "all" && (
+              <p class="feedback-legend muted small" aria-hidden="true">
+                {[missed.length && "点線の輪＝押し忘れ", wrongTaps.length && "赤＝押し間違い"]
+                  .filter(Boolean)
+                  .join("　")}
+              </p>
+            )}
             <section class="explain">
               {q.explanation?.strip && (
                 <ol class="strip" aria-label={q.explanation.stripLabel}>
@@ -730,9 +775,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 </ol>
               )}
               {q.explanation?.text && !tall && <p>{q.explanation.text}</p>}
-              {(topic.reference || q.chart) && (
+              {(refTopic.reference || q.chart) && (
                 <div class="explain-links">
-                  {topic.reference && (
+                  {refTopic.reference && (
                     <button class="link-btn" onClick={() => setRefOpen(true)}>
                       参考を見る
                     </button>
@@ -754,7 +799,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           </div>
         )}
       </div>
-      {refOpen && <ReferenceSheet topic={topic} ctx={ctx} onClose={() => setRefOpen(false)} />}
+      {refOpen && <ReferenceSheet topic={refTopic} ctx={refCtx} onClose={() => setRefOpen(false)} />}
       {/* 正誤の読み上げ（見た目の行は上の feedback-line） */}
       <div class="feedback sr-only" aria-live="assertive">
         {result && `${feedback}${!result.ok && a.kind === "tap" ? `（${correctText}）` : ""}`}

@@ -71,6 +71,10 @@ export function Home({ now = Date.now() }: { now?: number }) {
             <p class="today-count">
               <strong>{due}</strong> 問<span class="muted">（{dueTopics} 分野）</span>
             </p>
+            {/* 1 回で解く数は設定の問題数まで。押して「1/20」と出て戸惑わないように、先に言っておく */}
+            {due > data.settings.sessionSize && (
+              <p class="muted small">1 回 {data.settings.sessionSize} 問ずつ。終えると残りがここに出ます。</p>
+            )}
             <a class="btn primary" href={href({ name: "drill", topicId: REVIEW_ID })}>
               復習を始める
             </a>

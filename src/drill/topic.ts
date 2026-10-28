@@ -23,8 +23,11 @@ export interface Mark {
   readonly label?: string;
   /** root = ルート、tone = そのほかの音、target = 問われている点、hint = 薄く出す参考の点、
       ok / wrong = 答え合わせ（正しく押した点／押し間違えた点）、
-      open / openRoot = コードの押さえ方で鳴らす開放弦（白抜きの ○。openRoot はルート） */
-  readonly kind: "root" | "tone" | "target" | "hint" | "ok" | "wrong" | "open" | "openRoot";
+      open / openRoot = コードの押さえ方で鳴らす開放弦（白抜きの ○。openRoot はルート）、
+      wrongOpen = 開放のままにして間違えた弦（赤い ○） */
+  readonly kind: "root" | "tone" | "target" | "hint" | "ok" | "wrong" | "wrongOpen" | "open" | "openRoot";
+  /** 薄く出す（答え合わせで、答えでない点） */
+  readonly dim?: boolean;
 }
 
 /** 指で押さえるバレー（セーハ）。low〜high 弦を fret で */
@@ -54,7 +57,10 @@ export interface StripItem {
 }
 
 export interface Prompt {
+  /** 問い（大きく出す） */
   readonly text: string;
+  /** 答え方（「全部タップ（2 か所）」など。問いの下に小さく出す） */
+  readonly how?: string;
   readonly board?: Board;
   /** 解説で文字の前に出す札の並び */
   readonly strip?: readonly StripItem[];
@@ -158,8 +164,8 @@ export interface Topic<S = Record<string, never>> {
   recordKey?(item: ItemId): string;
   /** 1 回の問題数を item の数までにする（繰り返して埋めない） */
   readonly fitSize?: boolean;
-  /** 問題の上に小さく出す、その item の出どころ（今日の復習で、どの分野の問題か） */
-  sourceOf?(item: ItemId): string;
+  /** その item の出どころの分野（今日の復習で、どの分野の問題か）。名前を問題の上に小さく出し、参考はその分野のものを開く */
+  sourceOf?(item: ItemId): Topic<any>;
   /** 出せる問題が無いときの文 */
   readonly emptyText?: string;
 }

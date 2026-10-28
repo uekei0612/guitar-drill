@@ -139,7 +139,8 @@ export const intervals: Topic = {
       return {
         item: id,
         prompt: {
-          text: `R から ${label}（${intervalName(degree(d))}）の位置をタップ（どのオクターブでもよい）`,
+          text: `R から ${label}（${intervalName(degree(d))}）はどこ？`,
+          how: "タップで答える（どのオクターブでもよい）",
           board: { range, marks: [rootMark] },
         },
         answer: { kind: "tap", mode: "any", range, correct: targets },

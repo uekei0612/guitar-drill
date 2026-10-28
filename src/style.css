@@ -221,6 +221,24 @@ main {
 .fb-mark--wrong circle {
   fill: var(--fb-wrong);
 }
+.fb-mark--wrongOpen circle {
+  fill: var(--fb-board);
+  stroke: var(--fb-wrong);
+  stroke-width: 3;
+}
+.fb-mark.dim {
+  opacity: 0.3;
+}
+/* 押し忘れた正解：点線の輪（押し間違いの赤い塗りと形でも分ける） */
+.fb-missed {
+  fill: none;
+  stroke: var(--fb-wrong);
+  stroke-width: 3;
+  stroke-dasharray: 5 4;
+}
+.fb-muted.wrong {
+  fill: var(--fb-wrong);
+}
 .fb-selected {
   fill: none;
   stroke: var(--fb-root);
@@ -402,6 +420,12 @@ input:focus-visible {
 }
 .prompt:focus {
   outline: none;
+}
+.prompt-how {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 /* ヒントのボタンは図のすぐ下（右寄せ）。開くと同じ場所に文が出る */
 .drill-screen.fill .board-wrap.with-hint {
@@ -719,6 +743,9 @@ main:has(.drill-screen.fill) {
   font-weight: 600;
   margin: 8px 0;
 }
+.feedback-legend {
+  margin: -4px 0 6px;
+}
 /* 印は見た目だけ（読み上げは「正解」「不正解」の文で足りる） */
 .feedback-line.ok::before,
 .feedback-line.ng::before {
@@ -753,8 +780,11 @@ main:has(.drill-screen.fill) {
   flex: 1 1 auto;
   min-height: 50px;
 }
+/* 押せない主ボタンは、色を薄めずに灰色の普通のボタンにする（暗色で薄めると茶色に暗い字になって読めない） */
 .btn.primary:disabled {
-  opacity: 0.45;
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
 }
 /* 1 画面に収まらない問題（12 フレットまでを全部タップなど）：マスの 44px を保つためにスクロールさせるが、
    「答え合わせ」は画面の下に固定して、いつでも押せるようにする */
@@ -1123,9 +1153,8 @@ main.with-tabs {
   justify-content: center;
   padding: 0 max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left));
   border-top: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  /* 透かすと下の文字がタブの名前に重なって読みにくいので、背景で塗る */
+  background: var(--bg);
 }
 .tab {
   flex: 0 1 8rem;

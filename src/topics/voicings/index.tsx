@@ -219,7 +219,8 @@ export const voicings: Topic = {
       return {
         item: id,
         prompt: {
-          text: `${v.name}で ${chord} を作る。R 以外の ${shape.positions.length - 1} 音をタップ`,
+          text: `${v.name}で ${chord} を作る`,
+          how: `R 以外の ${shape.positions.length - 1} 音をタップ`,
           board: { range, marks: [full[0]!] },
         },
         answer: { kind: "tap", mode: "all", range, correct: shape.positions.slice(1) },

@@ -72,6 +72,8 @@ export interface LayoutOptions {
   readonly headLabels?: boolean;
   /** 縦向きで開放の欄が無いときも、ナット側に × などを書く帯を取る */
   readonly headRow?: boolean;
+  /** 縦向きで、弦ごとの札を下だけでなく上（ナット側）にも置く（長い図で、最初の画面から何弦か読めるように） */
+  readonly labelsBothEnds?: boolean;
 }
 
 export const chooseOrientation = (range: FretRange): Orientation =>
@@ -85,7 +87,7 @@ export function layout(
   range: FretRange,
   lefty: boolean,
   orientation: Orientation = chooseOrientation(range),
-  { headLabels = true, headRow = false }: LayoutOptions = {},
+  { headLabels = true, headRow = false, labelsBothEnds = false }: LayoutOptions = {},
 ): Layout {
   const horizontal = orientation === "horizontal";
   const n = range.maxFret - range.minFret + 1;
@@ -103,7 +105,8 @@ export function layout(
   const headPad = horizontal && headLabels ? LABEL : 0;
   const hasOpen = range.minFret === 0;
   const topPad = !horizontal && headRow && !hasOpen ? LABEL : 0;
-  const along0 = PAD + topPad + (flipAlong ? 0 : headPad);
+  const namePad = !horizontal && labelsBothEnds ? LABEL : 0;
+  const along0 = PAD + namePad + topPad + (flipAlong ? 0 : headPad);
   const across0 = horizontal ? PAD : LABEL;
   const alongEnd = along0 + n * AL;
 
@@ -164,8 +167,10 @@ export function layout(
     const f = range.minFret + a;
     if (INLAYS.includes(f)) inlays.push(pt(alongMid(a), mid));
     if (DOUBLE_INLAYS.includes(f)) inlays.push(pt(alongMid(a), mid - AC), pt(alongMid(a), mid + AC));
-    // フレット番号：ポジションマークのあるフレットと、範囲の最初のフレット
-    if (INLAYS.includes(f) || DOUBLE_INLAYS.includes(f) || (a === 0 && !hasOpen))
+    // フレット番号：ポジションマークのあるフレットと、範囲の最初のフレット。
+    // 横向きで最初のフレットのすぐ隣の番号は書かない（「6 7」と詰まって読みにくい。点は残る）
+    const nextToStart = horizontal && a === 1 && !hasOpen;
+    if (((INLAYS.includes(f) || DOUBLE_INLAYS.includes(f)) && !nextToStart) || (a === 0 && !hasOpen))
       fretLabels.push({ ...pt(alongMid(a), horizontal ? across0 + strings * AC + LABEL / 2 : LABEL / 2), fret: f });
   }
 
@@ -173,7 +178,12 @@ export function layout(
   const stringLabels =
     horizontal && !headLabels
       ? []
-      : Array.from({ length: strings }, (_, s) => ({ ...pt(labelAlong, acrossMid(s)), string: s + 1 }));
+      : [
+          ...Array.from({ length: strings }, (_, s) => ({ ...pt(labelAlong, acrossMid(s)), string: s + 1 })),
+          ...(namePad
+            ? Array.from({ length: strings }, (_, s) => ({ ...pt(PAD + namePad / 2, acrossMid(s)), string: s + 1 }))
+            : []),
+        ];
 
   const span = (lo: number, hi: number) => {
     const a1 = Math.max(lo, range.minFret) - range.minFret,

@@ -63,6 +63,21 @@ describe("layout", () => {
     expect(layout(6, box, false, "horizontal", { headLabels: false }).stringLabels).toEqual([]);
   });
 
+  it("縦向きで弦の札を上にも置くと、上下に 1 本ずつ、上の札は点より上", () => {
+    const L = layout(6, full, false, "vertical", { labelsBothEnds: true });
+    const plain = layout(6, full, false, "vertical");
+    expect(L.stringLabels).toHaveLength(12);
+    expect(L.height).toBeGreaterThan(plain.height);
+    const top = Math.min(...L.stringLabels.map(l => l.y));
+    expect(top + L.r).toBeLessThanOrEqual(Math.min(...L.cells.map(c => c.c.y - L.r)) + L.r);
+  });
+
+  it("横向きで最初のフレットのすぐ隣のポジションマークは番号を書かない（6 と 7 が詰まる）", () => {
+    const L = layout(6, { minFret: 6, maxFret: 10 }, false, "horizontal");
+    expect(L.fretLabels.map(f => f.fret)).toEqual([6, 9]);
+    expect(L.inlays).toHaveLength(2);
+  });
+
   it("点はすべて図の中", () => {
     for (const [r, lefty] of [
       [full, false],
