@@ -221,6 +221,24 @@ main {
 .fb-mark--wrong circle {
   fill: var(--fb-wrong);
 }
+.fb-mark--wrongOpen circle {
+  fill: var(--fb-board);
+  stroke: var(--fb-wrong);
+  stroke-width: 3;
+}
+.fb-mark.dim {
+  opacity: 0.3;
+}
+/* 押し忘れた正解：点線の輪（押し間違いの赤い塗りと形でも分ける） */
+.fb-missed {
+  fill: none;
+  stroke: var(--fb-wrong);
+  stroke-width: 3;
+  stroke-dasharray: 5 4;
+}
+.fb-muted.wrong {
+  fill: var(--fb-wrong);
+}
 .fb-selected {
   fill: none;
   stroke: var(--fb-root);
@@ -718,6 +736,9 @@ main:has(.drill-screen.fill) {
 .feedback-line {
   font-weight: 600;
   margin: 8px 0;
+}
+.feedback-legend {
+  margin: -4px 0 6px;
 }
 /* 印は見た目だけ（読み上げは「正解」「不正解」の文で足りる） */
 .feedback-line.ok::before,
