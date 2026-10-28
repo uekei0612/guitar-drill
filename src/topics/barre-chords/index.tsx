@@ -198,7 +198,8 @@ export const barreChords: Topic<BarreChordsSettings> = {
       return {
         item: id,
         prompt: {
-          text: `${formName(f.rootString)}で ${name} を押さえる（ルートは ${f.rootString}弦 ${fret}フレット）。ほかに押さえるマスを全部タップ`,
+          text: `${formName(f.rootString)}で ${name} を押さえる`,
+          how: `ルートは ${f.rootString}弦 ${fret}フレット。ほかに押さえるマスを全部タップ`,
           board: {
             range: shapeRange(s),
             marks: [{ pos: rootPos, kind: "root", label: "R" }],

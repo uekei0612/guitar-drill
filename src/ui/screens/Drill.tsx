@@ -636,6 +636,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         {topic.sourceOf && <p class="q-source">{topic.sourceOf(q.item)}</p>}
         <p class="prompt" ref={promptRef} tabIndex={-1}>
           {q.prompt.text}
+          {/* 答え方は問いと分けて小さく（問いが埋もれないように。読み上げは問いに続けて） */}
+          {q.prompt.how && <span class="prompt-how">{q.prompt.how}</span>}
         </p>
         {/* 図の無い問題のヒントは、問題文のすぐ下（開くと同じ場所に文が出る） */}
         {q.hint && !shown && (
@@ -653,7 +655,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               lefty={ctx.common.lefty}
               {...shown}
               scale={scale}
-              label={result && q.explanation ? q.explanation.text : q.prompt.text}
+              label={
+                result && q.explanation ? q.explanation.text : [q.prompt.text, q.prompt.how].filter(Boolean).join("。")
+              }
               selected={
                 result && ex && a.kind === "choice"
                   ? (board?.marks ?? []).filter(m => m.kind === "target").map(m => m.pos)

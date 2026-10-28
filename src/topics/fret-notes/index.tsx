@@ -229,7 +229,8 @@ export const fretNotes: Topic<FretNotesSettings> = {
     return {
       item: id,
       prompt: {
-        text: `${stringLabel(strings)}（${s.maxFret}フレットまで）の ${name} を全部タップ（${correct.length} か所）`,
+        text: `${stringLabel(strings)}（${s.maxFret}フレットまで）の ${name} はどこ？`,
+        how: `全部タップ（${correct.length} か所）`,
       },
       answer: { kind: "tap", mode: "all", range, correct, strings },
       // いちばん低い 1 か所を見せて、残りはオクターブの形で探させる

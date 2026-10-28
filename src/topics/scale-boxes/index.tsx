@@ -172,7 +172,10 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
     if (kind === "roots")
       return {
         ...base,
-        prompt: { text: `${title}：R（${rootName(scale, rootPc)}）を全部タップ（${roots.length} か所）` },
+        prompt: {
+          text: `${title}：R（${rootName(scale, rootPc)}）はどこ？`,
+          how: `全部タップ（${roots.length} か所）`,
+        },
         answer: { kind: "tap", mode: "all", range, correct: roots.map(n => n.pos) },
         // いちばん低い R を見せて、残りはオクターブの形で
         hint: {
@@ -186,7 +189,8 @@ export const scaleBoxes: Topic<ScaleBoxSettings> = {
       return {
         ...base,
         prompt: {
-          text: `${title}：抜けている音を全部タップ（${hidden.length} か所）`,
+          text: `${title}：抜けている音は？`,
+          how: `全部タップ（${hidden.length} か所）`,
           board: { range, marks: toMarks(shown) },
         },
         answer: { kind: "tap", mode: "all", range, correct: hidden.map(n => n.pos) },

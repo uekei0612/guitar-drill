@@ -159,7 +159,8 @@ export const openChords: Topic<OpenChordsSettings> = {
       return {
         item: id,
         prompt: {
-          text: `${name} を押さえる：押さえるマスをタップ（○ は開放。○ を押すと × ＝鳴らさない）`,
+          text: `${name} を押さえる`,
+          how: "押さえるマスをタップ（○ を押すと × ＝鳴らさない）",
         },
         answer: {
           kind: "tap",
