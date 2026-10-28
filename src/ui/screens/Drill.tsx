@@ -569,7 +569,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             ]
               .filter(Boolean)
               .join("・")}`
-          : `不正解：正解は図の点${wrongTaps.length ? "（赤は押し間違い）" : ""}`;
+          : "不正解：赤が押したところ";
   // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
   const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
   const feedbackLine =

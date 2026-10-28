@@ -38,6 +38,16 @@ describe("開放弦の音名", () => {
     expect(a.answer).toMatchObject({ kind: "tap", mode: "any", correct: [{ string: 5, fret: 0 }] });
   });
 
+  it("解説の図では、聞かれた弦だけ色を変える", () => {
+    const rooted = (id: string) =>
+      openStrings
+        .question(id, ctxOf("standard"), seeded(1))
+        .explanation!.board!.marks.filter(m => m.kind === "root")
+        .map(m => m.pos.string);
+    expect(rooted("standard:name:4")).toEqual([4]);
+    expect(rooted("standard:string:E")).toEqual([1, 6]);
+  });
+
   it("半音下げは ♭ で答える", () => {
     const q = openStrings.question("half_step_down:name:6", ctxOf("half_step_down"), seeded(1));
     expect(q.answer).toMatchObject({ kind: "choice", correct: "E♭" });

@@ -39,12 +39,13 @@ function parseItem(id: string): Item {
   return kind === "name" ? { kind, string: Number(x) } : { kind: "string", note: x! };
 }
 
-function openBoard(t: Tuning) {
+/** 解説の図：全部の弦の開放の音。聞かれた弦（focus）は色を変えて目立たせる */
+function openBoard(t: Tuning, focus: readonly number[]) {
   return {
     range: RANGE,
     marks: Array.from({ length: stringCount(t) }, (_, i) => ({
       pos: { string: i + 1, fret: 0 },
-      kind: "tone" as const,
+      kind: focus.includes(i + 1) ? ("root" as const) : ("tone" as const),
       label: fmt(openNote(t, i + 1)),
     })),
   };
@@ -83,7 +84,10 @@ export const openStrings: Topic = {
         },
         answer: { kind: "choice", options: shuffle(rng, [correct, ...others]), correct },
         hint: { text: neighborHint(t, it.string) },
-        explanation: { text: `${t.name}：${stringCount(t)}弦から ${t.open.map(fmt).join(" ")}`, board: openBoard(t) },
+        explanation: {
+          text: `${t.name}：${stringCount(t)}弦から ${t.open.map(fmt).join(" ")}`,
+          board: openBoard(t, [it.string]),
+        },
         sound: openSound(t, [it.string]),
       };
     }
@@ -108,7 +112,7 @@ export const openStrings: Topic = {
           .map(s => (strings.includes(s) ? "?" : fmt(openNote(t, s))))
           .join(" ")}`,
       },
-      explanation: { text: `${fmt(n)} は ${strings.map(s => `${s}弦`).join("と")}`, board: openBoard(t) },
+      explanation: { text: `${fmt(n)} は ${strings.map(s => `${s}弦`).join("と")}`, board: openBoard(t, strings) },
       sound: openSound(t, strings),
     };
   },
@@ -125,7 +129,7 @@ export const openStrings: Topic = {
           range={RANGE}
           lefty={ctx.common.lefty}
           label={`${t.name}の開放弦`}
-          marks={openBoard(t).marks}
+          marks={openBoard(t, []).marks}
         />
         <table class="ref-table">
           <thead>
