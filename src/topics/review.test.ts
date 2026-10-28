@@ -51,6 +51,6 @@ describe("今日の復習", () => {
     expect(items.map(id => recordKeyOf(r, id))).toEqual([`open-strings/${a}`, `fret-notes/${b}`]);
     const q = r.question(items[1]!, contextOf(r, st.data.settings), seeded(1));
     expect(q.item).toBe(items[1]);
-    expect(r.sourceOf?.(items[1]!)).toBe(fret.title);
+    expect(r.sourceOf?.(items[1]!)).toBe(fret);
   });
 });

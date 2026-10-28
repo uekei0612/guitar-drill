@@ -72,6 +72,12 @@ describe("layout", () => {
     expect(top + L.r).toBeLessThanOrEqual(Math.min(...L.cells.map(c => c.c.y - L.r)) + L.r);
   });
 
+  it("横向きで最初のフレットのすぐ隣のポジションマークは番号を書かない（6 と 7 が詰まる）", () => {
+    const L = layout(6, { minFret: 6, maxFret: 10 }, false, "horizontal");
+    expect(L.fretLabels.map(f => f.fret)).toEqual([6, 9]);
+    expect(L.inlays).toHaveLength(2);
+  });
+
   it("点はすべて図の中", () => {
     for (const [r, lefty] of [
       [full, false],

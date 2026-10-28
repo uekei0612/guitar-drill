@@ -285,7 +285,8 @@ export function Chart({ query }: { query: string }) {
                   only: JSON.stringify({ scales: [s.scale], roots: [s.root] }),
                 })}
               >
-                このボックスをドリルで確かめる
+                {/* ボックスを出していないときは「この」ボックスが無いので、キーで言う */}
+                {s.caged ? "このボックスをドリルで確かめる" : "このキーのボックスをドリルで確かめる"}
               </a>
             </div>
           )}
