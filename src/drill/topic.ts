@@ -57,7 +57,10 @@ export interface StripItem {
 }
 
 export interface Prompt {
+  /** 問い（大きく出す） */
   readonly text: string;
+  /** 答え方（「全部タップ（2 か所）」など。問いの下に小さく出す） */
+  readonly how?: string;
   readonly board?: Board;
   /** 解説で文字の前に出す札の並び */
   readonly strip?: readonly StripItem[];

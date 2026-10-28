@@ -92,10 +92,8 @@ export const openStrings: Topic = {
     return {
       item: id,
       prompt: {
-        text:
-          strings.length > 1
-            ? `開放弦が ${fmt(n)} の弦を全部タップ（${strings.length} 本）`
-            : `開放弦が ${fmt(n)} の弦をタップ`,
+        text: `開放弦が ${fmt(n)} の弦は？`,
+        how: strings.length > 1 ? `全部タップ（${strings.length} 本）` : "タップで答える",
       },
       answer: {
         kind: "tap",

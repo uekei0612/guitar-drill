@@ -421,6 +421,12 @@ input:focus-visible {
 .prompt:focus {
   outline: none;
 }
+.prompt-how {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
 /* ヒントのボタンは図のすぐ下（右寄せ）。開くと同じ場所に文が出る */
 .drill-screen.fill .board-wrap.with-hint {
   flex-direction: column;
