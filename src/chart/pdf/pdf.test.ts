@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CHART } from "../state";
-import { buildPdfPages, pageCount, pdfBoxes, pdfFileName } from "./build";
+import { buildPdfPages, keysPerPage, keysPerPageChoices, pageCount, pdfBoxes, pdfFileName } from "./build";
 import { renderPdf } from "./render-pdf";
 import type { Page } from "./page";
 import { pdfText } from "./page";
@@ -22,9 +22,25 @@ describe("PDF の組み立て", () => {
   });
 
   it("アルペジオにはボックス図を出さない。キー数でページ数が変わる", () => {
-    const arp = { ...DEFAULT_CHART, chartType: "arpeggio" as const, arpeggio: "dominant_7", keysPerPage: 6 };
-    expect(pageCount(arp)).toBe(1 + 2);
+    const arp = { ...DEFAULT_CHART, chartType: "arpeggio" as const, arpeggio: "dominant_7", keysPerPage: 4 };
+    expect(pageCount(arp)).toBe(1 + 3);
     expect(texts(buildPdfPages(arp)[0]!)).toContain("Dominant 7th Arpeggio — Full Fretboard with Degrees");
+  });
+
+  it("1 ページのキー数は、点が重ならない数まで（弦が多いと減る）", () => {
+    expect(keysPerPageChoices(DEFAULT_CHART)).toEqual([1, 2, 3, 4]);
+    const seven = { ...DEFAULT_CHART, tuning: "custom", customTuning: [11, 4, 9, 2, 7, 11, 4], keysPerPage: 4 };
+    expect(keysPerPageChoices(seven)).toEqual([1, 2, 3]);
+    expect(keysPerPage(seven)).toBe(3);
+    expect(pageCount({ ...seven, includeBoxes: false, includeDegrees: false })).toBe(4);
+    // 各段の弦の間隔は、いちばん小さい点 2 つぶんより広い
+    for (const s of [DEFAULT_CHART, seven]) {
+      const page = buildPdfPages({ ...s, includeBoxes: false, includeDegrees: false })[0]!;
+      const ys = [...new Set(page.shapes.flatMap(x => (x.t === "circle" && x.r > 6 ? [Math.round(x.cy * 10)] : [])))];
+      ys.sort((a, b) => a - b);
+      const gaps = ys.slice(1).map((y, i) => (y - ys[i]!) / 10);
+      expect(Math.min(...gaps)).toBeGreaterThan(2 * 2.4 * (72 / 25.4));
+    }
   });
 
   it("ボックス図の番号と、根音の弦の説明（guitar_chart と同じ）", () => {

@@ -2,7 +2,7 @@
    状態は URL（#/chart?…、guitar_chart と同じパラメーター）に持つので、リロードやリンクで同じ図に戻る。 */
 import { useEffect, useState } from "preact/hooks";
 import { playAscending } from "../../chart/audio";
-import { buildPdfPages, pageCount, pdfFileName, pdfPlan } from "../../chart/pdf/build";
+import { buildPdfPages, keysPerPage, keysPerPageChoices, pageCount, pdfFileName, pdfPlan } from "../../chart/pdf/build";
 import { boxesForOpen, playableSpan } from "../../chart/boxes";
 import { CHART_ARPEGGIOS, CHART_SCALES, CHROMATIC_DEGREES } from "../../chart/registry";
 import {
@@ -423,17 +423,22 @@ export function Chart({ query }: { query: string }) {
             <label class="field">
               <span>1 ページあたりのキー数</span>
               <select
-                value={s.keysPerPage}
+                value={keysPerPage(s)}
                 disabled={!s.includeAllKeys}
                 onChange={e => set({ keysPerPage: Number(e.currentTarget.value) })}
               >
-                {KEYS_PER_PAGE.map(k => (
+                {keysPerPageChoices(s).map(k => (
                   <option key={k} value={k}>
                     {k} キー（{Math.ceil(12 / k)} ページ）
                   </option>
                 ))}
               </select>
             </label>
+            {keysPerPageChoices(s).length < KEYS_PER_PAGE.length && (
+              <p class="muted small">
+                弦が多いので、点が重ならないよう 1 ページ {keysPerPageChoices(s).length} キーまでにしています。
+              </p>
+            )}
           </fieldset>
           {(() => {
             const plan = pdfPlan(s);

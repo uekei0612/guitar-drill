@@ -2,9 +2,16 @@
    順番はボックス図 → 度数付き全指板 → 全 12 キー。 */
 import { mod, pc, tuningById } from "../../theory";
 import { computeBoxRanges } from "../boxes";
-import { type ChartState, chartOf, tuningPcs } from "../state";
+import { type ChartState, KEYS_PER_PAGE, chartOf, tuningPcs } from "../state";
 import { Canvas, type Page } from "./page";
-import { type Ctx, type Subject, sectionAllKeys, sectionBoxPositions, sectionFullWithDegrees } from "./sections";
+import {
+  type Ctx,
+  type Subject,
+  maxKeysPerPage,
+  sectionAllKeys,
+  sectionBoxPositions,
+  sectionFullWithDegrees,
+} from "./sections";
 
 const STANDARD = tuningById("standard")!.open.map(pc);
 
@@ -45,9 +52,18 @@ export function pdfBoxes(s: ChartState) {
   return { boxRoot: s.root, boxRanges: computed, degreeRanges: computed };
 }
 
+/** 選べる 1 ページのキー数（弦が多いと、多く並べると点が重なるので減らす） */
+export const keysPerPageChoices = (s: ChartState): number[] => {
+  const max = maxKeysPerPage(tuningPcs(s).length, KEYS_PER_PAGE);
+  return KEYS_PER_PAGE.filter(k => k <= max);
+};
+
+/** 実際に使う 1 ページのキー数（選んだ数が今の弦の数では入らなければ、入る数まで減らす） */
+export const keysPerPage = (s: ChartState): number => Math.min(s.keysPerPage, Math.max(...keysPerPageChoices(s)));
+
 export const pageCount = (s: ChartState): number => {
   const p = pdfPlan(s);
-  return (p.boxes ? 1 : 0) + (p.degrees ? 1 : 0) + (p.allKeys ? Math.ceil(12 / s.keysPerPage) : 0);
+  return (p.boxes ? 1 : 0) + (p.degrees ? 1 : 0) + (p.allKeys ? Math.ceil(12 / keysPerPage(s)) : 0);
 };
 
 export function buildPdfPages(s: ChartState): Page[] {
@@ -67,7 +83,7 @@ export function buildPdfPages(s: ChartState): Page[] {
   }
   if (plan.allKeys) {
     ctx.sectionName = "Section: All 12 keys";
-    sectionAllKeys(c, subject, ctx, s.keysPerPage);
+    sectionAllKeys(c, subject, ctx, keysPerPage(s));
   }
   return c.pages;
 }

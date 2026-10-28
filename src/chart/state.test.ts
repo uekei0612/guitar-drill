@@ -52,6 +52,8 @@ describe("チャートの状態", () => {
       new URLSearchParams("chart_type=x&scale=nope&root=H&tuning=custom&strings=E,A&capo=99&box=7&kpp=0"),
     );
     expect(s).toEqual({ ...DEFAULT_CHART });
+    // 前の版の 6・12 キーのリンクは、選べるいちばん多い数にする
+    expect(fromParams(new URLSearchParams("kpp=12")).keysPerPage).toBe(4);
   });
 
   it("度数のタップ：足す・外すとカスタムになり、R と 2 音未満は守る", () => {

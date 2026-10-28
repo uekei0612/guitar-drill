@@ -54,7 +54,8 @@ export const DEFAULT_CHART: ChartState = {
 };
 
 export const MAX_CAPO = 12;
-export const KEYS_PER_PAGE = [1, 2, 3, 4, 6, 12] as const;
+/** 1 ページのキー数の選択肢（5 以上は A4 横に入れると点が重なって読めない） */
+export const KEYS_PER_PAGE = [1, 2, 3, 4] as const;
 
 /** ルートや開放弦の表示名（♭表記の切り替えだけ。綴りの理論は使わない：guitar_chart と同じ） */
 export const noteName = (p: number, flat: boolean): string =>
@@ -144,7 +145,7 @@ export function fromParams(p: URLSearchParams, base: ChartState = DEFAULT_CHART)
     includeAllKeys: p.get("allkeys") !== "0",
   };
   const kpp = Number.parseInt(p.get("kpp") ?? "", 10);
-  if (kpp >= 1 && kpp <= 12) s = { ...s, keysPerPage: kpp };
+  if (kpp >= 1) s = { ...s, keysPerPage: Math.min(kpp, Math.max(...KEYS_PER_PAGE)) };
   return s;
 }
 
