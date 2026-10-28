@@ -120,6 +120,7 @@ function explain(t: Tuning, f: BarreForm, root: Note) {
       `${nameOf(root, f.type)}：${formName(f.rootString)}、ルートは ${f.rootString}弦 ${fret}フレット（開放の ${fmt(openNote(t, f.rootString))} から半音 ${fret} つ）`,
       `押さえ方（6弦→1弦）：${tabText(s)}`,
       `鳴る音の度数（低い弦から）：${degreesText(t, s, root, type)}`,
+      `オレンジの点がルート（${fmt(root)}）`,
     ].join("\n"),
     board: shapeBoard(t, s, root, type, "finger"),
   };

@@ -6,7 +6,7 @@ import { seeded } from "../../drill/rng";
 import type { Topic } from "../../drill/topic";
 import { Store, memoryStorage } from "../../store/store";
 import { playSound } from "../../chart/audio";
-import { AUTO_NEXT_MS, Drill } from "./Drill";
+import { Drill } from "./Drill";
 
 vi.mock("../../chart/audio", async orig => ({ ...(await orig<object>()), playSound: vi.fn() }));
 
@@ -106,6 +106,8 @@ describe("Drill", () => {
     vi.useFakeTimers();
     try {
       const st = new Store(memoryStorage());
+      // 進むまでの時間は設定で変えられる
+      st.update(d => ({ ...d, settings: { ...d.settings, autoNextMs: 2000 } }));
       const el = document.body.appendChild(document.createElement("div"));
       const choices: Topic = { ...topic, items: () => ["a", "b"] };
       await act(() => render(<Drill topic={choices} store={st} rng={seeded(1)} clock={() => 0} />, el));
@@ -114,12 +116,14 @@ describe("Drill", () => {
       const n = [...el.querySelectorAll(".choice")].findIndex(b => label(b) === id) + 1;
       await act(() => void dispatchEvent(new KeyboardEvent("keydown", { key: String(n) })));
       expect(el.querySelector(".feedback-line")!.textContent).toMatch(/^正解/);
-      await act(() => void vi.advanceTimersByTime(AUTO_NEXT_MS));
+      await act(() => void vi.advanceTimersByTime(1999));
+      expect(progress()).toMatch(/^1\//);
+      await act(() => void vi.advanceTimersByTime(1));
       expect(progress()).toMatch(/^2\//);
       // 不正解は自動で進まない
       const id2 = el.querySelector(".prompt")!.textContent![0]!;
       await click(button(el, id2 === "a" ? "b" : "a"));
-      await act(() => void vi.advanceTimersByTime(AUTO_NEXT_MS * 3));
+      await act(() => void vi.advanceTimersByTime(6000));
       expect(progress()).toMatch(/^2\//);
     } finally {
       vi.useRealTimers();

@@ -10,9 +10,9 @@ describe("schema", () => {
   it("壊れた値・知らない値は既定値に戻す", () => {
     expect(parseData(null)).toEqual(emptyData());
     expect(parseData("x")).toEqual(emptyData());
-    expect(parseSettings({ tuning: "nope", lefty: "yes", theme: "pink", sessionSize: 7, topics: [] })).toEqual(
-      DEFAULT_SETTINGS,
-    );
+    expect(
+      parseSettings({ tuning: "nope", lefty: "yes", theme: "pink", sessionSize: 7, autoNextMs: 950, topics: [] }),
+    ).toEqual(DEFAULT_SETTINGS);
     expect(
       parseSettings({
         tuning: "drop_d",
@@ -20,6 +20,7 @@ describe("schema", () => {
         theme: "dark",
         sessionSize: 30,
         autoNext: false,
+        autoNextMs: 2000,
         autoSound: true,
         topics: { a: { x: 1 }, b: 3 },
       }),
@@ -30,6 +31,7 @@ describe("schema", () => {
       theme: "dark",
       sessionSize: 30,
       autoNext: false,
+      autoNextMs: 2000,
       autoSound: true,
       topics: { a: { x: 1 } },
     });

@@ -1584,7 +1584,7 @@ main.home .today {
   width: 100%;
   background: color-mix(in srgb, var(--on-accent) 70%, transparent);
   transform-origin: left;
-  animation: auto-next 0.8s linear forwards;
+  animation: auto-next var(--auto-next, 1.2s) linear forwards;
 }
 @keyframes auto-next {
   from {
