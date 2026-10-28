@@ -1549,34 +1549,6 @@ main.home .today {
   font-size: 1.05rem;
 }
 
-/* タップで答える問題の、初めてのときだけの操作の説明（図の上に重ねる） */
-.board-wrap {
-  position: relative;
-}
-.tap-tip {
-  position: absolute;
-  z-index: 2;
-  left: 0;
-  right: 0;
-  top: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  background: var(--fg);
-  color: var(--bg);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
-}
-.tap-tip p {
-  flex: 1;
-  margin: 0;
-  font-size: 0.9rem;
-}
-.tap-tip .btn {
-  flex: 0 0 auto;
-}
-
 /* ドリルの出題範囲（押すと設定へ） */
 .scope-chip {
   display: flex;
