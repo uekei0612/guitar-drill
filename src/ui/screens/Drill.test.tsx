@@ -364,7 +364,8 @@ describe("Drill", () => {
     await click(button(el, "答え合わせ"));
     const line = el.querySelector(".feedback-line")!;
     expect(line.classList.contains("near")).toBe(true);
-    expect(line.textContent).toBe("惜しい：押さえるマスは合っています。鳴らさない弦（×）だけ違います");
+    expect(line.textContent).toBe("惜しい：鳴らさない弦（×）だけ違います");
+    expect(el.querySelector(".feedback.sr-only")!.textContent).toMatch(/^惜しい：押さえるマスは合っています/);
     expect(el.querySelector(".feedback-legend")!.textContent).toBe("赤＝鳴らさない弦");
     expect(el.querySelectorAll(".fb-muted.wrong")).toHaveLength(1);
     expect(Object.values(st.data.items)[0]!.interval).toBe(0);

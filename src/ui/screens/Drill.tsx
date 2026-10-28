@@ -582,8 +582,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             : "不正解：赤が押したところ";
   // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
   const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
-  const feedbackLine =
-    result && !result.ok && a.kind === "choice"
+  const feedbackLine = result?.near
+    ? "惜しい：鳴らさない弦（×）だけ違います"
+    : result && !result.ok && a.kind === "choice"
       ? pickedInStrip
         ? `不正解 → ${a.correct}`
         : `不正解（${picked}）→ ${a.correct}`
