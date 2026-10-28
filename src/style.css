@@ -1325,6 +1325,9 @@ main.with-tabs {
   width: 100%;
   max-width: 40rem;
   max-height: 85dvh;
+  overflow-y: auto;
+  /* 端まで来たスクロールを後ろのドリルに伝えない */
+  overscroll-behavior: contain;
   margin: auto auto 0;
   padding: 0;
   border: 0;

@@ -6,11 +6,14 @@ import "./style.css";
 for (const type of ["gesturestart", "gesturechange", "gestureend"])
   document.addEventListener(type, e => e.preventDefault(), { passive: false });
 
-// ページを固定しているあいだ（html.no-scroll）は、指でのスクロールも止める
+// ページを固定しているあいだ（html.no-scroll）は、指でのスクロールも止める。
+// ただし上に重ねて開いたもの（ドリルの参考のシート）の中は、見切れた分を読めるようにスクロールさせる
 document.addEventListener(
   "touchmove",
   e => {
-    if (document.documentElement.classList.contains("no-scroll")) e.preventDefault();
+    if (!document.documentElement.classList.contains("no-scroll")) return;
+    if (e.target instanceof Element && e.target.closest("dialog[open]")) return;
+    e.preventDefault();
   },
   { passive: false },
 );
