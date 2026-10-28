@@ -31,6 +31,21 @@ export function pdfPlan(s: ChartState): PdfPlan {
   };
 }
 
+type Span = readonly [number, number];
+
+/** ボックスを Box 1 から並べ直す。Box 1 は最低弦のルートがいちばん左に来る形（画面のボックス 1 と同じ決め方）。
+    手で決めた範囲はほとんどこの順だが、ロクリアンだけ並びがずれている */
+export function fromBox1(ranges: readonly Span[], root: number, lowOpen: number): Span[] {
+  const rootFret = mod(root - lowOpen, 12);
+  let start = 0;
+  let best = Infinity;
+  ranges.forEach(([lo, hi], i) => {
+    const off = mod(rootFret - lo, 12);
+    if (off <= hi - lo && off < best) [start, best] = [i, off];
+  });
+  return [...ranges.slice(start), ...ranges.slice(0, start)];
+}
+
 /** PDF に描くボックス。
     - 標準チューニング：手で決めた範囲（canonical root 用）。ボックス図は canonical root のまま、
       度数付き全指板はキーに合わせて動かす（guitar_chart では帯が canonical root の位置のままだった）
@@ -42,10 +57,11 @@ export function pdfBoxes(s: ChartState) {
   const standard = tuning.length === STANDARD.length && tuning.every((p, i) => p === STANDARD[i]);
   if (standard) {
     const d = mod(s.root - chart.canonicalRoot, 12);
+    const ranges = fromBox1(chart.boxRanges, chart.canonicalRoot, tuning[0]!);
     return {
       boxRoot: chart.canonicalRoot,
-      boxRanges: chart.boxRanges,
-      degreeRanges: chart.boxRanges.map(([lo, hi]) => [lo + d, hi + d] as const),
+      boxRanges: ranges,
+      degreeRanges: ranges.map(([lo, hi]) => [lo + d, hi + d] as const),
     };
   }
   const computed = computeBoxRanges(chart.intervals, s.root, tuning[0]!, { numBoxes: chart.boxRanges.length });

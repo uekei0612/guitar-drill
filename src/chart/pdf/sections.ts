@@ -6,7 +6,7 @@
 import { mod } from "../../theory";
 import type { ChartDef } from "../registry";
 import { CHROMATIC_DEGREES } from "../registry";
-import { Canvas, MM, PAGE_H, PAGE_W, type Rgba, hex, opaque, rgb } from "./page";
+import { Canvas, MM, PAGE_H, PAGE_W, type Rgba, hex, rgb } from "./page";
 
 // ---- 色・マーク（style.py） ----
 const DOT_COLOR = hex("#1a1a1a");
@@ -20,13 +20,10 @@ const CAPO_BAR = rgb(0.35, 0.35, 0.35, 0.32);
 const MARKER = hex("#cfcfcf");
 const SUBTLE = hex("#666666");
 const FRET_NUM = hex("#1976D2");
-const BOX_COLORS: readonly Rgba[] = [
-  rgb(1.0, 0.78, 0.78, 0.45),
-  rgb(1.0, 0.92, 0.65, 0.45),
-  rgb(0.75, 0.93, 0.78, 0.45),
-  rgb(0.75, 0.85, 1.0, 0.45),
-  rgb(0.9, 0.78, 1.0, 0.45),
-];
+/** ボックスの色（画面の帯と同じ。Box 1 から順に） */
+const BOX_COLORS: readonly Rgba[] = ["#1976d2", "#388e3c", "#ef6c00", "#7b1fa2", "#00838f"].map(c => hex(c));
+/** 帯の地は薄く（重なったところは少し濃くなる） */
+const BAND_ALPHA = 0.14;
 const SINGLE_MARKERS = new Set([3, 5, 7, 9, 15, 17, 21]);
 const DOUBLE_MARKERS = new Set([12, 24]);
 
@@ -179,26 +176,6 @@ function finishPage(c: Canvas, ctx: Ctx) {
   ctx.pageNum++;
 }
 
-// ---- ボックスの番号（sections._renumber_boxes） ----
-const RENUMBER_FRETS = 18;
-
-/** 1〜numFrets の指板で最初に見える位置の低い順に、ボックスに番号を振り直す（古い番号 0 始まり → 新しい番号 1 始まり） */
-export function renumberBoxes(
-  ranges: readonly (readonly [number, number])[],
-  numFrets = RENUMBER_FRETS,
-): Map<number, number> {
-  const firstLo = new Map<number, number>();
-  ranges.forEach(([lo, hi], i) => {
-    for (const k of [-2, -1, 0, 1, 2]) {
-      const a = lo + 12 * k,
-        b = hi + 12 * k;
-      if (a >= 1 && b <= numFrets && (!firstLo.has(i) || a < firstLo.get(i)!)) firstLo.set(i, a);
-    }
-  });
-  const order = ranges.map((_, i) => i).sort((a, b) => (firstLo.get(a) ?? Infinity) - (firstLo.get(b) ?? Infinity));
-  return new Map(order.map((old, n) => [old, n + 1]));
-}
-
 // ---- 1. 全 12 キー ----
 const ALL_KEYS_MARGIN_X = 12 * MM;
 const ALL_KEYS_TOP = PAGE_H - 22 * MM;
@@ -253,7 +230,7 @@ export function sectionAllKeys(c: Canvas, s: Subject, ctx: Ctx, keysPerPage: num
 
 // ---- 2. ボックス図 ----
 interface BoxData {
-  num: number;
+  readonly num: number;
   readonly width: number;
   readonly notes: readonly { s: number; f: number; isRoot: boolean; label: string }[];
 }
@@ -295,7 +272,8 @@ function drawBoxDiagram(
   sub: string,
   numStrings: number,
 ) {
-  c.text(x, y + h + 9 * MM, title, 12, BLACK, { bold: true });
+  // 見出しは度数付き全指板の帯と同じ色（どの帯がどの形か、色でも追える）
+  c.text(x, y + h + 9 * MM, title, 12, BOX_COLORS[(box.num - 1) % BOX_COLORS.length]!, { bold: true });
   c.text(x, y + h + 4.5 * MM, sub, 8.5, SUBTLE);
   const numFrets = box.width + 1;
   const ss = numStrings > 1 ? h / (numStrings - 1) : h;
@@ -328,10 +306,9 @@ export function sectionBoxPositions(
   const legendY = ty - 2 * MM;
   drawLegend(c, marginX, legendY);
 
+  // 番号は形の並びのまま（Box 1 ＝最低弦にルートがある形。画面のボックス 1〜5 と同じ順）。
+  // guitar_chart は見える位置の低い順に振り直していたが、それだとキーによって同じ形の番号が変わる
   const boxes = buildBoxData(s, root, ranges);
-  const renumber = renumberBoxes(ranges);
-  for (const b of boxes) b.num = renumber.get(b.num - 1)!;
-  boxes.sort((a, b) => a.num - b.num);
 
   const cols = 3,
     rows = 2;
@@ -415,25 +392,24 @@ export function sectionFullWithDegrees(
       if (a >= 1 && b <= numFrets) instances.push({ i, lo: a, hi: b });
     }
   });
-  const renumber = renumberBoxes(ranges, numFrets);
   const bandX = (lo: number, hi: number) =>
     [Math.max(x, nutX + (lo - 1) * fretSpacing), nutX + hi * fretSpacing] as const;
   for (const { i, lo, hi } of instances) {
     const [x1, x2] = bandX(lo, hi);
     const col = BOX_COLORS[i % BOX_COLORS.length]!;
-    c.rect(x1, y, x2 - x1, h, col);
-    c.line(x1, y, x2, y, opaque(col), 1.4);
-    c.line(x1, y + h, x2, y + h, opaque(col), 1.4);
+    c.rect(x1, y, x2 - x1, h, { ...col, a: BAND_ALPHA });
+    c.line(x1, y, x2, y, col, 1.4);
+    c.line(x1, y + h, x2, y + h, col, 1.4);
   }
   // 帯の名札：位置の順に 2 段へ交互に振り分ける
   const rank = instances.map((_, j) => j).sort((a, b) => instances[a]!.lo - instances[b]!.lo);
   const rowOf = new Map(rank.map((j, n) => [j, n % 2]));
   instances.forEach(({ i, lo, hi }, j) => {
     const [x1, x2] = bandX(lo, hi);
-    const col = opaque(BOX_COLORS[i % BOX_COLORS.length]!);
+    const col = BOX_COLORS[i % BOX_COLORS.length]!;
     const by = bandYBase + (rowOf.get(j) === 0 ? 0 : -bandH - 1 * MM);
     c.rect(x1, by, x2 - x1, bandH, col);
-    c.text((x1 + x2) / 2, by + 1.6 * MM, `Box ${renumber.get(i)}`, 9, BLACK, { bold: true, align: "center" });
+    c.text((x1 + x2) / 2, by + 1.6 * MM, `Box ${i + 1}`, 9, WHITE, { bold: true, align: "center" });
   });
 
   const geom = drawFretboardGrid(c, x, y, w, h, numFrets, openW, -7 * MM, s.tuning.length, s.capo);
