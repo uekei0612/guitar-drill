@@ -36,9 +36,6 @@ export interface DrillProps {
 const MIN_TAP_SCALE = 44 / 48;
 /** 図の下のヒントのボタンが取る高さ（style.css の .hint-btn の高さ＋上の余白） */
 const HINT_BUTTON_HEIGHT = 56;
-/** 選択肢の問題で正解したあと、自動で次へ進むまで（正誤を目で確かめる間） */
-export const AUTO_NEXT_MS = 800;
-
 const same = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 
 /** タップの答え合わせ（解説の図が無いとき）：正しく押した点と押し忘れた点。押し間違いは別に足す */
@@ -227,7 +224,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const autoNext = !!result && result.ok && q?.answer.kind === "choice" && data.settings.autoNext && !refOpen;
   useEffect(() => {
     if (!autoNext) return;
-    const id = setTimeout(next, AUTO_NEXT_MS);
+    const id = setTimeout(next, data.settings.autoNextMs);
     return () => clearTimeout(id);
   }, [autoNext, session.index]);
 
@@ -804,7 +801,13 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               )}
             </section>
             <div class="actions next-bar">
-              <button ref={nextRef} class={`btn primary${autoNext ? " auto" : ""}`} onClick={next}>
+              <button
+                ref={nextRef}
+                class={`btn primary${autoNext ? " auto" : ""}`}
+                // 進むまでの帯は、設定の時間で伸ばす
+                style={autoNext ? { "--auto-next": `${data.settings.autoNextMs}ms` } : undefined}
+                onClick={next}
+              >
                 次へ
               </button>
               {q.sound && (

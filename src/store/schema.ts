@@ -16,6 +16,8 @@ export interface Settings {
   readonly sessionSize: number;
   /** 選択肢の問題で正解したら、少し待って自動で次へ進む */
   readonly autoNext: boolean;
+  /** 自動で次へ進むまでの時間（ms。AUTO_NEXT_DELAYS のどれか） */
+  readonly autoNextMs: number;
   /** 音のある問題（コード・音程など）で、答えたら自動で鳴らす */
   readonly autoSound: boolean;
   /** 分野ごとの設定。中身は分野の settings.parse で検証してから使う */
@@ -42,6 +44,8 @@ export interface SaveData {
 }
 
 export const SESSION_SIZES = [10, 20, 30] as const;
+/** 正解してから自動で次へ進むまでの時間の選択肢（ms） */
+export const AUTO_NEXT_DELAYS = [800, 1200, 1600, 2000, 3000] as const;
 
 export const DEFAULT_SETTINGS: Settings = {
   tuning: "standard",
@@ -49,6 +53,8 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   sessionSize: 20,
   autoNext: true,
+  // 正誤と答えを目で確かめる間。0.8 秒だと読む前に進んでしまう
+  autoNextMs: 1200,
   // 既定は鳴らさない（電車などで急に鳴ると困る。マナーモードの iPhone ではどのみち鳴らない）
   autoSound: false,
   topics: {},
@@ -78,6 +84,9 @@ export function parseSettings(raw: unknown): Settings {
       ? (r.sessionSize as number)
       : d.sessionSize,
     autoNext: typeof r.autoNext === "boolean" ? r.autoNext : d.autoNext,
+    autoNextMs: (AUTO_NEXT_DELAYS as readonly unknown[]).includes(r.autoNextMs)
+      ? (r.autoNextMs as number)
+      : d.autoNextMs,
     autoSound: typeof r.autoSound === "boolean" ? r.autoSound : d.autoSound,
     topics: isObj(r.topics) ? Object.fromEntries(Object.entries(r.topics).filter(([, v]) => isObj(v))) : d.topics,
   };

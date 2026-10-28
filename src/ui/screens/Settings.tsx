@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { commonOf, store, useData } from "../../state";
 import { TOPICS } from "../../topics";
-import { SESSION_SIZES, type Settings as S, type Theme, emptyData } from "../../store/schema";
+import { AUTO_NEXT_DELAYS, SESSION_SIZES, type Settings as S, type Theme, emptyData } from "../../store/schema";
 import { exportJson, importJson } from "../../store/store";
 import { TUNINGS, fmt } from "../../theory";
 
@@ -104,6 +104,20 @@ export function Settings({ open }: { open?: string } = {}) {
         <label class="field check">
           <input type="checkbox" checked={st.autoNext} onChange={e => set({ autoNext: e.currentTarget.checked })} />
           <span>選択肢の問題で正解したら、自動で次へ進む</span>
+        </label>
+        <label class="field">
+          <span>次へ進むまで</span>
+          <select
+            value={st.autoNextMs}
+            disabled={!st.autoNext}
+            onChange={e => set({ autoNextMs: Number(e.currentTarget.value) })}
+          >
+            {AUTO_NEXT_DELAYS.map(ms => (
+              <option key={ms} value={ms}>
+                {ms / 1000} 秒
+              </option>
+            ))}
+          </select>
         </label>
         <label class="field check">
           <input type="checkbox" checked={st.autoSound} onChange={e => set({ autoSound: e.currentTarget.checked })} />
