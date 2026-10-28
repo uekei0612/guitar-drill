@@ -448,7 +448,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     result && ex
       ? {
           range: a.kind === "tap" ? a.range : ex.range,
-          orientation: ex.orientation ?? (a.kind === "tap" ? a.orientation : board?.orientation),
+          orientation: ex.orientation ?? (a.kind === "tap" ? a.orientation : board?.orientation) ?? "horizontal",
           muted: ex.muted,
           barres: ex.barres,
           marks:
@@ -465,7 +465,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       : board || a.kind === "tap"
         ? {
             range: a.kind === "tap" ? a.range : board!.range,
-            orientation: (a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation,
+            // ドリルの図は横向き（6 弦が下）にそろえる。広い範囲はネック方向を詰めて幅に収める（fitAlong）
+            orientation: (a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation ?? "horizontal",
             muted: mutedNow ?? board?.muted,
             barres: board?.barres,
             marks:
@@ -503,6 +504,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           shown.orientation ?? chooseOrientation(shown.range),
           {
             headRow: (shown.muted?.length ?? 0) > 0,
+            fitAlong: true,
           },
         )
       : undefined;
@@ -666,6 +668,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               tuning={ctx.common.tuning}
               lefty={ctx.common.lefty}
               {...shown}
+              fitAlong
               scale={scale}
               label={
                 result && q.explanation ? q.explanation.text : [q.prompt.text, q.prompt.how].filter(Boolean).join("。")
