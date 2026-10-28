@@ -276,7 +276,7 @@ describe("Drill", () => {
     expect(el.querySelector(".feedback-line")!.textContent).toMatch(/^正解/);
   });
 
-  it("全部押す問題の答え合わせ：押し忘れは点線の輪、答えでない点は薄く、開放のままの弦は赤い ○ と赤い ×", async () => {
+  it("全部押す問題の答え合わせ：押し忘れは点線の輪、答えでない点は薄く、開放のままの弦は灰色の ○ と赤い ×", async () => {
     // Am（x02210）。開放のまま答える：6 弦は × のはず、4・3 弦は押さえるはず
     const am = [
       { string: 5, fret: 0 },
@@ -320,7 +320,9 @@ describe("Drill", () => {
     await click(el.querySelector('[aria-label="2弦 1フレット"]')!);
     await click(button(el, "答え合わせ"));
     expect(el.querySelector(".feedback-line")!.textContent).toBe("不正解：押し忘れ 2・押し間違い 3");
-    expect(el.querySelector(".feedback-legend")!.textContent).toBe("点線の輪＝押し忘れ　赤＝押し間違い");
+    expect(el.querySelector(".feedback-legend")!.textContent).toBe(
+      "点線＝押し忘れ　灰色＝押し間違い　赤い ×＝鳴らさない弦",
+    );
     expect(el.querySelectorAll(".fb-missed")).toHaveLength(2);
     // 4・3 弦の開放は赤い ○、6 弦は点を重ねず × を赤く
     expect(el.querySelectorAll(".fb-mark--wrongOpen")).toHaveLength(2);
@@ -328,5 +330,46 @@ describe("Drill", () => {
     expect(el.querySelectorAll(".fb-muted.wrong")).toHaveLength(1);
     // 答えでない点は薄く
     expect(el.querySelectorAll(".fb-mark.dim")).toHaveLength(1);
+  });
+
+  it("鳴らさない弦だけ違う：△（惜しい）で見せ、記録は覚えていない扱い", async () => {
+    // Am（x02210）。6 弦を × にし忘れた
+    const am = [
+      { string: 5, fret: 0 },
+      { string: 4, fret: 2 },
+      { string: 3, fret: 2 },
+      { string: 2, fret: 1 },
+      { string: 1, fret: 0 },
+    ];
+    const chord: Topic = {
+      ...topic,
+      items: () => ["Am"],
+      question: id => ({
+        item: id,
+        prompt: { text: "Am を押さえる" },
+        answer: {
+          kind: "tap",
+          mode: "all",
+          range: { minFret: 0, maxFret: 4 },
+          correct: am,
+          onePerString: true,
+          openDefault: true,
+        },
+        explanation: { text: "Am", board: { range: { minFret: 0, maxFret: 4 }, muted: [6], marks: [] } },
+      }),
+    };
+    const st = new Store(memoryStorage());
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Drill topic={chord} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    for (const l of ["4弦 2フレット", "3弦 2フレット", "2弦 1フレット"])
+      await click(el.querySelector(`[aria-label="${l}"]`)!);
+    await click(button(el, "答え合わせ"));
+    const line = el.querySelector(".feedback-line")!;
+    expect(line.classList.contains("near")).toBe(true);
+    expect(line.textContent).toBe("惜しい：鳴らさない弦（×）だけ違います");
+    expect(el.querySelector(".feedback.sr-only")!.textContent).toMatch(/^惜しい：押さえるマスは合っています/);
+    expect(el.querySelector(".feedback-legend")!.textContent).toBe("赤い ×＝鳴らさない弦");
+    expect(el.querySelectorAll(".fb-muted.wrong")).toHaveLength(1);
+    expect(Object.values(st.data.items)[0]!.interval).toBe(0);
   });
 });

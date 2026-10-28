@@ -24,7 +24,7 @@ export interface Mark {
   /** root = ルート、tone = そのほかの音、target = 問われている点、hint = 薄く出す参考の点、
       ok / wrong = 答え合わせ（正しく押した点／押し間違えた点）、
       open / openRoot = コードの押さえ方で鳴らす開放弦（白抜きの ○。openRoot はルート）、
-      wrongOpen = 開放のままにして間違えた弦（赤い ○） */
+      wrongOpen = 開放のままにして間違えた弦（灰色の ○） */
   readonly kind: "root" | "tone" | "target" | "hint" | "ok" | "wrong" | "wrongOpen" | "open" | "openRoot";
   /** 薄く出す（答え合わせで、答えでない点） */
   readonly dim?: boolean;
@@ -189,4 +189,13 @@ export function grade(answer: Answer, res: Response): boolean {
   if (answer.mode === "any") return res.positions.length === 1 && hit(res.positions[0]!);
   const uniq = res.positions.filter((p, i) => res.positions.findIndex(q => samePos(p, q)) === i);
   return uniq.length === answer.correct.length && uniq.every(hit);
+}
+
+/** 惜しい（△）：コードの押さえ方（1 弦 1 か所・全部押す）で、鳴らす弦は全部合っていて、
+    違うのは鳴らさない弦（×）だけ。鳴らす弦を × にしたのは、構成音が抜けるので惜しいに入れない */
+export function nearMiss(answer: Answer, res: Response): boolean {
+  if (answer.kind !== "tap" || answer.mode !== "all" || !answer.onePerString || res.kind !== "tap") return false;
+  const sounding = new Set(answer.correct.map(p => p.string));
+  const onSounding = res.positions.filter(p => sounding.has(p.string));
+  return onSounding.length < res.positions.length && grade(answer, { kind: "tap", positions: onSounding });
 }
