@@ -315,7 +315,7 @@ function FormSheet({ tuning, lefty }: { tuning: Tuning; lefty: boolean }) {
           aria-pressed={mode === "finger"}
           onClick={() => setMode("finger")}
         >
-          指番号
+          指
         </button>
         <button
           class={`btn${mode === "degree" ? " primary" : ""}`}

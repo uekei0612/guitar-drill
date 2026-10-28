@@ -437,7 +437,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     result && openDefault
       ? wrongTaps.filter(t => t.fret === 0 && answerMuted.includes(t.string)).map(t => t.string)
       : [];
-  // 開放の押し間違い（押さえる弦を開放のままにした）は、開放の ○ と同じ形の赤い輪にする（塗りつぶすと強すぎる）
+  // 押し間違いは灰色にして、正解の点と混ざらないようにする。開放の押し間違い（押さえる弦を開放のままにした）は、
+  // 開放の ○ と同じ形の灰色の輪にする
   const wrongMarks: Mark[] = wrongTaps
     .filter(t => !(t.fret === 0 && mutedWrong.includes(t.string)))
     .map(p => ({ pos: p, kind: openDefault && p.fret === 0 ? "wrongOpen" : "wrong" }));
@@ -579,7 +580,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
               ]
                 .filter(Boolean)
                 .join("・")}`
-            : "不正解：赤が押したところ";
+            : "不正解：灰色が押したところ";
   // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
   const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
   const feedbackLine = result?.near
@@ -678,7 +679,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
                 result && ex && a.kind === "choice"
                   ? (board?.marks ?? []).filter(m => m.kind === "target").map(m => m.pos)
                   : result
-                    ? // 答えたあとは押したところを輪で出さない（正解の点・押し間違いの赤・押し忘れの点線で見せる）
+                    ? // 答えたあとは押したところを輪で出さない（正解の点・押し間違いの灰色・押し忘れの点線で見せる）
                       []
                     : taps
               }
@@ -762,8 +763,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
             {result && !result.ok && a.kind === "tap" && a.mode === "all" && (
               <p class="feedback-legend muted small" aria-hidden="true">
                 {[
-                  missed.length && "点線の輪＝押し忘れ",
-                  wrongTaps.length && (result.near ? "赤＝鳴らさない弦" : "赤＝押し間違い"),
+                  missed.length && "点線＝押し忘れ",
+                  wrongMarks.length && "灰色＝押し間違い",
+                  mutedWrong.length && "赤い ×＝鳴らさない弦",
                 ]
                   .filter(Boolean)
                   .join("　")}

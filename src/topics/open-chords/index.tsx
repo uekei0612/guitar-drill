@@ -99,7 +99,7 @@ function explain(t: Tuning, c: OpenChord) {
   const type = chordType(c.type);
   return {
     text: [
-      `${nameOf(c)}：${tabText(c.shape)}（6弦→1弦。点の数字は指）`,
+      `${nameOf(c)}：${tabText(c.shape)}（6弦→1弦。点の字は指）`,
       `鳴る音の度数（低い弦から）：${degreesText(t, c.shape, c.root, type)}`,
     ].join("\n"),
     board: shapeBoard(t, c.shape, c.root, type, "finger"),
@@ -214,7 +214,7 @@ function ChordSheet({ tuning, lefty }: { tuning: Tuning; lefty: boolean }) {
   return (
     <>
       <p>
-        点の数字は押さえる指（1 人差し指・2 中指・3 薬指・4 小指）、白抜きの ○ は開放弦、×
+        点の字は押さえる指（人＝人差し指・中＝中指・薬＝薬指・小＝小指）、白抜きの ○ は開放弦、×
         は鳴らさない弦。オレンジの点がルート。
       </p>
       <div class="segmented" role="group" aria-label="点の文字">
@@ -223,7 +223,7 @@ function ChordSheet({ tuning, lefty }: { tuning: Tuning; lefty: boolean }) {
           aria-pressed={mode === "finger"}
           onClick={() => setMode("finger")}
         >
-          指番号
+          指
         </button>
         <button
           class={`btn${mode === "degree" ? " primary" : ""}`}
