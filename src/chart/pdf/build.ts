@@ -8,6 +8,7 @@ import {
   type Ctx,
   type Subject,
   maxKeysPerPage,
+  pdfNoteName,
   sectionAllKeys,
   sectionBoxPositions,
   sectionFullWithDegrees,
@@ -84,7 +85,7 @@ export const pageCount = (s: ChartState): number => {
 
 export function buildPdfPages(s: ChartState): Page[] {
   const plan = pdfPlan(s);
-  const subject: Subject = { chart: chartOf(s), tuning: tuningPcs(s), capo: s.capo };
+  const subject: Subject = { chart: chartOf(s), tuning: tuningPcs(s), capo: s.capo, flat: s.flat };
   const { boxRoot, boxRanges, degreeRanges } = pdfBoxes(s);
   const c = new Canvas();
   const ctx: Ctx = { pageNum: 1, totalPages: pageCount(s), sectionName: "" };
@@ -104,8 +105,8 @@ export function buildPdfPages(s: ChartState): Page[] {
   return c.pages;
 }
 
-/** ダウンロードのファイル名 */
-export const pdfFileName = (s: ChartState): string => {
-  const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  return `${chartOf(s).nameEn.replace(/[^\w#-]+/g, "_")}_${NOTES[s.root]}.pdf`;
-};
+/** ダウンロードのファイル名（Minor_Pentatonic_A.pdf。♭表記なら Bb） */
+export const pdfFileName = (s: ChartState): string =>
+  `${chartOf(s)
+    .nameEn.replace(/[^\w#-]+/g, "_")
+    .replace(/^_+|_+$/g, "")}_${pdfNoteName(s.root, s.flat)}.pdf`;

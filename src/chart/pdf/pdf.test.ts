@@ -104,6 +104,16 @@ describe("PDF の組み立て", () => {
     expect(pdfText("Minor 7♭5 — F♯")).toBe("Minor 7b5 — F#");
     expect(pdfFileName(amPent)).toBe("Minor_Pentatonic_A.pdf");
   });
+
+  it("音名は画面の「♭で書く」に合わせる（ファイル名も）", () => {
+    const bb = { ...DEFAULT_CHART, scale: "major", root: 10, includeBoxes: false };
+    expect(pdfFileName(bb)).toBe("Major_Scale_Ionian_A#.pdf");
+    expect(pdfFileName({ ...bb, flat: true })).toBe("Major_Scale_Ionian_Bb.pdf");
+    const flat = buildPdfPages({ ...bb, flat: true }).flatMap(texts);
+    expect(flat).toEqual(expect.arrayContaining(["Bb Major", "Eb Major", "Db Major"]));
+    expect(flat.some(t => t.startsWith("Example shown in the key of Bb."))).toBe(true);
+    expect(buildPdfPages(bb).flatMap(texts)).toContain("A# Major");
+  });
 });
 
 describe("PDF に描く", () => {

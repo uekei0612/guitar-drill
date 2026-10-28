@@ -5,7 +5,7 @@ import { type Note, type Tuning, mod, pc, spellings, tuningById } from "../theor
 import { type ChartDef, type ChartKind, arpeggioChart, customChart, scaleChart } from "./registry";
 
 export const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
-const FLAT_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"] as const;
+export const FLAT_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"] as const;
 
 export interface ChartState {
   readonly chartType: ChartKind;

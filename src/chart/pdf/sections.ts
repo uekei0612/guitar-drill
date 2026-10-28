@@ -6,6 +6,7 @@
 import { mod } from "../../theory";
 import type { ChartDef } from "../registry";
 import { CHROMATIC_DEGREES } from "../registry";
+import { FLAT_NAMES, NOTE_NAMES } from "../state";
 import { Canvas, MM, PAGE_H, PAGE_W, type Rgba, hex, rgb } from "./page";
 
 // ---- 色・マーク（style.py） ----
@@ -27,24 +28,27 @@ const BAND_ALPHA = 0.14;
 const SINGLE_MARKERS = new Set([3, 5, 7, 9, 15, 17, 21]);
 const DOUBLE_MARKERS = new Set([12, 24]);
 
-const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-
 /** 1 つのチャート（スケール・アルペジオ・カスタム）を描くのに要るもの */
 export interface Subject {
   readonly chart: ChartDef;
   /** 開放弦（低い弦から、ピッチクラス） */
   readonly tuning: readonly number[];
   readonly capo: number;
+  /** 音名を ♭ で書く（画面の「♭で書く」と同じ） */
+  readonly flat: boolean;
 }
+
+/** 音名（ASCII。♭表記なら Bb、そうでなければ A#） */
+export const pdfNoteName = (p: number, flat: boolean): string => (flat ? FLAT_NAMES : NOTE_NAMES)[mod(p, 12)]!;
 
 /** ASCII の度数ラベル（半音数 → R, b3 …） */
 function labelsOf(chart: ChartDef): Map<number, string> {
   return new Map(chart.intervals.map((iv, i) => [iv, chart.degrees[i] ?? CHROMATIC_DEGREES[iv]!]));
 }
 const degreeString = (chart: ChartDef) => chart.degrees.join(" - ");
-const tuningDescription = (t: readonly number[]) => t.map(p => NOTES[p]).join("");
+const tuningDescription = (s: Subject) => s.tuning.map(p => pdfNoteName(p, s.flat)).join("");
 const tuningHeader = (s: Subject) =>
-  s.capo ? `Tuning: ${tuningDescription(s.tuning)}, Capo: fret ${s.capo}` : `Tuning: ${tuningDescription(s.tuning)}`;
+  s.capo ? `Tuning: ${tuningDescription(s)}, Capo: fret ${s.capo}` : `Tuning: ${tuningDescription(s)}`;
 
 interface Ctx {
   pageNum: number;
@@ -97,7 +101,8 @@ function drawFretboardGrid(
   if (capo > 0 && capo <= numFrets) {
     const center = nutX + (capo - 0.5) * fretSpacing;
     const bw = fretSpacing * 0.5;
-    const over = numStrings > 1 ? stringSpacing * 0.45 : 2 * MM;
+    // 端の弦から少しだけはみ出す（弦の間隔が広いページでも、上の説明や下の番号にかからない）
+    const over = numStrings > 1 ? Math.min(stringSpacing * 0.45, 2.5 * MM) : 2 * MM;
     c.rect(center - bw / 2, y - over, bw, h + 2 * over, CAPO_BAR, Math.min(bw, 3 * MM) / 2);
   }
   for (let i = 0; i < numFrets; i++) {
@@ -204,7 +209,7 @@ export function maxKeysPerPage(numStrings: number, choices: readonly number[] = 
 
 export function sectionAllKeys(c: Canvas, s: Subject, ctx: Ctx, keysPerPage: number, numFrets = 15) {
   const marginX = ALL_KEYS_MARGIN_X;
-  const keys = NOTES.map((_, p) => p);
+  const keys = Array.from({ length: 12 }, (_, p) => p);
   const { slotH, r, h } = allKeysSlot(keysPerPage, s.tuning.length);
   for (let i = 0; i < keys.length; i += keysPerPage) {
     const chunk = keys.slice(i, i + keysPerPage);
@@ -218,7 +223,7 @@ export function sectionAllKeys(c: Canvas, s: Subject, ctx: Ctx, keysPerPage: num
       const slotTop = ALL_KEYS_TOP - j * slotH;
       const titleY = slotTop - KEY_TITLE_H;
       const y = titleY - 1 * MM - r - h;
-      c.text(marginX, titleY, `${NOTES[key]} ${s.chart.shortName}`, 11, BLACK, { bold: true });
+      c.text(marginX, titleY, `${pdfNoteName(key, s.flat)} ${s.chart.shortName}`, 11, BLACK, { bold: true });
       const numY = -(r + FRET_NUM_H);
       const geom = drawFretboardGrid(c, marginX, y, fbW, h, numFrets, 6 * MM, numY, s.tuning.length, s.capo);
       placeScaleDots(c, geom, y, key, s.chart, numFrets, s.tuning, s.capo, r);
@@ -358,8 +363,7 @@ export function sectionFullWithDegrees(
   const hasBoxes = ranges.length > 0;
   c.text(marginX, PAGE_H - marginTop, `${s.chart.nameEn} — Full Fretboard with Degrees`, 17, BLACK, { bold: true });
   let ty = PAGE_H - marginTop - 6 * MM;
-  const bandNote = hasBoxes ? ` Background bands mark the ${ranges.length} box positions.` : "";
-  for (const line of [`All notes labeled by degree (${degreeString(s.chart)}).`, `${tuningHeader(s)}.${bandNote}`]) {
+  for (const line of [`All notes labeled by degree (${degreeString(s.chart)}).`, `${tuningHeader(s)}.`]) {
     c.text(marginX, ty, line, 10, SUBTLE);
     ty -= 4.5 * MM;
   }
@@ -367,14 +371,19 @@ export function sectionFullWithDegrees(
   drawLegend(c, marginX, legendY);
   if (hasBoxes) c.text(marginX + 80 * MM, legendY, `Background colors mark the ${ranges.length} boxes.`, 9.5, BLACK);
 
+  // 指板（上の説明 1 行・下のフレット番号と帯の名札 2 段を含む）を、凡例とフッターの間の上下中央に置く
+  const h = 100 * MM;
+  const above = 6 * MM,
+    below = 22 * MM;
+  const top = legendY - 6 * MM,
+    bottom = 14 * MM;
   const x = marginX,
     w = PAGE_W - 2 * marginX,
-    h = 80 * MM,
-    y = 45 * MM;
+    y = bottom + below + (top - bottom - (above + h + below)) / 2;
   c.text(
     x,
-    y + h + 6 * MM,
-    `Example shown in the key of ${NOTES[root]} (${s.chart.nameEn}). Shift the entire pattern to play any key.`,
+    y + h + above,
+    `Example shown in the key of ${pdfNoteName(root, s.flat)}. Shift the entire pattern to play any key.`,
     10,
     SUBTLE,
   );

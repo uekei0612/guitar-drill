@@ -85,6 +85,7 @@ export function Chart({ query }: { query: string }) {
   const [msg, setMsg] = useState("");
   const [preview, setPreview] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfMsg, setPdfMsg] = useState("");
 
   // 状態を URL に書く（履歴は増やさない）
   useEffect(() => {
@@ -444,18 +445,35 @@ export function Chart({ query }: { query: string }) {
             const plan = pdfPlan(s);
             const none = !plan.boxes && !plan.degrees && !plan.allKeys;
             const make = async (open: boolean) => {
+              // 新しいタブは押したその場で開いておく（PDF を作り終えてから開くと、Safari はポップアップとして止める）
+              const tab = open ? window.open("", "_blank") : null;
+              if (open && !tab) {
+                setPdfMsg("新しいタブを開けませんでした（ポップアップを許可してください）");
+                return;
+              }
+              try {
+                if (tab) tab.document.body.textContent = "PDF を作っています…";
+              } catch {
+                // 中身を書けなくても、あとで PDF に切り替えるので構わない
+              }
               setPdfBusy(true);
+              setPdfMsg("");
               try {
                 const { renderPdf } = await import("../../chart/pdf/render-pdf");
                 const blob = await renderPdf(buildPdfPages(s));
-                if (open) {
+                if (tab) {
                   const url = URL.createObjectURL(blob);
-                  if (!window.open(url, "_blank"))
-                    setMsg("新しいタブを開けませんでした（ポップアップを許可してください）");
+                  tab.location.href = url;
                   setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                } else downloadBlob(blob, pdfFileName(s));
+                  setPdfMsg("新しいタブに開きました。そこから印刷できます。");
+                } else {
+                  const name = pdfFileName(s);
+                  downloadBlob(blob, name);
+                  setPdfMsg(`PDF を作りました（${name}）`);
+                }
               } catch (e) {
-                setMsg(`PDF を作れませんでした：${(e as Error).message}`);
+                tab?.close();
+                setPdfMsg(`PDF を作れませんでした：${(e as Error).message}`);
               } finally {
                 setPdfBusy(false);
               }
@@ -474,6 +492,10 @@ export function Chart({ query }: { query: string }) {
                     開いて印刷
                   </button>
                 </div>
+                {/* 結果はボタンのすぐ下に出す（画像保存・共有の知らせとは分ける） */}
+                <p class="muted small" role="status">
+                  {pdfMsg}
+                </p>
                 {preview && !none && <PdfPreview pages={buildPdfPages(s)} />}
               </>
             );
