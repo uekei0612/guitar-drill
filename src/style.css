@@ -1068,27 +1068,107 @@ main.wide {
 fieldset:disabled {
   opacity: 0.5;
 }
-.chart-meta {
-  margin: 16px 0 4px;
+/* 切り替えのボタンをひとまとめにした帯（度数／音名、ボックスの選択）。押しているものを塗る */
+.toggle-group {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.toggle-group button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.toggle-group button + button {
+  border-left: 1px solid var(--line);
+}
+.toggle-group button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--accent);
+  font-weight: 700;
+}
+.toggle-group button:focus-visible {
+  outline-offset: -3px;
+}
+.chart-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
 }
 .box-select {
-  gap: 8px;
-  margin: 8px 0;
+  display: flex;
+  max-width: 26rem;
+  margin-top: 8px;
 }
-.box-btn--0 {
-  border-color: #1976d2;
+.box-select button {
+  flex: 1 1 0;
+  padding: 0 6px;
 }
-.box-btn--1 {
-  border-color: #388e3c;
+.box-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
-.box-btn--2 {
-  border-color: #ef6c00;
+.box-dot--0 {
+  background: #1976d2;
 }
-.box-btn--3 {
-  border-color: #7b1fa2;
+.box-dot--1 {
+  background: #388e3c;
 }
-.box-btn--4 {
-  border-color: #00838f;
+.box-dot--2 {
+  background: #ef6c00;
+}
+.box-dot--3 {
+  background: #7b1fa2;
+}
+.box-dot--4 {
+  background: #00838f;
+}
+/* 構成音：指板の点と同じ見た目の小さな丸 */
+.chart-tones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+.tone-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 4px;
+  border-radius: 15px;
+  background: var(--fb-tone);
+  color: var(--fb-on-dot);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.tone-dot.root {
+  background: var(--fb-root);
+  color: var(--on-accent);
+}
+.chart-drill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+}
+.chart-share h3 {
+  margin: 24px 0 4px;
 }
 .chart-board {
   margin: 8px 0;
@@ -1375,6 +1455,7 @@ main.with-tabs {
 .chart-quick {
   display: flex;
   gap: 12px;
+  max-width: 36rem;
   margin-top: 8px;
 }
 .chart-quick > .field {
@@ -1383,30 +1464,6 @@ main.with-tabs {
 }
 .chart-quick > .field.grow {
   flex: 1 1 12rem;
-}
-.chart-form h2 {
-  margin: 0;
-}
-.chart-form {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
-@media (min-width: 1100px) {
-  .chart-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    gap: 32px;
-    align-items: start;
-  }
-  .chart-form {
-    position: sticky;
-    top: 16px;
-    margin-top: 8px;
-    padding: 16px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-  }
 }
 /* 含める度数：押して切り替える丸いボタン（指板の点と同じ見た目で、入っている度数は塗る） */
 .degree-chips {
@@ -1445,6 +1502,11 @@ main.with-tabs {
   margin-top: 24px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+}
+/* たたんだ欄が続くときは、間の線を 1 本にする */
+.chart-pdf + .chart-pdf {
+  margin-top: 0;
+  border-top: 0;
 }
 .chart-pdf summary {
   display: flex;
