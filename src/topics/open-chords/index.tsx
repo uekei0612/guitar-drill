@@ -101,6 +101,7 @@ function explain(t: Tuning, c: OpenChord) {
     text: [
       `${nameOf(c)}：${tabText(c.shape)}（6弦→1弦。点の字は指）`,
       `鳴る音の度数（低い弦から）：${degreesText(t, c.shape, c.root, type)}`,
+      `オレンジの点・○ がルート（${fmt(c.root)}）`,
     ].join("\n"),
     board: shapeBoard(t, c.shape, c.root, type, "finger"),
   };
