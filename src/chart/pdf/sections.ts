@@ -6,7 +6,8 @@
 import { mod } from "../../theory";
 import type { ChartDef } from "../registry";
 import { CHROMATIC_DEGREES } from "../registry";
-import { Canvas, MM, PAGE_H, PAGE_W, type Rgba, hex, opaque, rgb } from "./page";
+import { FLAT_NAMES, NOTE_NAMES } from "../state";
+import { Canvas, MM, PAGE_H, PAGE_W, type Rgba, hex, rgb } from "./page";
 
 // ---- 色・マーク（style.py） ----
 const DOT_COLOR = hex("#1a1a1a");
@@ -20,17 +21,12 @@ const CAPO_BAR = rgb(0.35, 0.35, 0.35, 0.32);
 const MARKER = hex("#cfcfcf");
 const SUBTLE = hex("#666666");
 const FRET_NUM = hex("#1976D2");
-const BOX_COLORS: readonly Rgba[] = [
-  rgb(1.0, 0.78, 0.78, 0.45),
-  rgb(1.0, 0.92, 0.65, 0.45),
-  rgb(0.75, 0.93, 0.78, 0.45),
-  rgb(0.75, 0.85, 1.0, 0.45),
-  rgb(0.9, 0.78, 1.0, 0.45),
-];
+/** ボックスの色（画面の帯と同じ。Box 1 から順に） */
+const BOX_COLORS: readonly Rgba[] = ["#1976d2", "#388e3c", "#ef6c00", "#7b1fa2", "#00838f"].map(c => hex(c));
+/** 帯の地は薄く（重なったところは少し濃くなる） */
+const BAND_ALPHA = 0.14;
 const SINGLE_MARKERS = new Set([3, 5, 7, 9, 15, 17, 21]);
 const DOUBLE_MARKERS = new Set([12, 24]);
-
-const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 /** 1 つのチャート（スケール・アルペジオ・カスタム）を描くのに要るもの */
 export interface Subject {
@@ -38,16 +34,21 @@ export interface Subject {
   /** 開放弦（低い弦から、ピッチクラス） */
   readonly tuning: readonly number[];
   readonly capo: number;
+  /** 音名を ♭ で書く（画面の「♭で書く」と同じ） */
+  readonly flat: boolean;
 }
+
+/** 音名（ASCII。♭表記なら Bb、そうでなければ A#） */
+export const pdfNoteName = (p: number, flat: boolean): string => (flat ? FLAT_NAMES : NOTE_NAMES)[mod(p, 12)]!;
 
 /** ASCII の度数ラベル（半音数 → R, b3 …） */
 function labelsOf(chart: ChartDef): Map<number, string> {
   return new Map(chart.intervals.map((iv, i) => [iv, chart.degrees[i] ?? CHROMATIC_DEGREES[iv]!]));
 }
 const degreeString = (chart: ChartDef) => chart.degrees.join(" - ");
-const tuningDescription = (t: readonly number[]) => t.map(p => NOTES[p]).join("");
+const tuningDescription = (s: Subject) => s.tuning.map(p => pdfNoteName(p, s.flat)).join("");
 const tuningHeader = (s: Subject) =>
-  s.capo ? `Tuning: ${tuningDescription(s.tuning)}, Capo: fret ${s.capo}` : `Tuning: ${tuningDescription(s.tuning)}`;
+  s.capo ? `Tuning: ${tuningDescription(s)}, Capo: fret ${s.capo}` : `Tuning: ${tuningDescription(s)}`;
 
 interface Ctx {
   pageNum: number;
@@ -100,7 +101,8 @@ function drawFretboardGrid(
   if (capo > 0 && capo <= numFrets) {
     const center = nutX + (capo - 0.5) * fretSpacing;
     const bw = fretSpacing * 0.5;
-    const over = numStrings > 1 ? stringSpacing * 0.45 : 2 * MM;
+    // 端の弦から少しだけはみ出す（弦の間隔が広いページでも、上の説明や下の番号にかからない）
+    const over = numStrings > 1 ? Math.min(stringSpacing * 0.45, 2.5 * MM) : 2 * MM;
     c.rect(center - bw / 2, y - over, bw, h + 2 * over, CAPO_BAR, Math.min(bw, 3 * MM) / 2);
   }
   for (let i = 0; i < numFrets; i++) {
@@ -124,6 +126,11 @@ function drawNoteDot(c: Canvas, cx: number, sy: number, radius: number, isRoot: 
   }
 }
 
+/** 点の半径（弦・フレットの間隔の 0.42 倍。小さすぎ・大きすぎは丸める） */
+const DOT_MIN = 2.4 * MM;
+const DOT_MAX = 3.6 * MM;
+const dotRadius = (spacing: number) => Math.max(Math.min(spacing * 0.42, DOT_MAX), DOT_MIN);
+
 function placeScaleDots(
   c: Canvas,
   geom: Geom,
@@ -133,9 +140,8 @@ function placeScaleDots(
   numFrets: number,
   tuning: readonly number[],
   capo: number,
+  radius = dotRadius(Math.min(geom.stringSpacing, geom.fretSpacing)),
 ) {
-  const r0 = Math.min(geom.stringSpacing, geom.fretSpacing) * 0.42;
-  const radius = Math.max(Math.min(r0, 3.6 * MM), 2.4 * MM);
   const labels = labelsOf(chart);
   tuning.forEach((open, sIdx) => {
     const sy = y + sIdx * geom.stringSpacing;
@@ -175,48 +181,52 @@ function finishPage(c: Canvas, ctx: Ctx) {
   ctx.pageNum++;
 }
 
-// ---- ボックスの番号（sections._renumber_boxes） ----
-const RENUMBER_FRETS = 18;
+// ---- 1. 全 12 キー ----
+const ALL_KEYS_MARGIN_X = 12 * MM;
+const ALL_KEYS_TOP = PAGE_H - 22 * MM;
+const ALL_KEYS_BOTTOM = 21 * MM;
+/** 見出し（キー名）のベースラインから指板の上の点まで／指板の下の点からフレット番号の上まで（字の高さ込み） */
+const KEY_TITLE_H = 3.5 * MM;
+const FRET_NUM_H = 3.4 * MM;
+/** 隣の弦の点どうしが重ならない間隔（最小の点 2 つぶん＋すき間） */
+const MIN_STRING_SPACING = 2 * DOT_MIN + 0.2 * MM;
 
-/** 1〜numFrets の指板で最初に見える位置の低い順に、ボックスに番号を振り直す（古い番号 0 始まり → 新しい番号 1 始まり） */
-export function renumberBoxes(
-  ranges: readonly (readonly [number, number])[],
-  numFrets = RENUMBER_FRETS,
-): Map<number, number> {
-  const firstLo = new Map<number, number>();
-  ranges.forEach(([lo, hi], i) => {
-    for (const k of [-2, -1, 0, 1, 2]) {
-      const a = lo + 12 * k,
-        b = hi + 12 * k;
-      if (a >= 1 && b <= numFrets && (!firstLo.has(i) || a < firstLo.get(i)!)) firstLo.set(i, a);
-    }
-  });
-  const order = ranges.map((_, i) => i).sort((a, b) => (firstLo.get(a) ?? Infinity) - (firstLo.get(b) ?? Infinity));
-  return new Map(order.map((old, n) => [old, n + 1]));
+/** 1 キーぶんの段の配置。点の大きさを先に決め、見出しと番号が点にかからないように指板の高さを残りで取る */
+function allKeysSlot(keysPerPage: number, numStrings: number) {
+  const slotH = (ALL_KEYS_TOP - ALL_KEYS_BOTTOM) / keysPerPage;
+  const fixed = KEY_TITLE_H + 1 * MM + FRET_NUM_H + 1 * MM;
+  const gaps = Math.max(numStrings - 1, 1);
+  const r = dotRadius((slotH - fixed - 2 * DOT_MAX) / gaps);
+  const h = slotH - fixed - 2 * r;
+  return { slotH, r, h, stringSpacing: h / gaps };
 }
 
-// ---- 1. 全 12 キー ----
+/** 1 ページに並べられるキーの数の上限（弦が多いほど少ない） */
+export function maxKeysPerPage(numStrings: number, choices: readonly number[] = [1, 2, 3, 4]): number {
+  const fits = choices.filter(k => allKeysSlot(k, numStrings).stringSpacing >= MIN_STRING_SPACING);
+  return fits.length ? Math.max(...fits) : 1;
+}
+
 export function sectionAllKeys(c: Canvas, s: Subject, ctx: Ctx, keysPerPage: number, numFrets = 15) {
-  const marginX = 12 * MM,
-    marginTop = 12 * MM;
-  const keys = NOTES.map((_, p) => p);
+  const marginX = ALL_KEYS_MARGIN_X;
+  const keys = Array.from({ length: 12 }, (_, p) => p);
+  const { slotH, r, h } = allKeysSlot(keysPerPage, s.tuning.length);
   for (let i = 0; i < keys.length; i += keysPerPage) {
     const chunk = keys.slice(i, i + keysPerPage);
-    c.text(marginX, PAGE_H - marginTop, `${s.chart.nameEn} — Full Fretboard (All Keys)`, 15, BLACK, { bold: true });
-    const legendY = PAGE_H - marginTop - 4 * MM;
+    c.text(marginX, PAGE_H - 12 * MM, `${s.chart.nameEn} — Full Fretboard (All Keys)`, 15, BLACK, { bold: true });
+    const legendY = PAGE_H - 16 * MM;
     c.text(marginX, legendY, `${tuningHeader(s)} (highest string on top).`, 8.5, BLACK);
-    drawLegend(c, marginX + 88 * MM, legendY);
-    const topY = PAGE_H - marginTop - 10 * MM;
-    const bottomY = 21 * MM;
-    const slotH = (topY - bottomY) / chunk.length;
+    // 凡例は右に寄せる（チューニングとカポの説明が長くても重ならない）
+    drawLegend(c, PAGE_W - marginX - 78 * MM, legendY);
     const fbW = PAGE_W - 2 * marginX;
     chunk.forEach((key, j) => {
-      const slotTop = topY - j * slotH;
-      const y = slotTop - slotH + 8 * MM;
-      const h = slotH - 13 * MM;
-      c.text(marginX, y + h + 3 * MM, `${NOTES[key]} ${s.chart.shortName}`, 11, BLACK, { bold: true });
-      const geom = drawFretboardGrid(c, marginX, y, fbW, h, numFrets, 6 * MM, -4 * MM, s.tuning.length, s.capo);
-      placeScaleDots(c, geom, y, key, s.chart, numFrets, s.tuning, s.capo);
+      const slotTop = ALL_KEYS_TOP - j * slotH;
+      const titleY = slotTop - KEY_TITLE_H;
+      const y = titleY - 1 * MM - r - h;
+      c.text(marginX, titleY, `${pdfNoteName(key, s.flat)} ${s.chart.shortName}`, 11, BLACK, { bold: true });
+      const numY = -(r + FRET_NUM_H);
+      const geom = drawFretboardGrid(c, marginX, y, fbW, h, numFrets, 6 * MM, numY, s.tuning.length, s.capo);
+      placeScaleDots(c, geom, y, key, s.chart, numFrets, s.tuning, s.capo, r);
     });
     c.text(marginX, 13 * MM, `Intervals: ${degreeString(s.chart)}`, 7, SUBTLE);
     finishPage(c, ctx);
@@ -225,7 +235,7 @@ export function sectionAllKeys(c: Canvas, s: Subject, ctx: Ctx, keysPerPage: num
 
 // ---- 2. ボックス図 ----
 interface BoxData {
-  num: number;
+  readonly num: number;
   readonly width: number;
   readonly notes: readonly { s: number; f: number; isRoot: boolean; label: string }[];
 }
@@ -267,7 +277,8 @@ function drawBoxDiagram(
   sub: string,
   numStrings: number,
 ) {
-  c.text(x, y + h + 9 * MM, title, 12, BLACK, { bold: true });
+  // 見出しは度数付き全指板の帯と同じ色（どの帯がどの形か、色でも追える）
+  c.text(x, y + h + 9 * MM, title, 12, BOX_COLORS[(box.num - 1) % BOX_COLORS.length]!, { bold: true });
   c.text(x, y + h + 4.5 * MM, sub, 8.5, SUBTLE);
   const numFrets = box.width + 1;
   const ss = numStrings > 1 ? h / (numStrings - 1) : h;
@@ -300,10 +311,9 @@ export function sectionBoxPositions(
   const legendY = ty - 2 * MM;
   drawLegend(c, marginX, legendY);
 
+  // 番号は形の並びのまま（Box 1 ＝最低弦にルートがある形。画面のボックス 1〜5 と同じ順）。
+  // guitar_chart は見える位置の低い順に振り直していたが、それだとキーによって同じ形の番号が変わる
   const boxes = buildBoxData(s, root, ranges);
-  const renumber = renumberBoxes(ranges);
-  for (const b of boxes) b.num = renumber.get(b.num - 1)!;
-  boxes.sort((a, b) => a.num - b.num);
 
   const cols = 3,
     rows = 2;
@@ -353,8 +363,7 @@ export function sectionFullWithDegrees(
   const hasBoxes = ranges.length > 0;
   c.text(marginX, PAGE_H - marginTop, `${s.chart.nameEn} — Full Fretboard with Degrees`, 17, BLACK, { bold: true });
   let ty = PAGE_H - marginTop - 6 * MM;
-  const bandNote = hasBoxes ? ` Background bands mark the ${ranges.length} box positions.` : "";
-  for (const line of [`All notes labeled by degree (${degreeString(s.chart)}).`, `${tuningHeader(s)}.${bandNote}`]) {
+  for (const line of [`All notes labeled by degree (${degreeString(s.chart)}).`, `${tuningHeader(s)}.`]) {
     c.text(marginX, ty, line, 10, SUBTLE);
     ty -= 4.5 * MM;
   }
@@ -362,14 +371,19 @@ export function sectionFullWithDegrees(
   drawLegend(c, marginX, legendY);
   if (hasBoxes) c.text(marginX + 80 * MM, legendY, `Background colors mark the ${ranges.length} boxes.`, 9.5, BLACK);
 
+  // 指板（上の説明 1 行・下のフレット番号と帯の名札 2 段を含む）を、凡例とフッターの間の上下中央に置く
+  const h = 100 * MM;
+  const above = 6 * MM,
+    below = 22 * MM;
+  const top = legendY - 6 * MM,
+    bottom = 14 * MM;
   const x = marginX,
     w = PAGE_W - 2 * marginX,
-    h = 80 * MM,
-    y = 45 * MM;
+    y = bottom + below + (top - bottom - (above + h + below)) / 2;
   c.text(
     x,
-    y + h + 6 * MM,
-    `Example shown in the key of ${NOTES[root]} (${s.chart.nameEn}). Shift the entire pattern to play any key.`,
+    y + h + above,
+    `Example shown in the key of ${pdfNoteName(root, s.flat)}. Shift the entire pattern to play any key.`,
     10,
     SUBTLE,
   );
@@ -387,25 +401,24 @@ export function sectionFullWithDegrees(
       if (a >= 1 && b <= numFrets) instances.push({ i, lo: a, hi: b });
     }
   });
-  const renumber = renumberBoxes(ranges, numFrets);
   const bandX = (lo: number, hi: number) =>
     [Math.max(x, nutX + (lo - 1) * fretSpacing), nutX + hi * fretSpacing] as const;
   for (const { i, lo, hi } of instances) {
     const [x1, x2] = bandX(lo, hi);
     const col = BOX_COLORS[i % BOX_COLORS.length]!;
-    c.rect(x1, y, x2 - x1, h, col);
-    c.line(x1, y, x2, y, opaque(col), 1.4);
-    c.line(x1, y + h, x2, y + h, opaque(col), 1.4);
+    c.rect(x1, y, x2 - x1, h, { ...col, a: BAND_ALPHA });
+    c.line(x1, y, x2, y, col, 1.4);
+    c.line(x1, y + h, x2, y + h, col, 1.4);
   }
   // 帯の名札：位置の順に 2 段へ交互に振り分ける
   const rank = instances.map((_, j) => j).sort((a, b) => instances[a]!.lo - instances[b]!.lo);
   const rowOf = new Map(rank.map((j, n) => [j, n % 2]));
   instances.forEach(({ i, lo, hi }, j) => {
     const [x1, x2] = bandX(lo, hi);
-    const col = opaque(BOX_COLORS[i % BOX_COLORS.length]!);
+    const col = BOX_COLORS[i % BOX_COLORS.length]!;
     const by = bandYBase + (rowOf.get(j) === 0 ? 0 : -bandH - 1 * MM);
     c.rect(x1, by, x2 - x1, bandH, col);
-    c.text((x1 + x2) / 2, by + 1.6 * MM, `Box ${renumber.get(i)}`, 9, BLACK, { bold: true, align: "center" });
+    c.text((x1 + x2) / 2, by + 1.6 * MM, `Box ${i + 1}`, 9, WHITE, { bold: true, align: "center" });
   });
 
   const geom = drawFretboardGrid(c, x, y, w, h, numFrets, openW, -7 * MM, s.tuning.length, s.capo);

@@ -2,9 +2,17 @@
    順番はボックス図 → 度数付き全指板 → 全 12 キー。 */
 import { mod, pc, tuningById } from "../../theory";
 import { computeBoxRanges } from "../boxes";
-import { type ChartState, chartOf, tuningPcs } from "../state";
+import { type ChartState, KEYS_PER_PAGE, chartOf, tuningPcs } from "../state";
 import { Canvas, type Page } from "./page";
-import { type Ctx, type Subject, sectionAllKeys, sectionBoxPositions, sectionFullWithDegrees } from "./sections";
+import {
+  type Ctx,
+  type Subject,
+  maxKeysPerPage,
+  pdfNoteName,
+  sectionAllKeys,
+  sectionBoxPositions,
+  sectionFullWithDegrees,
+} from "./sections";
 
 const STANDARD = tuningById("standard")!.open.map(pc);
 
@@ -24,6 +32,21 @@ export function pdfPlan(s: ChartState): PdfPlan {
   };
 }
 
+type Span = readonly [number, number];
+
+/** ボックスを Box 1 から並べ直す。Box 1 は最低弦のルートがいちばん左に来る形（画面のボックス 1 と同じ決め方）。
+    手で決めた範囲はほとんどこの順だが、ロクリアンだけ並びがずれている */
+export function fromBox1(ranges: readonly Span[], root: number, lowOpen: number): Span[] {
+  const rootFret = mod(root - lowOpen, 12);
+  let start = 0;
+  let best = Infinity;
+  ranges.forEach(([lo, hi], i) => {
+    const off = mod(rootFret - lo, 12);
+    if (off <= hi - lo && off < best) [start, best] = [i, off];
+  });
+  return [...ranges.slice(start), ...ranges.slice(0, start)];
+}
+
 /** PDF に描くボックス。
     - 標準チューニング：手で決めた範囲（canonical root 用）。ボックス図は canonical root のまま、
       度数付き全指板はキーに合わせて動かす（guitar_chart では帯が canonical root の位置のままだった）
@@ -35,24 +58,34 @@ export function pdfBoxes(s: ChartState) {
   const standard = tuning.length === STANDARD.length && tuning.every((p, i) => p === STANDARD[i]);
   if (standard) {
     const d = mod(s.root - chart.canonicalRoot, 12);
+    const ranges = fromBox1(chart.boxRanges, chart.canonicalRoot, tuning[0]!);
     return {
       boxRoot: chart.canonicalRoot,
-      boxRanges: chart.boxRanges,
-      degreeRanges: chart.boxRanges.map(([lo, hi]) => [lo + d, hi + d] as const),
+      boxRanges: ranges,
+      degreeRanges: ranges.map(([lo, hi]) => [lo + d, hi + d] as const),
     };
   }
   const computed = computeBoxRanges(chart.intervals, s.root, tuning[0]!, { numBoxes: chart.boxRanges.length });
   return { boxRoot: s.root, boxRanges: computed, degreeRanges: computed };
 }
 
+/** 選べる 1 ページのキー数（弦が多いと、多く並べると点が重なるので減らす） */
+export const keysPerPageChoices = (s: ChartState): number[] => {
+  const max = maxKeysPerPage(tuningPcs(s).length, KEYS_PER_PAGE);
+  return KEYS_PER_PAGE.filter(k => k <= max);
+};
+
+/** 実際に使う 1 ページのキー数（選んだ数が今の弦の数では入らなければ、入る数まで減らす） */
+export const keysPerPage = (s: ChartState): number => Math.min(s.keysPerPage, Math.max(...keysPerPageChoices(s)));
+
 export const pageCount = (s: ChartState): number => {
   const p = pdfPlan(s);
-  return (p.boxes ? 1 : 0) + (p.degrees ? 1 : 0) + (p.allKeys ? Math.ceil(12 / s.keysPerPage) : 0);
+  return (p.boxes ? 1 : 0) + (p.degrees ? 1 : 0) + (p.allKeys ? Math.ceil(12 / keysPerPage(s)) : 0);
 };
 
 export function buildPdfPages(s: ChartState): Page[] {
   const plan = pdfPlan(s);
-  const subject: Subject = { chart: chartOf(s), tuning: tuningPcs(s), capo: s.capo };
+  const subject: Subject = { chart: chartOf(s), tuning: tuningPcs(s), capo: s.capo, flat: s.flat };
   const { boxRoot, boxRanges, degreeRanges } = pdfBoxes(s);
   const c = new Canvas();
   const ctx: Ctx = { pageNum: 1, totalPages: pageCount(s), sectionName: "" };
@@ -67,13 +100,13 @@ export function buildPdfPages(s: ChartState): Page[] {
   }
   if (plan.allKeys) {
     ctx.sectionName = "Section: All 12 keys";
-    sectionAllKeys(c, subject, ctx, s.keysPerPage);
+    sectionAllKeys(c, subject, ctx, keysPerPage(s));
   }
   return c.pages;
 }
 
-/** ダウンロードのファイル名 */
-export const pdfFileName = (s: ChartState): string => {
-  const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  return `${chartOf(s).nameEn.replace(/[^\w#-]+/g, "_")}_${NOTES[s.root]}.pdf`;
-};
+/** ダウンロードのファイル名（Minor_Pentatonic_A.pdf。♭表記なら Bb） */
+export const pdfFileName = (s: ChartState): string =>
+  `${chartOf(s)
+    .nameEn.replace(/[^\w#-]+/g, "_")
+    .replace(/^_+|_+$/g, "")}_${pdfNoteName(s.root, s.flat)}.pdf`;
