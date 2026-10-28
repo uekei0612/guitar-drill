@@ -76,7 +76,10 @@ export function degreeAt(t: Tuning, p: Position, root: Note, type: ChordType): s
 
 export type LabelMode = "finger" | "degree";
 
-/** 図の点。指番号か度数を書き、ルートは色を変える。開放弦は白抜きの ○（度数のときは中に度数） */
+/** 指番号を点に書く字（1 人差し指・2 中指・3 薬指・4 小指）。数字より読み替えが要らない */
+export const FINGER_NAMES: Readonly<Record<number, string>> = { 1: "人", 2: "中", 3: "薬", 4: "小" };
+
+/** 図の点。指（人・中・薬・小）か度数を書き、ルートは色を変える。開放弦は白抜きの ○（度数のときは中に度数） */
 /** ルートの色を消す（形を見て名前を答える問題で、答えが見えないように） */
 export const hideRoot = (marks: readonly Mark[]): Mark[] =>
   marks.map(m => ({ ...m, kind: m.kind === "root" ? "tone" : m.kind === "openRoot" ? "open" : m.kind }));
@@ -86,7 +89,7 @@ export function shapeMarks(t: Tuning, s: Shape, root: Note, type: ChordType, mod
     const deg = degreeAt(t, p, root, type);
     const finger = s.fingers[STRINGS.indexOf(p.string as (typeof STRINGS)[number])];
     const open = p.fret === 0;
-    const label = mode === "degree" ? deg : open ? "" : String(finger ?? "");
+    const label = mode === "degree" ? deg : open || finger == null ? "" : (FINGER_NAMES[finger] ?? "");
     const kind = open ? (deg === "R" ? "openRoot" : "open") : deg === "R" ? "root" : "tone";
     return { pos: p, kind, label };
   });
