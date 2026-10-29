@@ -1,7 +1,7 @@
 /* 参考の本文：トライアドの構成音 */
 import { useContext } from "preact/hooks";
 import { Pitfalls, Points, Section, Tip, Tips } from "../../ui/Lesson";
-import { Board, Fig, Figs, type KeyMark, Keys, LessonBoard, type StepItem, Steps } from "../../ui/LessonFigures";
+import { Board, ChordKeys, Fig, Figs, Keys, LessonBoard, type StepItem, Steps } from "../../ui/LessonFigures";
 
 export function Intro() {
   return (
@@ -16,15 +16,9 @@ export function Intro() {
 }
 
 /** C をルートにしたトライアドの鍵盤。3 つの音と、間の半音の数 */
-function Triad({ name, tones, caption }: { name: string; tones: [string, number][]; caption: string }) {
-  const marks: KeyMark[] = tones.map(([label, semi]) => ({ semi, label, kind: semi === 0 ? "root" : "tone" }));
-  const arcs = tones.slice(1).map(([, semi], i) => ({ from: tones[i]![1], to: semi, label: `${semi - tones[i]![1]}` }));
-  return (
-    <Fig title={name} caption={caption}>
-      <Keys marks={marks} arcs={arcs} label={`${name}：${tones.map(t => t[0]).join(" ")}`} />
-    </Fig>
-  );
-}
+const Triad = ({ name, tones, caption }: { name: string; tones: [string, number][]; caption: string }) => (
+  <ChordKeys name={name} tones={tones} caption={caption} />
+);
 
 const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
 /** start から 1 つ飛ばしで 3 文字を強調した文字の並び */
