@@ -173,7 +173,8 @@ export function Keys({
     return k.x + (k.white ? W : BW) / 2 + 1;
   };
   const cy = (semi: number) => top + (keyList[semi]!.white ? H - 18 : BH - 14);
-  const width = whites * W + 2,
+  // 最後が黒鍵なら、はみ出す半分を足す
+  const width = whites * W + (keyList.at(-1)!.white ? 0 : BW / 2 + 6) + 2,
     height = top + H + NAME + bottom;
   const keyY = top;
   return (
@@ -225,6 +226,35 @@ export function Keys({
         </g>
       ))}
     </svg>
+  );
+}
+
+/** C をルートにしたコードの鍵盤。音と、隣の音との間の半音の数（弧）。tones は [度数, C からの半音] */
+export function ChordKeys({
+  name,
+  tones,
+  caption,
+  verdict,
+  em = [],
+}: {
+  name: string;
+  tones: readonly (readonly [string, number])[];
+  caption?: ComponentChildren;
+  verdict?: "ok" | "ng";
+  /** 輪で目立たせる音（C からの半音） */
+  em?: readonly number[];
+}) {
+  const marks: KeyMark[] = tones.map(([label, semi]) => ({
+    semi,
+    label,
+    kind: em.includes(semi) ? "em" : semi === 0 ? "root" : "tone",
+  }));
+  const arcs = tones.slice(1).map(([, semi], i) => ({ from: tones[i]![1], to: semi, label: `${semi - tones[i]![1]}` }));
+  const keys = Math.max(12, ...tones.map(t => t[1] + 1));
+  return (
+    <Fig title={name} caption={caption} verdict={verdict}>
+      <Keys keys={keys} marks={marks} arcs={arcs} label={`${name}：${tones.map(t => t[0]).join(" ")}`} />
+    </Fig>
   );
 }
 

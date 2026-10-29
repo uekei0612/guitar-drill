@@ -2000,3 +2000,141 @@ main.home .today {
 .topic-settings {
   scroll-margin-top: 16px;
 }
+/* ダイアトニックコードの積み上げ */
+.stacks {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.stack-note {
+  font-weight: 700;
+  line-height: 1.3;
+}
+.stack-note.root {
+  text-decoration: underline;
+}
+.stack-gap {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1;
+}
+.stack-name {
+  margin-top: 4px;
+  padding-top: 2px;
+  width: 100%;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+.stack--maj {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.stack--maj .stack-name {
+  color: var(--accent);
+}
+.stack--dim {
+  border-color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 10%, var(--bg));
+}
+.stack--dim .stack-name {
+  color: var(--ng);
+}
+/* 小さな五度圏（参考の図） */
+.c5mini {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+}
+.c5mini text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--fg);
+}
+.c5mini-ring {
+  fill: none;
+  stroke: var(--line);
+}
+.c5mini-dot {
+  fill: var(--surface);
+  stroke: var(--line);
+}
+.c5mini-dot.root {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.c5mini-dot.tone {
+  fill: var(--fg);
+  stroke: var(--fg);
+}
+.c5mini-major {
+  font-size: 15px;
+  font-weight: 700;
+}
+.c5mini .c5mini-major.root {
+  fill: var(--on-accent);
+}
+.c5mini .c5mini-major.tone {
+  fill: var(--bg);
+}
+.c5mini-minor {
+  font-size: 11px;
+}
+.c5mini .c5mini-minor.em {
+  fill: var(--accent);
+  font-weight: 700;
+}
+.c5mini-minor-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.c5mini-arrow path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.c5mini-arrow polygon {
+  fill: var(--accent);
+}
+/* 12 小節ブルースの小節 */
+.blues-bars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0;
+}
+.blues-bar {
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+.blues-bar small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.blues-bar--t {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.blues-bar--d {
+  border: 2px solid var(--fg);
+}
