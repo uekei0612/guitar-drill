@@ -323,7 +323,7 @@ describe("Drill", () => {
     expect(button(el, "答え合わせ").textContent).toBe("答え合わせ");
     await click(el.querySelector('[aria-label="2弦 1フレット"]')!);
     await click(button(el, "答え合わせ"));
-    expect(el.querySelector(".feedback-line")!.textContent).toBe("不正解：押し忘れ 2・押し間違い 3");
+    expect(el.querySelector(".feedback-line")!.textContent).toBe("不正解：3 か所違います");
     expect(el.querySelector(".feedback-legend")!.textContent).toBe(
       "点線＝押し忘れ　灰色＝押し間違い　赤い ×＝鳴らさない弦",
     );

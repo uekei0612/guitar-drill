@@ -57,10 +57,10 @@ describe("スケールのボックス", () => {
   });
 
   it("高いボックスは 1 オクターブ下に寄せる", () => {
-    // E マイナーペンタのボックス 5 は guitar_chart では 22〜25 フレット
+    // E マイナーペンタのボックス 5 は 21〜24 フレット → 9〜12 フレット
     const q = scaleBoxes.question("minor_pentatonic:4:5", ctx(all), seeded(1));
     const r = q.answer.kind === "tap" ? q.answer.range : q.prompt.board!.range;
-    expect(r).toEqual({ minFret: 10, maxFret: 13 });
+    expect(r).toEqual({ minFret: 9, maxFret: 12 });
   });
 
   it("壊れた設定は既定値に戻す", () => {

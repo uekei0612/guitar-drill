@@ -1,7 +1,7 @@
 /* チャートの状態から PDF のページを組み立てる（guitar_chart の web/params.py build_specs と builder.py）。
    順番はボックス図 → 度数付き全指板 → 全 12 キー。 */
 import { mod, pc, tuningById } from "../../theory";
-import { computeBoxRanges } from "../boxes";
+import { boxWidthOf, computeBoxRanges, fromBox1, widen } from "../boxes";
 import { type ChartState, KEYS_PER_PAGE, chartOf, tuningPcs } from "../state";
 import { Canvas, type Page } from "./page";
 import {
@@ -32,20 +32,7 @@ export function pdfPlan(s: ChartState): PdfPlan {
   };
 }
 
-type Span = readonly [number, number];
-
-/** ボックスを Box 1 から並べ直す。Box 1 は最低弦のルートがいちばん左に来る形（画面のボックス 1 と同じ決め方）。
-    手で決めた範囲はほとんどこの順だが、ロクリアンだけ並びがずれている */
-export function fromBox1(ranges: readonly Span[], root: number, lowOpen: number): Span[] {
-  const rootFret = mod(root - lowOpen, 12);
-  let start = 0;
-  let best = Infinity;
-  ranges.forEach(([lo, hi], i) => {
-    const off = mod(rootFret - lo, 12);
-    if (off <= hi - lo && off < best) [start, best] = [i, off];
-  });
-  return [...ranges.slice(start), ...ranges.slice(0, start)];
-}
+export { fromBox1 };
 
 /** PDF に描くボックス。
     - 標準チューニング：手で決めた範囲（canonical root 用）。ボックス図は canonical root のまま、
@@ -58,14 +45,20 @@ export function pdfBoxes(s: ChartState) {
   const standard = tuning.length === STANDARD.length && tuning.every((p, i) => p === STANDARD[i]);
   if (standard) {
     const d = mod(s.root - chart.canonicalRoot, 12);
-    const ranges = fromBox1(chart.boxRanges, chart.canonicalRoot, tuning[0]!);
+    // 2 音に足りない弦があるボックスは右に広げる（画面と同じ。ペンタは 2 弦で形がずれる）
+    const ranges = fromBox1(chart.boxRanges, chart.canonicalRoot, tuning[0]!).map(r =>
+      widen(r, chart.intervals, chart.canonicalRoot, tuning),
+    );
     return {
       boxRoot: chart.canonicalRoot,
       boxRanges: ranges,
       degreeRanges: ranges.map(([lo, hi]) => [lo + d, hi + d] as const),
     };
   }
-  const computed = computeBoxRanges(chart.intervals, s.root, tuning[0]!, { numBoxes: chart.boxRanges.length });
+  const computed = computeBoxRanges(chart.intervals, s.root, tuning[0]!, {
+    numBoxes: chart.boxRanges.length,
+    boxWidth: boxWidthOf(chart),
+  }).map(r => widen(r, chart.intervals, s.root, tuning));
   return { boxRoot: s.root, boxRanges: computed, degreeRanges: computed };
 }
 
