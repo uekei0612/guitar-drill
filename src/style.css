@@ -612,6 +612,19 @@ main:has(.drill-screen.fill) {
   align-items: flex-start;
   gap: 12px;
 }
+/* 広い指板図（7 フレット以上の横向き）：縮めずに横スクロールで見せる */
+.board-scroll {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+.board-scroll .fretboard {
+  margin: 0;
+}
 .drill-screen.fill .fretboard {
   flex: 0 0 auto;
   margin: 0;

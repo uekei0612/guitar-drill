@@ -2,7 +2,7 @@
    横向き：1 弦が上・6 弦が下、ナットが左（左利きは右）。ドリルの図はすべてこれ。
    縦向き：ナットが上、6 弦が左（左利きは右）。コードダイアグラムと同じ向きで、360px 幅でも
    12 フレットまで 1 マス 44px 以上を取れる。チャートのスマホ表示で使う。
-   ドリルは横向きにそろえ、広い範囲はネック方向を画面の幅まで詰める（fitAlong）。
+   ドリルは横向きにそろえ、広い範囲は縮めずに横スクロールで見せる（Drill の .board-scroll）。
 
    計算は「ネックに沿う軸（along）」と「弦を横切る軸（across）」で行い、最後に x / y に割り当てる。 */
 import type { FretRange, Position } from "../theory";
@@ -75,8 +75,6 @@ export interface LayoutOptions {
   readonly headRow?: boolean;
   /** 縦向きで、弦ごとの札を下だけでなく上（ナット側）にも置く（長い図で、最初の画面から何弦か読めるように） */
   readonly labelsBothEnds?: boolean;
-  /** 横向きで、何フレットあってもネック方向を画面の幅に収まるまで詰める（弦の間隔はそのまま。ドリル用） */
-  readonly fitAlong?: boolean;
   /** 1 マスのネック方向の長さ（SVG の座標）。既定は SIZE。チャートは実物に近い長方形にするため長くする */
   readonly along?: number;
 }
@@ -92,14 +90,14 @@ export function layout(
   range: FretRange,
   lefty: boolean,
   orientation: Orientation = chooseOrientation(range),
-  { headLabels = true, headRow = false, labelsBothEnds = false, fitAlong = false, along }: LayoutOptions = {},
+  { headLabels = true, headRow = false, labelsBothEnds = false, along }: LayoutOptions = {},
 ): Layout {
   const horizontal = orientation === "horizontal";
   const n = range.maxFret - range.minFret + 1;
   const { across: AC } = SIZE[orientation];
-  // 横向きの短い図（と fitAlong の図）は、札の幅を足しても画面に収まるようにネック方向を詰める
+  // 横向きの短い図は、札の幅を足しても画面に収まるようにネック方向を少し詰める
   const AL =
-    horizontal && headLabels && (n <= MAX_HORIZONTAL_FRETS || fitAlong)
+    horizontal && headLabels && n <= MAX_HORIZONTAL_FRETS
       ? Math.min(SIZE.horizontal.along, Math.floor((FIT_WIDTH - 2 * PAD - LABEL) / n))
       : (along ?? SIZE[orientation].along);
   // 横向きの左利きはネックの向きを、縦向きの右利きは弦の並び（6 弦を左）を反転する
@@ -213,7 +211,6 @@ export function layout(
     inlays,
     fretLabels,
     stringLabels,
-    // ネック方向を詰めた図は、隣のフレットの点が重ならない大きさまで（弦の間隔では決めない）
     r: Math.min(AL * 0.42, AC * 0.36),
     cellAt: pos => byKey.get(`${pos.string}:${pos.fret}`),
     headPoint: string =>
