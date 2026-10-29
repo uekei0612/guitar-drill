@@ -82,11 +82,23 @@ describe("PDF の組み立て", () => {
     ).toEqual([7, 11]);
   });
 
+  it("ボックス図はどのスケールも形が切れない（どの弦にも 2 音以上。ペンタのボックス 3 は 2 弦で 1 フレット広い）", () => {
+    for (const c of CHART_SCALES) {
+      const { boxRoot, boxRanges } = pdfBoxes({ ...DEFAULT_CHART, scale: c.id });
+      for (const [lo, hi] of boxRanges)
+        for (const open of [4, 9, 2, 7, 11, 4]) {
+          let k = 0;
+          for (let f = lo; f <= hi; f++) if (c.intervals.includes((((open + f - boxRoot) % 12) + 12) % 12)) k++;
+          expect(k, `${c.id} [${lo},${hi}]`).toBeGreaterThanOrEqual(2);
+        }
+    }
+  });
+
   it("標準チューニングの度数付き全指板の帯は、キーに合わせて動く（guitar_chart からの修正）", () => {
     expect(pdfBoxes(amPent).degreeRanges.map(r => [...r])).toEqual([
       [5, 8],
       [7, 10],
-      [9, 12],
+      [9, 13],
       [12, 15],
       [14, 17],
     ]);

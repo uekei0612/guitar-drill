@@ -64,7 +64,12 @@ export const boxWidthOf = (chart: ChartDef): number => Math.max(...chart.boxRang
 
 /** 2 音に足りない弦があれば、範囲を右に広げる（2 フレットまで）。ペンタの形は 2 弦で 1 フレットずれるので、
     4 フレットの長方形で切ると 2 弦の音が 1 つ欠ける（A マイナーペンタのボックス 3 は 9〜13 フレット） */
-function widen(span: FretSpan, intervals: readonly number[], rootPc: number, openPcs: readonly number[]): FretSpan {
+export function widen(
+  span: FretSpan,
+  intervals: readonly number[],
+  rootPc: number,
+  openPcs: readonly number[],
+): FretSpan {
   const notesOn = (open: number, lo: number, hi: number) => {
     let k = 0;
     for (let f = lo; f <= hi; f++) if (intervals.includes(mod(open + f - rootPc, 12))) k++;

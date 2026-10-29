@@ -1,7 +1,7 @@
 /* チャートの状態から PDF のページを組み立てる（guitar_chart の web/params.py build_specs と builder.py）。
    順番はボックス図 → 度数付き全指板 → 全 12 キー。 */
 import { mod, pc, tuningById } from "../../theory";
-import { boxWidthOf, computeBoxRanges, fromBox1 } from "../boxes";
+import { boxWidthOf, computeBoxRanges, fromBox1, widen } from "../boxes";
 import { type ChartState, KEYS_PER_PAGE, chartOf, tuningPcs } from "../state";
 import { Canvas, type Page } from "./page";
 import {
@@ -45,7 +45,10 @@ export function pdfBoxes(s: ChartState) {
   const standard = tuning.length === STANDARD.length && tuning.every((p, i) => p === STANDARD[i]);
   if (standard) {
     const d = mod(s.root - chart.canonicalRoot, 12);
-    const ranges = fromBox1(chart.boxRanges, chart.canonicalRoot, tuning[0]!);
+    // 2 音に足りない弦があるボックスは右に広げる（画面と同じ。ペンタは 2 弦で形がずれる）
+    const ranges = fromBox1(chart.boxRanges, chart.canonicalRoot, tuning[0]!).map(r =>
+      widen(r, chart.intervals, chart.canonicalRoot, tuning),
+    );
     return {
       boxRoot: chart.canonicalRoot,
       boxRanges: ranges,
@@ -55,7 +58,7 @@ export function pdfBoxes(s: ChartState) {
   const computed = computeBoxRanges(chart.intervals, s.root, tuning[0]!, {
     numBoxes: chart.boxRanges.length,
     boxWidth: boxWidthOf(chart),
-  });
+  }).map(r => widen(r, chart.intervals, s.root, tuning));
   return { boxRoot: s.root, boxRanges: computed, degreeRanges: computed };
 }
 
