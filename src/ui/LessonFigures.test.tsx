@@ -105,3 +105,61 @@ describe("参考の図（中級）", () => {
     expect([...first.querySelectorAll(".step-gap.hl")].map(e => e.textContent)).toEqual(["5度下", "5度下"]);
   });
 });
+
+describe("参考の図（上級）", () => {
+  const ADVANCED = TOPICS.filter(t => t.level === "advanced");
+
+  it("どの分野にも、仕組み・コツ・間違いの図がある", () => {
+    expect(ADVANCED.length).toBe(5);
+    for (const t of ADVANCED) expect(renderRef(t.id).querySelectorAll(".lesson-fig").length).toBeGreaterThan(5);
+  });
+
+  it(
+    "ほかのチューニングでも描ける（レギュラーだけの図は出さない）",
+    () => {
+      const some = TUNINGS.filter(t => ["7_string", "bass_4", "open_g"].includes(t.id));
+      for (const tuning of some)
+        for (const t of ADVANCED) {
+          const el = renderRef(t.id, tuning);
+          expect(el.textContent).not.toBe("");
+        }
+      // ベース 4 弦には 6 弦ルートのシェルが無いので、その図は出さない
+      const bass = TUNINGS.find(t => t.id === "bass_4")!;
+      expect(renderRef("voicings", bass).querySelectorAll(".lesson-fig .fretboard").length).toBeLessThan(
+        renderRef("voicings").querySelectorAll(".lesson-fig .fretboard").length,
+      );
+    },
+    SLOW,
+  );
+
+  it("モードの表は、明るい順に 1 行ごとに 1 音ずつ下がる", () => {
+    const el = renderRef("modes");
+    const grid = el.querySelector(".dgrid")!;
+    const rows = [...grid.querySelectorAll(".dgrid-row")];
+    expect(rows.map(r => r.querySelector(".dgrid-name")!.textContent)).toEqual([
+      "リディアン",
+      "アイオニアン",
+      "ミクソリディアン",
+      "ドリアン",
+      "エオリアン",
+      "フリジアン",
+      "ロクリアン",
+    ]);
+    expect(rows.map(r => [...r.querySelectorAll(".em")].map(c => c.textContent))).toEqual([
+      [],
+      ["4"],
+      ["♭7"],
+      ["♭3"],
+      ["♭6"],
+      ["♭2"],
+      ["♭5"],
+    ]);
+  });
+
+  it("ドミナントのスケールの表は、ミクソリディアンと違う音を目立たせる", () => {
+    const el = renderRef("dominant-scales");
+    const rows = [...el.querySelector(".dgrid")!.querySelectorAll(".dgrid-row")];
+    const em = rows.map(r => [...r.querySelectorAll(".em")].map(c => c.textContent));
+    expect(em).toEqual([[], ["♯11"], ["♭9", "♭13"], ["♭9", "♯9", "♯11"], ["♭9", "♯9", "♯11", "♭13"]]);
+  });
+});

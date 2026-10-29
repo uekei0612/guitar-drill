@@ -2138,3 +2138,57 @@ main.home .today {
 .blues-bar--d {
   border: 2px solid var(--fg);
 }
+/* 度数の表（スケールを半音 12 マスに並べる） */
+.dgrid {
+  margin: 8px 0;
+}
+.dgrid-cells {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2px;
+}
+.dgrid-cells > span {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--line) 35%, var(--bg));
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dgrid-cells > span.on {
+  background: var(--surface);
+  border: 1px solid var(--fg);
+}
+.dgrid-cells > span.em {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.dgrid-head > span {
+  min-height: 0;
+  background: none;
+  font-weight: 400;
+  color: var(--muted);
+}
+.dgrid-row {
+  margin-top: 4px;
+}
+.dgrid-name {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+/* ボイシングの音の積み方（下が低い音） */
+.vstack {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0;
+}
+.vstack .step-item {
+  min-width: 4.2em;
+}

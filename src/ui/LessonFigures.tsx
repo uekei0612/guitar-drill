@@ -3,7 +3,19 @@
 import { type ComponentChildren, Fragment, createContext } from "preact";
 import { useContext } from "preact/hooks";
 import type { Mark } from "../drill/topic";
-import { type Position, STANDARD, type Tuning, fmt, mod, pcAt, spellings, stringCount } from "../theory";
+import {
+  type Position,
+  STANDARD,
+  type Tuning,
+  degree,
+  degreeLabel,
+  fmt,
+  mod,
+  pcAt,
+  semitones,
+  spellings,
+  stringCount,
+} from "../theory";
 import { Fretboard, type FretboardProps } from "./Fretboard";
 
 /** 参考ページの指板図が従う設定（チューニングと左利き）。参考を出す画面で渡す */
@@ -255,6 +267,47 @@ export function ChordKeys({
     <Fig title={name} caption={caption} verdict={verdict}>
       <Keys keys={keys} marks={marks} arcs={arcs} label={`${name}：${tones.map(t => t[0]).join(" ")}`} />
     </Fig>
+  );
+}
+
+/* ---- 度数の表（スケールを半音 12 マスに並べて比べる） ---- */
+
+export interface DegreeRow {
+  readonly name: string;
+  /** 度数（"b3"・"#11" など。SCALES の degrees と同じ書き方） */
+  readonly degrees: readonly string[];
+  /** 目立たせる度数（特性音・変わった音） */
+  readonly em?: readonly string[];
+}
+
+/** スケールを R から半音 12 マスに置いた表。行を並べると、どの音が違うかが縦にそろって見える */
+export function DegreeGrid({ rows, label }: { rows: readonly DegreeRow[]; label: string }) {
+  return (
+    <div class="dgrid" role="img" aria-label={label}>
+      <div class="dgrid-cells dgrid-head" aria-hidden="true">
+        {Array.from({ length: 12 }, (_, s) => (
+          <span key={s}>{s}</span>
+        ))}
+      </div>
+      {rows.map(r => {
+        const at = new Map(r.degrees.map(d => [mod(semitones(degree(d)), 12), d]));
+        return (
+          <div key={r.name} class="dgrid-row" aria-hidden="true">
+            <span class="dgrid-name">{r.name}</span>
+            <div class="dgrid-cells">
+              {Array.from({ length: 12 }, (_, s) => {
+                const d = at.get(s);
+                return (
+                  <span key={s} class={d === undefined ? undefined : r.em?.includes(d) ? "on em" : "on"}>
+                    {d === undefined ? "" : degreeLabel(degree(d))}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
