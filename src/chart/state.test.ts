@@ -6,6 +6,7 @@ import {
   fromParams,
   removeLowString,
   toParams,
+  boxChartOf,
   toggleDegree,
   tuningOf,
 } from "./state";
@@ -64,6 +65,32 @@ describe("チャートの状態", () => {
     expect(toggleDegree(DEFAULT_CHART, 0)).toBeNull();
     const two = { ...DEFAULT_CHART, chartType: "custom" as const, custom: [0, 7] };
     expect(toggleDegree(two, 7)).toBeNull();
+  });
+
+  it("度数のタップ：CAGED・横スクロールは残り、ボックスは元のスケールの位置を使う（URL でも戻る）", () => {
+    const base = { ...DEFAULT_CHART, scale: "minor_pentatonic", caged: true, box: 2, scroll: true };
+    const blues = toggleDegree(base, 6)!;
+    expect(blues).toMatchObject({
+      chartType: "custom",
+      caged: true,
+      box: 2,
+      scroll: true,
+      boxScale: "minor_pentatonic",
+    });
+    expect(boxChartOf(blues)?.id).toBe("minor_pentatonic");
+    // 続けて足し外ししても、元のスケールは変わらない
+    expect(toggleDegree(blues, 2)!.boxScale).toBe("minor_pentatonic");
+    expect(fromParams(toParams(blues))).toMatchObject({
+      custom: blues.custom,
+      caged: true,
+      box: 2,
+      scroll: true,
+      boxScale: "minor_pentatonic",
+    });
+    // アルペジオから作ったカスタムにはボックスが無い
+    expect(boxChartOf(toggleDegree({ ...DEFAULT_CHART, chartType: "arpeggio" }, 2)!)).toBeUndefined();
+    // スケールでないときの boxscale は読まない
+    expect(fromParams(new URLSearchParams("chart_type=scale&scale=major&boxscale=major")).boxScale).toBeNull();
   });
 
   it("自分で決めたチューニング：低い弦を足す（4 度下）・外す、4〜8 弦", () => {

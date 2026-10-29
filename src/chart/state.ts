@@ -1,6 +1,6 @@
 /* チャート画面の状態と URL。パラメーター名は guitar_chart と同じ
    （chart_type / scale / arpeggio / custom / root / tuning / strings / capo / label / flat / lefty / caged / box /
-   boxes / degrees / allkeys / kpp）。scroll はこのアプリで足したもの。ルートと開放弦の音名は ♯ 表記の 12 音で書く。 */
+   boxes / degrees / allkeys / kpp）。scroll と boxscale はこのアプリで足したもの。ルートと開放弦の音名は ♯ 表記の 12 音で書く。 */
 import { type Note, type Tuning, mod, pc, spellings, tuningById } from "../theory";
 import { type ChartDef, type ChartKind, arpeggioChart, customChart, scaleChart } from "./registry";
 
@@ -28,6 +28,8 @@ export interface ChartState {
   readonly box: number | null;
   /** CAGED ボックスを、指板全体の横向き（6 弦が下）・横スクロールで見る（ボックスを選ぶと、そこまでスクロール） */
   readonly scroll: boolean;
+  /** カスタムにしたときに、ボックスの位置を借りるスケール（指板で音を足し外しする前のスケール）。無ければ null */
+  readonly boxScale: string | null;
   // PDF のセクション
   readonly includeBoxes: boolean;
   readonly includeDegrees: boolean;
@@ -50,6 +52,7 @@ export const DEFAULT_CHART: ChartState = {
   caged: false,
   box: null,
   scroll: false,
+  boxScale: null,
   includeBoxes: true,
   includeDegrees: true,
   includeAllKeys: true,
@@ -102,6 +105,7 @@ export function toParams(s: ChartState): URLSearchParams {
   if (s.caged) p.set("caged", "1");
   if (s.caged && s.box != null) p.set("box", String(s.box));
   if (s.caged && s.scroll) p.set("scroll", "1");
+  if (s.chartType === "custom" && s.boxScale) p.set("boxscale", s.boxScale);
   if (!s.includeBoxes) p.set("boxes", "0");
   if (!s.includeDegrees) p.set("degrees", "0");
   if (!s.includeAllKeys) p.set("allkeys", "0");
@@ -126,6 +130,8 @@ export function fromParams(p: URLSearchParams, base: ChartState = DEFAULT_CHART)
       .filter(x => x >= 0 && x <= 11);
     if (ivs.length) s = { ...s, custom: customChart(ivs).intervals };
   }
+  const bs = p.get("boxscale");
+  s = { ...s, boxScale: s.chartType === "custom" && bs && scaleChart(bs)?.boxRanges.length ? bs : null };
   const root = noteIndex(p.get("root"));
   if (root >= 0) s = { ...s, root };
   const tu = p.get("tuning");
@@ -153,7 +159,15 @@ export function fromParams(p: URLSearchParams, base: ChartState = DEFAULT_CHART)
   return s;
 }
 
-/** 指板の度数を 1 つ足す／外す（カスタムになる）。R は外せず、2 音未満にもしない。変わらなければ null */
+/** ボックスの位置を決めるチャート。スケールはそのもの、カスタムは元のスケール。ボックスが無ければ undefined */
+export function boxChartOf(s: ChartState): ChartDef | undefined {
+  const c =
+    s.chartType === "scale" ? chartOf(s) : s.chartType === "custom" && s.boxScale ? scaleChart(s.boxScale) : undefined;
+  return c?.boxRanges.length ? c : undefined;
+}
+
+/** 指板の度数を 1 つ足す／外す（カスタムになる）。R は外せず、2 音未満にもしない。変わらなければ null。
+    CAGED ボックス・横スクロールの表示はそのまま残し、ボックスの位置は元のスケールのものを使う */
 export function toggleDegree(s: ChartState, semi: number): ChartState | null {
   if (semi === 0) return null;
   const ivs = new Set(chartOf(s).intervals);
@@ -161,7 +175,8 @@ export function toggleDegree(s: ChartState, semi: number): ChartState | null {
     ivs.delete(semi);
     if (ivs.size < 2) return null;
   } else ivs.add(semi);
-  return { ...s, chartType: "custom", custom: customChart([...ivs]).intervals, caged: false, box: null };
+  const boxScale = s.chartType === "scale" ? s.scale : s.chartType === "custom" ? s.boxScale : null;
+  return { ...s, chartType: "custom", custom: customChart([...ivs]).intervals, boxScale };
 }
 
 /** 低い弦を 1 本足す（今の最低弦の 4 度下。7 弦の B の付け方）／外す */

@@ -13,6 +13,7 @@ import {
   MAX_CAPO,
   NOTE_NAMES,
   addLowString,
+  boxChartOf,
   chartOf,
   fromParams,
   noteName,
@@ -69,7 +70,9 @@ export interface ChartDots {
 export function chartDots(s: ChartState): ChartDots {
   const chart = chartOf(s);
   const t = tuningOf(s);
-  const boxes = s.caged && chart.kind === "scale" ? boxesForOpen(chart, s.root, tuningPcs(s)).map(playableSpan) : [];
+  // カスタムにしたときは、元のスケールのボックスの位置に今の音を並べる
+  const boxChart = boxChartOf(s);
+  const boxes = s.caged && boxChart ? boxesForOpen(boxChart, s.root, tuningPcs(s)).map(playableSpan) : [];
   const iso = s.box != null ? boxes[s.box - 1] : undefined;
   const marks: Mark[] = [];
   for (let string = 1; string <= stringCount(t); string++)
@@ -108,7 +111,8 @@ export function Chart({ query }: { query: string }) {
   const chart = chartOf(s);
   const t = tuningOf(s);
   const { marks, boxes } = chartDots(s);
-  const hasBoxes = chart.kind === "scale" && chart.boxRanges.length > 0;
+  const boxChart = boxChartOf(s);
+  const hasBoxes = !!boxChart;
   const bands: Band[] = boxes.map(([lo, hi], i) => ({
     lo,
     hi,
@@ -250,6 +254,10 @@ export function Chart({ query }: { query: string }) {
               </button>
             ))}
           </div>
+        )}
+        {/* 音を足し外ししてカスタムにしたら、どのスケールのボックスかを添える */}
+        {s.caged && boxes.length > 0 && s.chartType === "custom" && (
+          <p class="muted small">ボックスの位置は、元の{boxChart!.name}のものです。</p>
         )}
         <div class="chart-board">
           <ChartScroll on={scrollView} focus={scrollFocus}>
