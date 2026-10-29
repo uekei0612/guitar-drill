@@ -230,7 +230,7 @@ export function Chart({ query }: { query: string }) {
         {s.caged && boxes.length > 0 && (
           <label class="check chart-scroll-opt">
             <input type="checkbox" checked={s.scroll} onChange={e => set({ scroll: e.currentTarget.checked })} />
-            <span>横向き・横スクロールで見る（6 弦が下）</span>
+            <span>横向き・横スクロールで見る</span>
           </label>
         )}
         {s.caged && boxes.length > 0 && (
