@@ -612,15 +612,46 @@ main:has(.drill-screen.fill) {
   align-items: flex-start;
   gap: 12px;
 }
-/* 広い指板図（7 フレット以上の横向き）：縮めずに横スクロールで見せる */
-.board-scroll {
+/* 広い指板図（7 フレット以上の横向き）：縮めずに横スクロールで見せ、下に自前のスクロールバーを常に出す
+   （iPhone の標準のバーはスクロール中しか出ないので、標準のほうは隠す） */
+.hscroll {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
+}
+.board-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   touch-action: pan-x;
+  scrollbar-width: none;
+}
+.board-scroll::-webkit-scrollbar {
+  display: none;
+}
+/* 押せる高さは 24px、見える線は 6px */
+.hscroll-track {
+  position: relative;
+  height: 24px;
+  touch-action: none;
+  cursor: pointer;
+}
+.hscroll-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 9px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+}
+.hscroll-thumb {
+  position: absolute;
+  top: 9px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--muted);
 }
 .board-scroll .fretboard {
   margin: 0;

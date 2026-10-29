@@ -12,7 +12,7 @@ document.addEventListener(
   "touchmove",
   e => {
     if (!document.documentElement.classList.contains("no-scroll")) return;
-    if (e.target instanceof Element && e.target.closest("dialog[open], .board-scroll")) return;
+    if (e.target instanceof Element && e.target.closest("dialog[open], .hscroll")) return;
     e.preventDefault();
   },
   { passive: false },
