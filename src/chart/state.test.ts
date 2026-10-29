@@ -28,6 +28,7 @@ describe("チャートの状態", () => {
       lefty: true,
       caged: true,
       box: 2,
+      scroll: true,
       includeAllKeys: false,
       keysPerPage: 4,
     };

@@ -40,6 +40,10 @@ describe("チャートの点", () => {
       [2, 5],
     ]);
     expect(row({ ...s, box: 1 }, 6)).toBe("5R 8♭3");
+    // 横スクロールで指板全体を見るときは、ほかの点を消さずに薄くする
+    const all = chartDots({ ...s, box: 1, scroll: true }).marks.filter(m => m.pos.string === 6);
+    expect(all.filter(m => !m.dim).map(m => m.pos.fret)).toEqual([5, 8]);
+    expect(all.filter(m => m.dim)).toHaveLength(5);
     // アルペジオとカスタムにはボックスが無い
     expect(chartDots({ ...s, chartType: "arpeggio" }).boxes).toEqual([]);
   });
