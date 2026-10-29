@@ -610,12 +610,9 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         : a.kind === "choice"
           ? `不正解：あなたの答え ${picked} ／ 正解 ${a.correct}`
           : a.mode === "all"
-            ? `不正解：${[
-                missed.length && `押し忘れ ${missed.length}`,
-                wrongTaps.length && `押し間違い ${wrongTaps.length}`,
-              ]
-                .filter(Boolean)
-                .join("・")}`
+            ? // 違う場所の数。押し違えた 1 か所は押し忘れと押し間違いの両方に 1 つずつ出るので、足さずに多いほう
+              // （余分に押しただけなら押し間違いだけ、押さなかっただけなら押し忘れだけ）。どれがどちらかは図で見せる
+              `不正解：${Math.max(missed.length, wrongTaps.length)} か所違います`
             : "不正解：灰色が押したところ";
   // 見た目の行は短く：自分の答えが下の札に出るなら（点線の ✕）書かない。読み上げは feedback のまま全部
   const pickedInStrip = !!q.explanation?.strip?.some(x => x.label === picked);
