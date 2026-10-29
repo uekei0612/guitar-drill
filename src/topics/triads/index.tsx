@@ -1,11 +1,13 @@
 /* 分野：トライアドの構成音。メジャー・マイナーから始め、dim・aug・sus を設定で足す。 */
 import { chordTonesTopic } from "../chord-tones";
+import * as lesson from "./lesson";
 
 export const triads = chordTonesTopic({
   id: "triads",
   level: "beginner",
   title: "トライアドの構成音",
   intro: "トライアドはルートに 3 度と 5 度を重ねた 3 音。3 度と 5 度の高さで型が決まる。",
+  lesson,
   base: ["maj", "m"],
   groups: [
     { key: "dim", label: "dim（ディミニッシュ）", types: ["dim"] },

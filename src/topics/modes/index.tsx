@@ -16,6 +16,7 @@ import {
   scaleNotes,
   semitones,
 } from "../../theory";
+import * as Lesson from "./lesson";
 
 interface Mode {
   readonly id: ScaleId;
@@ -193,11 +194,11 @@ export const modes: Topic = {
 
   reference: () => (
     <>
-      <p>
-        明るい順：{BRIGHTNESS.map(id => byId.get(id)!.name).join(" → ")}。右へ 1 つ進むごとに 1 音だけ ♭
-        が付く（リディアンの ♯4 → 4、アイオニアンの 7 → ♭7 …）。
+      <Lesson.Intro />
+      <p class="muted small">
+        一覧は、メジャースケールの 1 番目（アイオニアン）から 7 番目（ロクリアン）の順。音名は、どれも C
+        を主音にした場合。
       </p>
-      <p>どれもメジャーキーの音を別の音から並べたもの。D ドリアン ＝ C メジャーの音を D から。</p>
       <dl class="ref-list">
         {MODES.map(m => (
           <div key={m.id}>
@@ -212,6 +213,7 @@ export const modes: Topic = {
           </div>
         ))}
       </dl>
+      <Lesson.Body />
     </>
   ),
 };

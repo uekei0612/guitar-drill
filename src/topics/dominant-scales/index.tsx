@@ -18,6 +18,7 @@ import {
   semitones,
   transpose,
 } from "../../theory";
+import * as Lesson from "./lesson";
 
 interface DomScale {
   readonly id: ScaleId;
@@ -149,10 +150,8 @@ export const dominantScales: Topic = {
 
   reference: () => (
     <>
-      <p>
-        どれも 3 度と ♭7 を持つ（7th コードの上で使える）。違いは 9・11・13 の高さ。基準はミクソリディアン（
-        {degreesOf(MIXO)}）。
-      </p>
+      <Lesson.Intro />
+      <p class="muted small">一覧の音名は G7 の場合（解決先は C）。</p>
       <dl class="ref-list">
         {DOMINANT_SCALES.map(d => (
           <div key={d.id}>
@@ -164,6 +163,7 @@ export const dominantScales: Topic = {
           </div>
         ))}
       </dl>
+      <Lesson.Body />
     </>
   ),
 };

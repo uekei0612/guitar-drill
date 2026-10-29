@@ -12,6 +12,7 @@ import { CHART_SCALES, scaleChart } from "../../chart/registry";
 import { type Position, type Tuning, degree, degreeLabel, midiAt, mod, pcAt, stringCount } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import { ChartLink } from "../../ui/ChartLink";
+import * as Lesson from "./lesson";
 
 export interface ScaleBoxSettings {
   /** guitar_chart のスケールの ID */
@@ -248,6 +249,7 @@ function BoxSheet({ tuning: t, lefty, settings }: { tuning: Tuning; lefty: boole
   const degrees = scaleChart(scale)!.degrees.map(d => degreeLabel(degree(d)));
   return (
     <>
+      <Lesson.Intro />
       {pages.length > 1 && (
         <div class="pager" role="group" aria-label="スケールとキーをめくる">
           <button class="btn" onClick={() => go(-1)} aria-label="前へ">
@@ -282,6 +284,7 @@ function BoxSheet({ tuning: t, lefty, settings }: { tuning: Tuning; lefty: boole
           </div>
         ))}
       </dl>
+      <Lesson.Body />
     </>
   );
 }

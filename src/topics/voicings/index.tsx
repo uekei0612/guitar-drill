@@ -19,6 +19,7 @@ import {
   stringCount,
 } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
+import * as Lesson from "./lesson";
 
 interface Voicing {
   readonly id: string;
@@ -257,10 +258,8 @@ export const voicings: Topic = {
     const t = ctx.common.tuning;
     return (
       <>
-        <p>
-          シェルは R・3・7 の 3 音（5 度を省く）。ドロップ 2 は密集配置の上から 2 番目の音を、ドロップ 3 は 3 番目の音を
-          1 オクターブ下げた形。どれも G7 の例。
-        </p>
+        <Lesson.Intro />
+        <p class="muted small">下の図はどれも G7 の例。</p>
         <dl class="ref-list">
           {VOICINGS.filter(v => v.strings.every(s => s <= stringCount(t))).map(v => {
             const rootFret = v.strings[0] === 6 ? 3 : v.strings[0] === 5 ? 10 : 5;
@@ -285,6 +284,7 @@ export const voicings: Topic = {
             );
           })}
         </dl>
+        <Lesson.Body />
       </>
     );
   },
