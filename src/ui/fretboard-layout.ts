@@ -122,8 +122,10 @@ export function layout(
   /** 弦（0 = 1 弦）→ その弦の欄の始まり */
   const acrossStart = (s: number) => across0 + (flipAcross ? strings - 1 - s : s) * AC;
   const acrossMid = (s: number) => acrossStart(s) + AC / 2;
-  const acrossLo = across0 + AC / 2;
-  const acrossHi = across0 + (strings - 0.5) * AC;
+  // 弦 1 本の図（参考の図）は、指板とフレットの線に幅を持たせる（無いと線だけになり、フレットが数えられない）
+  const edge = strings === 1 ? AC * 0.3 : 0;
+  const acrossLo = across0 + AC / 2 - edge;
+  const acrossHi = across0 + (strings - 0.5) * AC + edge;
 
   const pt = (along: number, across: number): Point => (horizontal ? { x: along, y: across } : { x: across, y: along });
 
@@ -169,7 +171,9 @@ export function layout(
   for (let a = first; a < n; a++) {
     const f = range.minFret + a;
     if (INLAYS.includes(f)) inlays.push(pt(alongMid(a), mid));
-    if (DOUBLE_INLAYS.includes(f)) inlays.push(pt(alongMid(a), mid - AC), pt(alongMid(a), mid + AC));
+    // 2 つ点は弦 1 本分ずつ離す（弦の少ない図では指板の内側に収める）
+    const dd = strings >= 4 ? AC : (acrossHi - acrossLo) / 4;
+    if (DOUBLE_INLAYS.includes(f)) inlays.push(pt(alongMid(a), mid - dd), pt(alongMid(a), mid + dd));
     // フレット番号：ポジションマークのあるフレットと、範囲の最初のフレット。
     // 横向きで最初のフレットのすぐ隣の番号は書かない（「6 7」と詰まって読みにくい。点は残る）
     const nextToStart = horizontal && a === 1 && !hasOpen;
