@@ -34,10 +34,10 @@ describe("チャートの点", () => {
     const s = { ...amPent, caged: true };
     expect(chartDots(s).boxes.map(b => [...b])).toEqual([
       [5, 8],
-      [8, 11],
-      [10, 13],
+      [7, 10],
+      [9, 13],
       [12, 15],
-      [3, 6],
+      [2, 5],
     ]);
     expect(row({ ...s, box: 1 }, 6)).toBe("5R 8♭3");
     // アルペジオとカスタムにはボックスが無い

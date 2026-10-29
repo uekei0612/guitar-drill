@@ -1,8 +1,8 @@
 /* チャートの定義とボックスの計算が guitar_chart と同じか。
    fixtures/guitar-chart.json は guitar_chart（40a3260）の書き出しを、全チューニング・全スケール・12 ルートぶん保存したもの。 */
 import { describe, expect, it } from "vitest";
-import { TUNINGS, TUNING_ALIASES, note, pc, tuningById } from "../theory";
-import { boxesFor, boxesForOpen } from "./boxes";
+import { TUNINGS, TUNING_ALIASES, mod, note, pc, pcAt, tuningById } from "../theory";
+import { boxWidthOf, boxesFor, boxesForOpen, computeBoxRanges } from "./boxes";
 import fixture from "./fixtures/guitar-chart.json";
 import { CHART_ARPEGGIOS, CHART_SCALES, customChart } from "./registry";
 
@@ -57,27 +57,66 @@ describe("チャートの定義（guitar_chart と同じ）", () => {
   });
 });
 
-describe("ボックスの計算（guitar_chart の /boxes と同じ）", () => {
-  it("全スケール × 全チューニング（別名を含む）× 12 ルートで一致する", () => {
+describe("ボックスの計算", () => {
+  it("computeBoxRanges は guitar_chart の /boxes と、全スケール × 全チューニング（別名を含む）× 12 ルートで一致する", () => {
     let n = 0;
     for (const c of CHART_SCALES)
       for (const [tid, open] of Object.entries(F.tunings))
         for (let p = 0; p < 12; p++) {
           const want = F.boxes[c.id]![tid]![NOTES[p]!];
           expect(
-            boxesFor(c, p, tuningById(tid)!).map(r => [...r]),
+            computeBoxRanges(c.intervals, p, NOTES.indexOf(open[0]!), { numBoxes: c.boxRanges.length }).map(r => [
+              ...r,
+            ]),
             `${c.id} ${tid} ${NOTES[p]}`,
-          ).toEqual(want);
-          expect(
-            boxesForOpen(
-              c,
-              p,
-              open.map(x => NOTES.indexOf(x)),
-            ).map(r => [...r]),
           ).toEqual(want);
           n++;
         }
     expect(n).toBe(11 * 23 * 12);
+  });
+
+  // guitar_chart の計算は幅がペンタと同じ 4 フレットで、ボックス 2 以降の位置も形とずれていたので、
+  // 1 つだけ選ぶと端の音が切れていた（A マイナーペンタのボックス 2 が 8〜11 で、7 フレットの音が欠ける）
+  it("レギュラーのボックスは、どのスケール・キーでも形が切れない（全部の音があり、どの弦にも 2 音以上）", () => {
+    const t = tuningById("standard")!;
+    for (const c of CHART_SCALES)
+      for (let p = 0; p < 12; p++) {
+        const boxes = boxesFor(c, p, t);
+        expect(boxes).toHaveLength(c.boxRanges.length);
+        boxes.forEach(([lo, hi], i) => {
+          const at = `${c.id} ${NOTES[p]} box ${i + 1} [${lo},${hi}]`;
+          expect(lo >= 0 && hi <= 17, at).toBe(true);
+          const seen = new Set<number>();
+          for (let string = 1; string <= 6; string++) {
+            let k = 0;
+            for (let fret = lo; fret <= hi; fret++) {
+              const semi = mod(pcAt(t, { string, fret }) - p, 12);
+              if (c.intervals.includes(semi)) {
+                k++;
+                seen.add(semi);
+              }
+            }
+            expect(k, `${at} ${string}弦`).toBeGreaterThanOrEqual(2);
+          }
+          expect(seen.size, at).toBe(c.intervals.length);
+        });
+      }
+  });
+
+  it("レギュラーは PDF と同じ手で決めた範囲をキーに合わせて動かし、ほかのチューニングは同じ幅で計算する", () => {
+    const am = CHART_SCALES.find(c => c.id === "minor_pentatonic")!;
+    expect(boxesFor(am, 9, tuningById("standard")!).map(r => [...r])).toEqual([
+      [5, 8],
+      [7, 10],
+      [9, 13],
+      [12, 15],
+      [2, 5],
+    ]);
+    const major = CHART_SCALES.find(c => c.id === "major")!;
+    expect(boxWidthOf(major)).toBe(4);
+    for (const [lo, hi] of boxesFor(major, 2, tuningById("drop_d")!)) expect(hi - lo).toBeGreaterThanOrEqual(4);
+    // 開放弦の並びで渡しても同じ
+    expect(boxesForOpen(am, 9, [4, 9, 2, 7, 11, 4])).toEqual(boxesFor(am, 9, tuningById("standard")!));
   });
 
   it("ボックスの無いもの（アルペジオ・カスタム）は空", () => {
