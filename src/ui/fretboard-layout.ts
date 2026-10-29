@@ -77,6 +77,8 @@ export interface LayoutOptions {
   readonly labelsBothEnds?: boolean;
   /** 横向きで、何フレットあってもネック方向を画面の幅に収まるまで詰める（弦の間隔はそのまま。ドリル用） */
   readonly fitAlong?: boolean;
+  /** 1 マスのネック方向の長さ（SVG の座標）。既定は SIZE。チャートは実物に近い長方形にするため長くする */
+  readonly along?: number;
 }
 
 export const chooseOrientation = (range: FretRange): Orientation =>
@@ -90,7 +92,7 @@ export function layout(
   range: FretRange,
   lefty: boolean,
   orientation: Orientation = chooseOrientation(range),
-  { headLabels = true, headRow = false, labelsBothEnds = false, fitAlong = false }: LayoutOptions = {},
+  { headLabels = true, headRow = false, labelsBothEnds = false, fitAlong = false, along }: LayoutOptions = {},
 ): Layout {
   const horizontal = orientation === "horizontal";
   const n = range.maxFret - range.minFret + 1;
@@ -99,7 +101,7 @@ export function layout(
   const AL =
     horizontal && headLabels && (n <= MAX_HORIZONTAL_FRETS || fitAlong)
       ? Math.min(SIZE.horizontal.along, Math.floor((FIT_WIDTH - 2 * PAD - LABEL) / n))
-      : SIZE[orientation].along;
+      : (along ?? SIZE[orientation].along);
   // 横向きの左利きはネックの向きを、縦向きの右利きは弦の並び（6 弦を左）を反転する
   const flipAlong = horizontal && lefty;
   const flipAcross = !horizontal && !lefty;

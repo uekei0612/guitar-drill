@@ -228,6 +228,8 @@ export function Chart({ query }: { query: string }) {
             tuning={t}
             range={range}
             orientation={wide ? "horizontal" : "vertical"}
+            // 1 マスを正方形でなく、フレット方向に長い長方形にする（実物の指板に近づける。弦の間隔はそのまま）
+            cellAlong={64}
             lefty={s.lefty}
             label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
             marks={marks}
