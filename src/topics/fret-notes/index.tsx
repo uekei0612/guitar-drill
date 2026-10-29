@@ -17,6 +17,7 @@ import {
   stringCount,
 } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
+import { HScroll } from "../../ui/HScroll";
 
 export interface FretNotesSettings {
   /** 出題する弦 */
@@ -270,7 +271,7 @@ export const fretNotes: Topic<FretNotesSettings> = {
           フレットで開放弦と同じ音に戻る。
         </p>
         {/* 12 フレットを横に並べると画面に収まらないので、縮めずに横スクロールで見せる */}
-        <div class="board-scroll">
+        <HScroll startAtEnd={ctx.common.lefty}>
           <Fretboard
             tuning={t}
             range={range}
@@ -280,7 +281,7 @@ export const fretNotes: Topic<FretNotesSettings> = {
             label="自然音の位置"
             marks={marks}
           />
-        </div>
+        </HScroll>
       </>
     );
   },

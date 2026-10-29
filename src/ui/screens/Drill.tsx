@@ -18,6 +18,7 @@ import { contextOf, scoped, store, useData } from "../../state";
 import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
+import { HSCROLL_BAR_HEIGHT, HScroll } from "../HScroll";
 import { MAX_HORIZONTAL_FRETS, chooseOrientation, layout } from "../fretboard-layout";
 import { stringCount } from "../../theory";
 import { ChartLink } from "../ChartLink";
@@ -48,7 +49,8 @@ function tapMarks(correct: readonly Position[], taps: readonly Position[]): Mark
   }));
 }
 
-/** on のとき、中身（広い指板図）を横スクロールの枠に入れる。問題が変わったら、ナットの側（左利きは右端）に戻す */
+/** on のとき、中身（広い指板図）を横スクロールの枠に入れ、下にスクロールバーを出す。
+    問題が変わったら、ナットの側（左利きは右端）に戻す */
 function ScrollX({
   on,
   lefty,
@@ -60,15 +62,10 @@ function ScrollX({
   at: number;
   children: ComponentChildren;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (el) el.scrollLeft = lefty ? el.scrollWidth : 0;
-  }, [on, lefty, at]);
   return on ? (
-    <div class="board-scroll" ref={ref}>
+    <HScroll resetKey={at} startAtEnd={lefty}>
       {children}
-    </div>
+    </HScroll>
   ) : (
     <>{children}</>
   );
@@ -541,8 +538,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const fitScale = (reserve: number) =>
     L && boardBox
       ? scrollX
-        ? // 横スクロールの図は幅で縮めない。高さに収まる範囲で、本来の大きさ（1 マス 56×48）まで
-          Math.min((boardBox.height - reserve) / L.height, 1)
+        ? // 横スクロールの図は幅で縮めない。下のスクロールバーを除いた高さに収まる範囲で、本来の大きさ（1 マス 56×48）まで
+          Math.min((boardBox.height - reserve - HSCROLL_BAR_HEIGHT) / L.height, 1)
         : Math.min(
             (tall ? boardBox.width * 0.6 : boardBox.width) / L.width,
             (boardBox.height - reserve) / L.height,
