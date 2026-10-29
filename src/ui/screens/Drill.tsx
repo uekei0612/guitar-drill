@@ -22,6 +22,7 @@ import { HSCROLL_BAR_HEIGHT, HScroll } from "../HScroll";
 import { MAX_HORIZONTAL_FRETS, chooseOrientation, layout } from "../fretboard-layout";
 import { stringCount } from "../../theory";
 import { ChartLink } from "../ChartLink";
+import { LessonBoard } from "../LessonFigures";
 import { playSound } from "../../chart/audio";
 import { href } from "../route";
 
@@ -96,7 +97,9 @@ function ReferenceSheet({ topic, ctx, onClose }: { topic: AnyTopic; ctx: Context
             閉じる
           </button>
         </div>
-        <Ref ctx={ctx} />
+        <LessonBoard.Provider value={{ tuning: ctx.common.tuning, lefty: ctx.common.lefty }}>
+          <Ref ctx={ctx} />
+        </LessonBoard.Provider>
       </div>
     </dialog>
   );
