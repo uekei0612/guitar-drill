@@ -20,6 +20,7 @@ import {
   tabText,
   thirdTip,
 } from "../chord-shapes/shape";
+import * as Lesson from "./lesson";
 
 export interface OpenChord {
   /** 記録のキーになるので変えない */
@@ -214,6 +215,7 @@ function ChordSheet({ tuning, lefty }: { tuning: Tuning; lefty: boolean }) {
     return <p>ローコードの押さえ方はレギュラーチューニングの形です。設定でレギュラーにすると出題します。</p>;
   return (
     <>
+      <Lesson.Intro />
       <p>
         点の字は押さえる指（人＝人差し指・中＝中指・薬＝薬指・小＝小指）、白抜きの ○ は開放弦、×
         は鳴らさない弦。オレンジの点がルート。
@@ -250,6 +252,7 @@ function ChordSheet({ tuning, lefty }: { tuning: Tuning; lefty: boolean }) {
           </div>
         </section>
       ))}
+      <Lesson.Body />
     </>
   );
 }

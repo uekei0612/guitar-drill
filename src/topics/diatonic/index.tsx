@@ -25,6 +25,7 @@ import {
 } from "../../theory";
 import { voiced } from "../../chart/audio";
 import { accidentals, sigLabel } from "../circle-of-fifths";
+import * as Lesson from "./lesson";
 
 /** 調号の言い方（♯2つ：F♯ C♯） */
 const sigText = (k: Key) => {
@@ -227,6 +228,7 @@ export const diatonic: Topic<DiatonicSettings> = {
     const go = (d: number) => setIdx(i => (i + d + ALL_KEYS.length) % ALL_KEYS.length);
     return (
       <>
+        <Lesson.Intro />
         <div class="pager" role="group" aria-label="キーをめくる">
           <button class="btn" onClick={() => go(-1)} aria-label="前のキー">
             ←
@@ -265,6 +267,7 @@ export const diatonic: Topic<DiatonicSettings> = {
             .map(c => c.label)
             .join(" ")}
         </p>
+        <Lesson.Body standard={ctx.common.tuning.id === "standard"} />
       </>
     );
   },

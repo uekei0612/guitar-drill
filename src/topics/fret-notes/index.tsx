@@ -18,6 +18,7 @@ import {
 } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import { HScroll } from "../../ui/HScroll";
+import * as Lesson from "./lesson";
 
 export interface FretNotesSettings {
   /** 出題する弦 */
@@ -266,10 +267,8 @@ export const fretNotes: Topic<FretNotesSettings> = {
       }
     return (
       <>
-        <p>
-          自然音（C D E F G A B）の位置。E–F と B–C の間だけが半音（隣のフレット）で、ほかは全音（1 フレット空く）。 12
-          フレットで開放弦と同じ音に戻る。
-        </p>
+        <Lesson.Intro />
+        <p class="muted small">図は 12 フレットまでの自然音の位置（オレンジが C）。横にスクロールできる。</p>
         {/* 12 フレットを横に並べると画面に収まらないので、縮めずに横スクロールで見せる */}
         <HScroll startAtEnd={ctx.common.lefty}>
           <Fretboard
@@ -282,6 +281,7 @@ export const fretNotes: Topic<FretNotesSettings> = {
             marks={marks}
           />
         </HScroll>
+        <Lesson.Body standard={t.id === "standard"} />
       </>
     );
   },

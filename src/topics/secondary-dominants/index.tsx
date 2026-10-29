@@ -17,6 +17,7 @@ import {
   spellings,
   transpose,
 } from "../../theory";
+import * as Lesson from "./lesson";
 
 /** 解決先（メジャーキーの度数。0 = Ⅰ） */
 const TARGETS = [1, 2, 3, 4, 5, 0];
@@ -125,15 +126,13 @@ export const secondaryDominants: Topic = {
     };
   },
 
-  reference: () => {
+  reference: ({ ctx }) => {
     const k = KEYS.major[0]!;
     const chords = diatonicChords(k, 3);
     return (
       <>
-        <p>
-          セカンダリードミナント：解決先の 5 度上を根音にした 7th。裏コード：その減 5 度上（＝解決先の半音上）の 7th
-          で、3 度と 7 度を共有するので置き換えられる。
-        </p>
+        <Lesson.Intro />
+        <p class="muted small">C メジャーのキーで、解決先ごとのドミナントと裏コード。</p>
         <table class="ref-table">
           <thead>
             <tr>
@@ -154,6 +153,7 @@ export const secondaryDominants: Topic = {
             ))}
           </tbody>
         </table>
+        <Lesson.Body standard={ctx.common.tuning.id === "standard"} />
       </>
     );
   },

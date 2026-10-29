@@ -4,6 +4,7 @@ import { shuffle } from "../../drill/rng";
 import type { Context, Question, Topic } from "../../drill/topic";
 import { type Tuning, equals, fmt, midiAt, note, noteId, openNote, stringCount } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
+import * as Lesson from "./lesson";
 
 const RANGE = { minFret: 0, maxFret: 3 };
 /** タップで答えるのは開放の列だけ（1〜3 フレットは見せるだけ） */
@@ -119,11 +120,10 @@ export const openStrings: Topic = {
 
   reference: ({ ctx }) => {
     const t = ctx.common.tuning;
+    const standard = t.id === "standard";
     return (
       <>
-        <p>
-          {t.name}の開放弦は、{stringCount(t)}弦（いちばん太い弦）から <strong>{t.open.map(fmt).join(" ")}</strong>。
-        </p>
+        <Lesson.Intro standard={standard} />
         <Fretboard
           tuning={t}
           range={RANGE}
@@ -147,6 +147,7 @@ export const openStrings: Topic = {
             ))}
           </tbody>
         </table>
+        <Lesson.Body standard={standard} />
       </>
     );
   },

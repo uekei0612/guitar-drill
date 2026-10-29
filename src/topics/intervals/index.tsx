@@ -18,6 +18,7 @@ import {
 } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import { intervalName } from "../chord-tones";
+import * as Lesson from "./lesson";
 
 /** 覚える順（5 度・3 度から） */
 export const DEGREES = ["5", "3", "b3", "b7", "7", "4", "2", "6", "b6", "b2", "b5"] as const;
@@ -181,11 +182,13 @@ export const intervals: Topic = {
       }
     return (
       <>
+        <Lesson.Intro />
         <p>
           6弦 5フレットをルートにしたときの度数。ルートが動いても形は同じ（3弦から2弦に移るところだけ 1
           フレット右にずれる）。
         </p>
         <Fretboard tuning={t} range={range} lefty={ctx.common.lefty} label="度数の位置" marks={marks} />
+        <Lesson.Body standard={t.id === "standard"} />
       </>
     );
   },

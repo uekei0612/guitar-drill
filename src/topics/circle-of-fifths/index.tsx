@@ -2,6 +2,7 @@
 import { shuffle } from "../../drill/rng";
 import type { Question, Topic } from "../../drill/topic";
 import { type Key, FIFTHS, KEYS, keyId, keyLabel, keySignature, note } from "../../theory";
+import * as Lesson from "./lesson";
 
 const ALL: readonly Key[] = [...KEYS.major, ...KEYS.minor];
 const byId = new Map(ALL.map(k => [keyId(k), k]));
@@ -142,7 +143,7 @@ export const circleOfFifths: Topic = {
     }
   },
 
-  reference: () => {
+  reference: ({ ctx }) => {
     const size = 320,
       c = size / 2;
     const at = (i: number, r: number) => {
@@ -151,10 +152,8 @@ export const circleOfFifths: Topic = {
     };
     return (
       <>
-        <p>
-          時計回りに 5 度ずつ上がり、♯が 1 つずつ増える。反時計回りは
-          ♭が増える。同じ位置の内側が平行調（調号が同じマイナー）。
-        </p>
+        <Lesson.Intro />
+        <p class="muted small">外側がメジャーキー、内側が同じ調号の平行調（マイナー）、その間が調号の数。</p>
         <svg class="circle5" viewBox={`0 0 ${size} ${size}`} role="img" aria-label="五度圏">
           <circle cx={c} cy={c} r={150} class="c5-ring" />
           <circle cx={c} cy={c} r={92} class="c5-ring" />
@@ -179,15 +178,8 @@ export const circleOfFifths: Topic = {
             );
           })}
         </svg>
-        <h2>調号の付く順と、主音の見つけ方</h2>
-        <ul>
-          <li>♯は F C G D A E B の順に付く。メジャーの主音は最後の♯の半音上（♯3 つ＝F♯ C♯ G♯ → A）</li>
-          <li>
-            ♭は B E A D G C F の順に付く（♯の逆）。メジャーの主音は最後から 2 つ目の♭（♭3 つ＝B♭ E♭ A♭ → E♭）。♭1 つは F
-          </li>
-          <li>マイナーは、同じ調号のメジャーの主音から短3度下（C → Am）</li>
-        </ul>
         <p class="muted">F♯ と G♭（♯6・♭6）は同じ音のキー。このアプリでは F♯ と E♭m で数える。</p>
+        <Lesson.Body standard={ctx.common.tuning.id === "standard"} />
       </>
     );
   },

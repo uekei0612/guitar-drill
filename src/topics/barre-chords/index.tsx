@@ -22,6 +22,7 @@ import {
   thirdTip,
 } from "../chord-shapes/shape";
 import { isStandard } from "../open-chords";
+import * as Lesson from "./lesson";
 
 export interface BarreForm {
   /** ルートの弦 */
@@ -288,9 +289,7 @@ function FormSheet({ tuning, lefty }: { tuning: Tuning; lefty: boolean }) {
   const example = { 6: note("G"), 5: note("C") } as const;
   return (
     <>
-      <p>
-        ハイコードは、開放弦のコードの形（E・A）を人差し指のバレーで平行移動したもの。形はそのままで、ルートのある弦の音名でコード名が決まる。
-      </p>
+      <Lesson.Intro />
       <h2>ルートのフレット</h2>
       <table class="ref-table">
         <thead>
@@ -345,6 +344,7 @@ function FormSheet({ tuning, lefty }: { tuning: Tuning; lefty: boolean }) {
           </div>
         </section>
       ))}
+      <Lesson.Body />
     </>
   );
 }
