@@ -25,6 +25,16 @@ function seedDue(n: number, now: number) {
 }
 
 describe("Home", () => {
+  it("分野の行の右端から、その分野の参考へ行ける（参考の無い分野には出さない）", async () => {
+    const el = document.body.appendChild(document.createElement("div"));
+    await act(() => render(<Home />, el));
+    const refs = [...el.querySelectorAll<HTMLAnchorElement>("a.topic-ref")];
+    expect(refs).toHaveLength(TOPICS.filter(t => t.reference).length);
+    const t = TOPICS.find(x => x.reference)!;
+    const a = refs.find(r => r.getAttribute("aria-label") === `${t.title}の参考`)!;
+    expect(a.getAttribute("href")).toBe(`#/reference/${t.id}`);
+  });
+
   it("今日の復習が 1 回の問題数より多いときは、1 回に解く数を添える", async () => {
     const now = Date.UTC(2026, 9, 28, 3);
     const n = seedDue(30, now);

@@ -370,17 +370,38 @@ input:focus-visible {
   display: grid;
   gap: 8px;
 }
-/* 分野の行：名前と「覚えた数・復習待ち」、右端に覚えた割合の輪。行全体でドリルへ */
+/* 分野の行：名前と「覚えた数・復習待ち」、右端に覚えた割合の輪（ここまでドリルへ）。いちばん右に「参考」 */
+.topic-item {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
 .topic-row {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 56px;
   padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
   color: var(--fg);
+  text-decoration: none;
+}
+/* 参考：行と同じ高さで、縦の線で区切る。押せる幅は 44px 以上 */
+.topic-ref {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 0 12px;
+  border-left: 1px solid var(--line);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
   text-decoration: none;
 }
 .topic-text {
@@ -420,8 +441,9 @@ input:focus-visible {
   stroke: var(--accent);
   stroke-linecap: round;
 }
-.topic-row:focus-visible {
-  outline-offset: 2px;
+.topic-row:focus-visible,
+.topic-ref:focus-visible {
+  outline-offset: -3px;
 }
 .phrase {
   display: inline-block;

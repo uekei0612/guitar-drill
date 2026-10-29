@@ -112,7 +112,8 @@ export function Home({ now = Date.now() }: { now?: number }) {
             {list.length ? (
               <ul class="topics">
                 {list.map(({ t, p }) => (
-                  <li key={t.id}>
+                  // 行はドリルへ、右端の「参考」はその分野の参考へ（リンクは入れ子にできないので、行の中に並べる）
+                  <li key={t.id} class="topic-item">
                     <a class="topic-row" href={href({ name: "drill", topicId: t.id })}>
                       <span class="topic-text">
                         <span class="topic-title">{t.title}</span>
@@ -123,6 +124,15 @@ export function Home({ now = Date.now() }: { now?: number }) {
                       </span>
                       <Ring frac={p.total ? p.learned / p.total : 0} />
                     </a>
+                    {t.reference && (
+                      <a
+                        class="topic-ref"
+                        href={href({ name: "reference", topicId: t.id })}
+                        aria-label={`${t.title}の参考`}
+                      >
+                        参考
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
