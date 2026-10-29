@@ -17,6 +17,7 @@ import {
   spellings,
   transpose,
 } from "../../theory";
+import * as Lesson from "./lesson";
 
 /** コードの型ごとに使えるテンション（ジャズ理論の一般的なもの） */
 export const AVAILABLE: readonly {
@@ -193,7 +194,7 @@ export const tensions: Topic = {
 
   reference: () => (
     <>
-      <p>テンションはコードの 7 度より上に積む音。9 = 2、11 = 4、13 = 6 の 1 オクターブ上。</p>
+      <Lesson.Intro />
       <dl class="ref-list">
         {AVAILABLE.map(a => (
           <div key={a.type}>
@@ -206,6 +207,7 @@ export const tensions: Topic = {
           </div>
         ))}
       </dl>
+      <Lesson.Body />
     </>
   ),
 };

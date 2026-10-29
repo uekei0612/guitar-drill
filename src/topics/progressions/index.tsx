@@ -23,6 +23,7 @@ import {
   spellings,
   transpose,
 } from "../../theory";
+import * as Lesson from "./lesson";
 
 interface ProgChord {
   /** 主音からの度数（"2"、"b7" など） */
@@ -175,21 +176,25 @@ export const progressions: Topic = {
     };
   },
 
-  reference: () => (
-    <dl class="ref-list">
-      {PROGRESSIONS.map(pr => {
-        const k: Key = { mode: pr.mode, tonic: note(pr.mode === "major" ? "C" : "A") };
-        return (
-          <div key={pr.id}>
-            <dt>{pr.name}</dt>
-            <dd>{romanText(pr)}</dd>
-            {pr.form && <dd class="muted">{pr.form}</dd>}
-            <dd class="muted">
-              {keyLabel(k)}：{join(symbols(k, pr.chords))}
-            </dd>
-          </div>
-        );
-      })}
-    </dl>
+  reference: ({ ctx }) => (
+    <>
+      <Lesson.Intro />
+      <dl class="ref-list">
+        {PROGRESSIONS.map(pr => {
+          const k: Key = { mode: pr.mode, tonic: note(pr.mode === "major" ? "C" : "A") };
+          return (
+            <div key={pr.id}>
+              <dt>{pr.name}</dt>
+              <dd>{romanText(pr)}</dd>
+              {pr.form && <dd class="muted">{pr.form}</dd>}
+              <dd class="muted">
+                {keyLabel(k)}：{join(symbols(k, pr.chords))}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+      <Lesson.Body standard={ctx.common.tuning.id === "standard"} />
+    </>
   ),
 };

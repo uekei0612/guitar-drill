@@ -1,6 +1,7 @@
 /* コードの構成音の分野を作る道具。トライアドと 4和音で共通。
    コード名 → 構成音、構成音 → コード名、「Cm7 の ♭7 は？」の 3 形式（どれも 4択）。
    基本の型から始め、ほかの型は設定で足す。 */
+import type { ComponentType } from "preact";
 import { shuffle } from "../../drill/rng";
 import type { Level, Question, Topic } from "../../drill/topic";
 import {
@@ -35,6 +36,8 @@ export interface ChordTonesConfig {
   readonly level: Level;
   readonly title: string;
   readonly intro: string;
+  /** 参考ページの本文（要点はいちばん上、ほかは表のあと） */
+  readonly lesson?: { readonly Intro: ComponentType; readonly Body: ComponentType };
   /** いつも出す型 */
   readonly base: readonly string[];
   /** 設定で足す型 */
@@ -253,7 +256,7 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
 
     reference: ({ ctx }) => (
       <>
-        <p>{cfg.intro}</p>
+        {cfg.lesson ? <cfg.lesson.Intro /> : <p>{cfg.intro}</p>}
         <table class="ref-table">
           <thead>
             <tr>
@@ -293,6 +296,7 @@ export function chordTonesTopic(cfg: ChordTonesConfig): Topic<ChordTonesSettings
           </tbody>
         </table>
         <p class="muted">音名は度数の文字で綴る（E♭m の 3 度は F♯ ではなく G♭、dim7 の 7 度は ♭♭7）。</p>
+        {cfg.lesson && <cfg.lesson.Body />}
       </>
     ),
   };
