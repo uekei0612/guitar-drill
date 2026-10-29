@@ -269,15 +269,18 @@ export const fretNotes: Topic<FretNotesSettings> = {
           自然音（C D E F G A B）の位置。E–F と B–C の間だけが半音（隣のフレット）で、ほかは全音（1 フレット空く）。 12
           フレットで開放弦と同じ音に戻る。
         </p>
-        <Fretboard
-          tuning={t}
-          range={range}
-          orientation="horizontal"
-          fitAlong
-          lefty={ctx.common.lefty}
-          label="自然音の位置"
-          marks={marks}
-        />
+        {/* 12 フレットを横に並べると画面に収まらないので、縮めずに横スクロールで見せる */}
+        <div class="board-scroll">
+          <Fretboard
+            tuning={t}
+            range={range}
+            orientation="horizontal"
+            scale={1}
+            lefty={ctx.common.lefty}
+            label="自然音の位置"
+            marks={marks}
+          />
+        </div>
       </>
     );
   },

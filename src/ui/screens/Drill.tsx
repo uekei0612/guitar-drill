@@ -1,3 +1,4 @@
+import type { ComponentChildren } from "preact";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { type Rng, randomRng } from "../../drill/rng";
 import { nextDue, planSession, review } from "../../drill/schedule";
@@ -45,6 +46,32 @@ function tapMarks(correct: readonly Position[], taps: readonly Position[]): Mark
     kind: taps.some(t => same(t, p)) ? ("ok" as const) : ("target" as const),
     label: "",
   }));
+}
+
+/** on のとき、中身（広い指板図）を横スクロールの枠に入れる。問題が変わったら、ナットの側（左利きは右端）に戻す */
+function ScrollX({
+  on,
+  lefty,
+  at,
+  children,
+}: {
+  on: boolean;
+  lefty: boolean;
+  at: number;
+  children: ComponentChildren;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) el.scrollLeft = lefty ? el.scrollWidth : 0;
+  }, [on, lefty, at]);
+  return on ? (
+    <div class="board-scroll" ref={ref}>
+      {children}
+    </div>
+  ) : (
+    <>{children}</>
+  );
 }
 
 /** 参考を、ドリルの上に重ねて開く（ページを移るとセッションが消えるので）。閉じるとドリルの続きに戻る */
@@ -463,7 +490,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
       : board || a.kind === "tap"
         ? {
             range: a.kind === "tap" ? a.range : board!.range,
-            // ドリルの図は横向き（6 弦が下）にそろえる。広い範囲はネック方向を詰めて幅に収める（fitAlong）
+            // ドリルの図は横向き（6 弦が下）にそろえる。広い範囲は縮めずに横スクロールで見せる（scrollX）
             orientation: (a.kind === "tap" ? a.orientation : undefined) ?? board?.orientation ?? "horizontal",
             muted: mutedNow ?? board?.muted,
             barres: board?.barres,
@@ -481,6 +508,12 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     (shown.orientation ?? chooseOrientation(shown.range)) === "vertical" &&
     shown.range.maxFret - shown.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
   const tallBoard = !!result && tallShape;
+  // 横向きで 7 フレット以上の図（指板の音名の 12 フレットまでなど）は、画面の幅に縮めるとマスが潰れて
+  // 押せないので、本来の大きさのまま横スクロールで見せる
+  const scrollX =
+    !!shown &&
+    (shown.orientation ?? chooseOrientation(shown.range)) === "horizontal" &&
+    shown.range.maxFret - shown.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
   const tall = tallBoard && !stack;
   // 横に並べたときと下に置いたときで、図が大きくなるほうを選ぶ（横に並べた状態で測ってから一度だけ決める）
   // 測った枠がこの問題（答える前／あと）のものか。「次へ」の直後は前の問題の枠が残っていて、それで決めると誤る
@@ -502,13 +535,19 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
           shown.orientation ?? chooseOrientation(shown.range),
           {
             headRow: (shown.muted?.length ?? 0) > 0,
-            fitAlong: true,
           },
         )
       : undefined;
   const fitScale = (reserve: number) =>
     L && boardBox
-      ? Math.min((tall ? boardBox.width * 0.6 : boardBox.width) / L.width, (boardBox.height - reserve) / L.height, 1.6)
+      ? scrollX
+        ? // 横スクロールの図は幅で縮めない。高さに収まる範囲で、本来の大きさ（1 マス 56×48）まで
+          Math.min((boardBox.height - reserve) / L.height, 1)
+        : Math.min(
+            (tall ? boardBox.width * 0.6 : boardBox.width) / L.width,
+            (boardBox.height - reserve) / L.height,
+            1.6,
+          )
       : undefined;
   // ヒントは図のすぐ下に置き、ボタンを押すと同じ場所で文に変わる（答えるまで）。
   // そこに置くとタップのマスが小さくなりすぎるときだけ、ボタンは「答え合わせ」の横、文はその上に置く
@@ -663,29 +702,32 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         )}
         {shown && (
           <div class={`board-wrap${hintBelow ? " with-hint" : ""}`} ref={boardRef}>
-            <Fretboard
-              tuning={ctx.common.tuning}
-              lefty={ctx.common.lefty}
-              {...shown}
-              fitAlong
-              scale={scale}
-              label={
-                result && q.explanation ? q.explanation.text : [q.prompt.text, q.prompt.how].filter(Boolean).join("。")
-              }
-              selected={
-                result && ex && a.kind === "choice"
-                  ? (board?.marks ?? []).filter(m => m.kind === "target").map(m => m.pos)
-                  : result
-                    ? // 答えたあとは押したところを輪で出さない（正解の点・押し間違いの灰色・押し忘れの点線で見せる）
-                      []
-                    : taps
-              }
-              missed={missed}
-              mutedWrong={mutedWrong}
-              tapStrings={tapping && a.kind === "tap" ? a.strings : undefined}
-              tapFrets={tapping && a.kind === "tap" ? a.frets : undefined}
-              onTap={tapping ? tap : undefined}
-            />
+            <ScrollX on={scrollX} lefty={ctx.common.lefty} at={session.index}>
+              <Fretboard
+                tuning={ctx.common.tuning}
+                lefty={ctx.common.lefty}
+                {...shown}
+                scale={scale ?? (scrollX ? 1 : undefined)}
+                label={
+                  result && q.explanation
+                    ? q.explanation.text
+                    : [q.prompt.text, q.prompt.how].filter(Boolean).join("。")
+                }
+                selected={
+                  result && ex && a.kind === "choice"
+                    ? (board?.marks ?? []).filter(m => m.kind === "target").map(m => m.pos)
+                    : result
+                      ? // 答えたあとは押したところを輪で出さない（正解の点・押し間違いの灰色・押し忘れの点線で見せる）
+                        []
+                      : taps
+                }
+                missed={missed}
+                mutedWrong={mutedWrong}
+                tapStrings={tapping && a.kind === "tap" ? a.strings : undefined}
+                tapFrets={tapping && a.kind === "tap" ? a.frets : undefined}
+                onTap={tapping ? tap : undefined}
+              />
+            </ScrollX>
             {tall && q.explanation && <p class="side-explain">{q.explanation.text}</p>}
             {hintBelow && (
               <div class="hint-block" ref={hintRef}>
