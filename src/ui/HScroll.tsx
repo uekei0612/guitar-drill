@@ -12,10 +12,12 @@ interface Props {
   readonly resetKey?: unknown;
   /** 始めの位置を右端にする（左利きの横向きは、ナットが右） */
   readonly startAtEnd?: boolean;
+  /** 中身の幅に対するこの位置（0〜1）が真ん中に来るまでスクロールする（変わるたびに） */
+  readonly focus?: number;
   readonly children: ComponentChildren;
 }
 
-export function HScroll({ resetKey, startAtEnd = false, children }: Props) {
+export function HScroll({ resetKey, startAtEnd = false, focus, children }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [bar, setBar] = useState<{ left: number; width: number } | null>(null);
@@ -35,6 +37,14 @@ export function HScroll({ resetKey, startAtEnd = false, children }: Props) {
     el.scrollLeft = startAtEnd ? el.scrollWidth : 0;
     update();
   }, [resetKey, startAtEnd]);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || focus == null) return;
+    const left = focus * el.scrollWidth - el.clientWidth / 2;
+    if (typeof el.scrollTo === "function") el.scrollTo({ left, behavior: "smooth" });
+    else el.scrollLeft = left;
+  }, [focus]);
 
   // 図の大きさ（拡大率）や画面の幅が変わったら、バーの長さを測り直す
   useEffect(() => {

@@ -1,6 +1,6 @@
 /* チャート画面の状態と URL。パラメーター名は guitar_chart と同じ
    （chart_type / scale / arpeggio / custom / root / tuning / strings / capo / label / flat / lefty / caged / box /
-   boxes / degrees / allkeys / kpp）。ルートと開放弦の音名は ♯ 表記の 12 音で書く。 */
+   boxes / degrees / allkeys / kpp）。scroll はこのアプリで足したもの。ルートと開放弦の音名は ♯ 表記の 12 音で書く。 */
 import { type Note, type Tuning, mod, pc, spellings, tuningById } from "../theory";
 import { type ChartDef, type ChartKind, arpeggioChart, customChart, scaleChart } from "./registry";
 
@@ -26,6 +26,8 @@ export interface ChartState {
   readonly caged: boolean;
   /** 1 つだけ出すボックス（1 から）。null ならすべて */
   readonly box: number | null;
+  /** CAGED ボックスを、指板全体の横向き（6 弦が下）・横スクロールで見る（ボックスを選ぶと、そこまでスクロール） */
+  readonly scroll: boolean;
   // PDF のセクション
   readonly includeBoxes: boolean;
   readonly includeDegrees: boolean;
@@ -47,6 +49,7 @@ export const DEFAULT_CHART: ChartState = {
   lefty: false,
   caged: false,
   box: null,
+  scroll: false,
   includeBoxes: true,
   includeDegrees: true,
   includeAllKeys: true,
@@ -98,6 +101,7 @@ export function toParams(s: ChartState): URLSearchParams {
   if (s.lefty) p.set("lefty", "1");
   if (s.caged) p.set("caged", "1");
   if (s.caged && s.box != null) p.set("box", String(s.box));
+  if (s.caged && s.scroll) p.set("scroll", "1");
   if (!s.includeBoxes) p.set("boxes", "0");
   if (!s.includeDegrees) p.set("degrees", "0");
   if (!s.includeAllKeys) p.set("allkeys", "0");
@@ -137,7 +141,7 @@ export function fromParams(p: URLSearchParams, base: ChartState = DEFAULT_CHART)
   if (p.has("lefty")) s = { ...s, lefty: p.get("lefty") === "1" };
   s = { ...s, caged: p.get("caged") === "1" };
   const box = Number.parseInt(p.get("box") ?? "", 10);
-  s = { ...s, box: s.caged && box >= 1 && box <= 5 ? box : null };
+  s = { ...s, box: s.caged && box >= 1 && box <= 5 ? box : null, scroll: s.caged && p.get("scroll") === "1" };
   s = {
     ...s,
     includeBoxes: p.get("boxes") !== "0",

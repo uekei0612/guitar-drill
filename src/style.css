@@ -1237,6 +1237,9 @@ fieldset:disabled {
 .chart-board {
   margin: 8px 0;
 }
+.chart-scroll-opt {
+  margin: 4px 0 8px;
+}
 /* 長い選択肢（チューニング名など）で select が画面より広がらないように */
 select {
   max-width: 100%;

@@ -1,5 +1,6 @@
 /* チャート（旧 guitar_chart）。スケール・アルペジオ・カスタムを指板で見て、ボックスを確かめ、PDF にする。
    状態は URL（#/chart?…、guitar_chart と同じパラメーター）に持つので、リロードやリンクで同じ図に戻る。 */
+import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { playAscending } from "../../chart/audio";
 import { buildPdfPages, keysPerPage, keysPerPageChoices, pageCount, pdfFileName, pdfPlan } from "../../chart/pdf/build";
@@ -25,6 +26,8 @@ import type { Mark } from "../../drill/topic";
 import { useData } from "../../state";
 import { type Position, degree, degreeLabel, mod, pcAt, stringCount } from "../../theory";
 import { type Band, Fretboard, posLabel } from "../Fretboard";
+import { layout } from "../fretboard-layout";
+import { HScroll } from "../HScroll";
 import { downloadBlob, exportSvgPng, shareUrl } from "../export-image";
 import { PdfPreview } from "../PdfPreview";
 import { href } from "../route";
@@ -33,6 +36,13 @@ import { BOX_SCALES } from "../../topics/scale-boxes";
 
 /** 指板に出すフレット（guitar_chart と同じ 15 まで） */
 export const CHART_FRETS = 15;
+/** 指板の 1 マスのフレット方向の長さ（弦の間隔より長い長方形にして、実物の指板に近づける） */
+const CELL_ALONG = 64;
+
+/** on のとき、指板図を横スクロールの枠に入れる（focus の位置までスクロール） */
+function ChartScroll({ on, focus, children }: { on: boolean; focus?: number; children: ComponentChildren }) {
+  return on ? <HScroll focus={focus}>{children}</HScroll> : <>{children}</>;
+}
 
 /** 横幅の広い画面では横向き、スマホでは縦向き */
 function useWide(): boolean {
@@ -65,13 +75,15 @@ export function chartDots(s: ChartState): ChartDots {
   for (let string = 1; string <= stringCount(t); string++)
     for (let fret = 0; fret <= CHART_FRETS; fret++) {
       if (s.capo && fret < s.capo) continue; // カポより手前は弾けない（PDF と同じ）
-      if (iso && (fret < iso[0] || fret > iso[1])) continue;
+      // 1 つだけ出すときは、ほかの点を消す（横スクロールで指板全体を見るときは、薄くして残す）
+      const outside = !!iso && (fret < iso[0] || fret > iso[1]);
+      if (outside && !s.scroll) continue;
       const p = pcAt(t, { string, fret });
       const semi = mod(p - s.root, 12);
       const i = chart.intervals.indexOf(semi);
       if (i < 0) continue;
       const label = s.label === "note" ? noteName(p, s.flat) : semi === 0 ? "R" : degreeText(chart.degrees[i]!);
-      marks.push({ pos: { string, fret }, kind: semi === 0 ? "root" : "tone", label });
+      marks.push({ pos: { string, fret }, kind: semi === 0 ? "root" : "tone", label, ...(outside && { dim: true }) });
     }
   return { marks, boxes };
 }
@@ -105,11 +117,21 @@ export function Chart({ query }: { query: string }) {
     selected: s.box === i + 1,
     dimmed: s.box != null && s.box !== i + 1,
   }));
-  // ボックスを 1 つだけ出すときは、そのボックスの前後 1 フレットまでに寄せて大きく描く
+  // ボックスを 1 つだけ出すときは、そのボックスの前後 1 フレットまでに寄せて大きく描く。
+  // 横スクロールで見るときは寄せずに指板全体を描き、そのボックスまでスクロールする
+  const scrollView = s.caged && s.scroll;
   const iso = s.box != null ? boxes[s.box - 1] : undefined;
-  const range = iso
-    ? { minFret: Math.max(0, iso[0] - 1), maxFret: Math.min(CHART_FRETS, iso[1] + 1) }
-    : { minFret: 0, maxFret: CHART_FRETS };
+  const range =
+    iso && !scrollView
+      ? { minFret: Math.max(0, iso[0] - 1), maxFret: Math.min(CHART_FRETS, iso[1] + 1) }
+      : { minFret: 0, maxFret: CHART_FRETS };
+  // 横スクロールで見るとき、選んだボックスが真ん中に来る位置（指板図の幅に対する割合）
+  const scrollFocus = (() => {
+    if (!scrollView || !iso) return undefined;
+    const L = layout(stringCount(t), range, s.lefty, "horizontal", { labelsBothEnds: true, along: CELL_ALONG });
+    const r = L.span(iso[0], iso[1]);
+    return r ? (r.x + r.w / 2) / L.width : undefined;
+  })();
   const inChart = (p: Position) => chart.intervals.includes(mod(pcAt(t, p) - s.root, 12));
   const presetValue = s.chartType === "arpeggio" ? `arp:${s.arpeggio}` : `scale:${s.scale}`;
 
@@ -206,6 +228,12 @@ export function Chart({ query }: { query: string }) {
           )}
         </div>
         {s.caged && boxes.length > 0 && (
+          <label class="check chart-scroll-opt">
+            <input type="checkbox" checked={s.scroll} onChange={e => set({ scroll: e.currentTarget.checked })} />
+            <span>横向き・横スクロールで見る（6 弦が下）</span>
+          </label>
+        )}
+        {s.caged && boxes.length > 0 && (
           <div class="toggle-group box-select" role="group" aria-label="ボックスを 1 つだけ出す">
             <button aria-pressed={s.box == null} onClick={() => set({ box: null })}>
               全部
@@ -224,30 +252,34 @@ export function Chart({ query }: { query: string }) {
           </div>
         )}
         <div class="chart-board">
-          <Fretboard
-            tuning={t}
-            range={range}
-            orientation={wide ? "horizontal" : "vertical"}
-            // 1 マスを正方形でなく、フレット方向に長い長方形にする（実物の指板に近づける。弦の間隔はそのまま）
-            cellAlong={64}
-            lefty={s.lefty}
-            label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
-            marks={marks}
-            // 1 つに寄せたときは、隣のボックスの帯を重ねない
-            bands={iso ? bands.filter(b => b.selected) : bands}
-            capo={s.capo}
-            stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
-            labelsBothEnds
-            hitLabel={p =>
-              `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
-                mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
-              }`
-            }
-            onTap={p => {
-              const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
-              if (next) setS(next);
-            }}
-          />
+          <ChartScroll on={scrollView} focus={scrollFocus}>
+            <Fretboard
+              tuning={t}
+              range={range}
+              orientation={scrollView || wide ? "horizontal" : "vertical"}
+              // 横スクロールで見るときは縮めずに描く
+              scale={scrollView ? 1 : undefined}
+              // 1 マスを正方形でなく、フレット方向に長い長方形にする（実物の指板に近づける。弦の間隔はそのまま）
+              cellAlong={CELL_ALONG}
+              lefty={s.lefty}
+              label={`${chart.name} ${noteName(s.root, s.flat)} の指板`}
+              marks={marks}
+              // 1 つに寄せたときは、隣のボックスの帯を重ねない（横スクロールで全体を見るときは薄くして残す）
+              bands={iso && !scrollView ? bands.filter(b => b.selected) : bands}
+              capo={s.capo}
+              stringNames={t.open.map((_, i) => noteName(pcAt(t, { string: i + 1, fret: 0 }), s.flat))}
+              labelsBothEnds
+              hitLabel={p =>
+                `${posLabel(p)} ${noteName(pcAt(t, p), s.flat)}${
+                  mod(pcAt(t, p) - s.root, 12) === 0 ? "（R）" : inChart(p) ? "：タップで外す" : "：タップで足す"
+                }`
+              }
+              onTap={p => {
+                const next = toggleDegree(s, mod(pcAt(t, p) - s.root, 12));
+                if (next) setS(next);
+              }}
+            />
+          </ChartScroll>
         </div>
         <p class="muted small">指板をタップすると、その音を足したり外したりできます（カスタムになります）。</p>
         {/* 見て覚えたら、同じスケール・キーだけでドリルを 1 回（設定の出題範囲は変えない） */}
