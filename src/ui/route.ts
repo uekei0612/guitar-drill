@@ -52,3 +52,23 @@ export function useRoute(): Route {
   }, []);
   return route;
 }
+
+/** ホーム画面アプリとして開いているか（iPhone は navigator.standalone、ほかは display-mode） */
+export const isStandalone = (): boolean =>
+  (navigator as { standalone?: boolean }).standalone === true ||
+  (typeof matchMedia === "function" && matchMedia("(display-mode: standalone)").matches);
+
+/** ホーム画面アプリでは、アプリの中のリンク（#/…）での移動を履歴に積まない（location.replace）。
+    iPhone の端からの横スワイプは履歴を戻る・進むので、積まなければスワイプで画面が変わらない。
+    移動は画面のボタン（← ホーム、下のタブ）でできる。Safari のタブで開いたときは、戻るボタンが使えるように積む */
+export function keepHistoryFlat(standalone = isStandalone()): void {
+  if (!standalone) return;
+  document.addEventListener("click", e => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target instanceof Element ? e.target.closest("a") : null;
+    const to = a?.getAttribute("href");
+    if (!a || !to?.startsWith("#") || a.target) return;
+    e.preventDefault();
+    if (to !== location.hash) location.replace(to);
+  });
+}
