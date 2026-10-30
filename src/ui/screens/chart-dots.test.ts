@@ -39,7 +39,7 @@ describe("チャートの点", () => {
       [12, 15],
       [2, 5],
     ]);
-    expect(row({ ...s, box: 1 }, 6)).toBe("5R 8♭3");
+    expect(row({ ...s, box: 1, scroll: false }, 6)).toBe("5R 8♭3");
     // 横スクロールで指板全体を見るときは、ほかの点を消さずに薄くする
     const all = chartDots({ ...s, box: 1, scroll: true }).marks.filter(m => m.pos.string === 6);
     expect(all.filter(m => !m.dim).map(m => m.pos.fret)).toEqual([5, 8]);

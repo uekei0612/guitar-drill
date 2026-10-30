@@ -36,6 +36,16 @@ describe("チャートの状態", () => {
     expect(roundTrip(s)).toEqual(s);
   });
 
+  it("横向き・横スクロールは既定で入っていて、CAGED ボックスを出さなくても選べる", () => {
+    expect(DEFAULT_CHART.scroll).toBe(true);
+    expect(fromParams(new URLSearchParams("")).scroll).toBe(true);
+    const off = { ...DEFAULT_CHART, scroll: false };
+    expect(toParams(off).get("scroll")).toBe("0");
+    expect(roundTrip(off)).toEqual(off);
+    // 前の版のリンク（CAGED のときだけ scroll=1）も読める
+    expect(fromParams(new URLSearchParams("caged=1&scroll=1")).scroll).toBe(true);
+  });
+
   it("guitar_chart の URL をそのまま読める（別名のチューニングも）", () => {
     const s = fromParams(new URLSearchParams("chart_type=scale&scale=minor_pentatonic&root=A&tuning=eb&caged=1&box=2"));
     expect(s).toMatchObject({

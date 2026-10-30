@@ -29,8 +29,9 @@ import { type Position, degree, degreeLabel, mod, pcAt, stringCount } from "../.
 import { type Band, Fretboard, posLabel } from "../Fretboard";
 import { layout } from "../fretboard-layout";
 import { HScroll } from "../HScroll";
-import { downloadBlob, exportSvgPng, shareUrl } from "../export-image";
+import { exportSvgPng, shareUrl } from "../export-image";
 import { PdfPreview } from "../PdfPreview";
+import { outputPdf } from "../pdf-output";
 import { href } from "../route";
 import { TuningOptions } from "./Settings";
 import { BOX_SCALES } from "../../topics/scale-boxes";
@@ -40,12 +41,28 @@ export const CHART_FRETS = 15;
 /** 指板の 1 マスのフレット方向の長さ（弦の間隔より長い長方形にして、実物の指板に近づける） */
 const CELL_ALONG = 64;
 
-/** on のとき、指板図を横スクロールの枠に入れる（focus の位置までスクロール） */
-function ChartScroll({ on, focus, children }: { on: boolean; focus?: number; children: ComponentChildren }) {
-  return on ? <HScroll focus={focus}>{children}</HScroll> : <>{children}</>;
+/** on のとき、指板図を横スクロールの枠に入れる（focus の位置までスクロール。始めはナットの側） */
+function ChartScroll({
+  on,
+  focus,
+  lefty,
+  children,
+}: {
+  on: boolean;
+  focus?: number;
+  lefty: boolean;
+  children: ComponentChildren;
+}) {
+  return on ? (
+    <HScroll focus={focus} startAtEnd={lefty}>
+      {children}
+    </HScroll>
+  ) : (
+    <>{children}</>
+  );
 }
 
-/** 横幅の広い画面では横向き、スマホでは縦向き */
+/** 横スクロールで見ないとき：横幅の広い画面では横向き、スマホでは縦向き */
 function useWide(): boolean {
   const q = "(min-width: 720px)";
   const [wide, setWide] = useState(() => typeof matchMedia === "function" && matchMedia(q).matches);
@@ -123,7 +140,7 @@ export function Chart({ query }: { query: string }) {
   }));
   // ボックスを 1 つだけ出すときは、そのボックスの前後 1 フレットまでに寄せて大きく描く。
   // 横スクロールで見るときは寄せずに指板全体を描き、そのボックスまでスクロールする
-  const scrollView = s.caged && s.scroll;
+  const scrollView = s.scroll;
   const iso = s.box != null ? boxes[s.box - 1] : undefined;
   const range =
     iso && !scrollView
@@ -231,12 +248,10 @@ export function Chart({ query }: { query: string }) {
             </div>
           )}
         </div>
-        {s.caged && boxes.length > 0 && (
-          <label class="check chart-scroll-opt">
-            <input type="checkbox" checked={s.scroll} onChange={e => set({ scroll: e.currentTarget.checked })} />
-            <span>横向き・横スクロールで見る</span>
-          </label>
-        )}
+        <label class="check chart-scroll-opt">
+          <input type="checkbox" checked={s.scroll} onChange={e => set({ scroll: e.currentTarget.checked })} />
+          <span>横向き・横スクロールで見る</span>
+        </label>
         {s.caged && boxes.length > 0 && (
           <div class="toggle-group box-select" role="group" aria-label="ボックスを 1 つだけ出す">
             <button aria-pressed={s.box == null} onClick={() => set({ box: null })}>
@@ -260,7 +275,7 @@ export function Chart({ query }: { query: string }) {
           <p class="muted small">ボックスの位置は、元の{boxChart!.name}のものです。</p>
         )}
         <div class="chart-board">
-          <ChartScroll on={scrollView} focus={scrollFocus}>
+          <ChartScroll on={scrollView} focus={scrollFocus} lefty={s.lefty}>
             <Fretboard
               tuning={t}
               range={range}
@@ -487,38 +502,11 @@ export function Chart({ query }: { query: string }) {
             const plan = pdfPlan(s);
             const none = !plan.boxes && !plan.degrees && !plan.allKeys;
             const make = async (open: boolean) => {
-              // 新しいタブは押したその場で開いておく（PDF を作り終えてから開くと、Safari はポップアップとして止める）
-              const tab = open ? window.open("", "_blank") : null;
-              if (open && !tab) {
-                setPdfMsg("新しいタブを開けませんでした（ポップアップを許可してください）");
-                return;
-              }
-              try {
-                if (tab) tab.document.body.textContent = "PDF を作っています…";
-              } catch {
-                // 中身を書けなくても、あとで PDF に切り替えるので構わない
-              }
               setPdfBusy(true);
               setPdfMsg("");
-              try {
-                const { renderPdf } = await import("../../chart/pdf/render-pdf");
-                const blob = await renderPdf(buildPdfPages(s));
-                if (tab) {
-                  const url = URL.createObjectURL(blob);
-                  tab.location.href = url;
-                  setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                  setPdfMsg("新しいタブに開きました。そこから印刷できます。");
-                } else {
-                  const name = pdfFileName(s);
-                  downloadBlob(blob, name);
-                  setPdfMsg(`PDF を作りました（${name}）`);
-                }
-              } catch (e) {
-                tab?.close();
-                setPdfMsg(`PDF を作れませんでした：${(e as Error).message}`);
-              } finally {
-                setPdfBusy(false);
-              }
+              const msg = outputPdf(() => buildPdfPages(s), pdfFileName(s), open);
+              setPdfMsg(await msg);
+              setPdfBusy(false);
             };
             return (
               <>

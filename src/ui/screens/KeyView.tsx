@@ -48,9 +48,18 @@ import {
   slotOf,
   toParams,
 } from "../../keyview/state";
+import {
+  type KeyPrintOptions,
+  type PrintChords,
+  buildKeyPrintPages,
+  keyPrintFileName,
+  keyPrintPageCount,
+} from "../../keyview/pdf";
 import type { Mark } from "../../drill/topic";
 import { Fretboard } from "../Fretboard";
 import { HScroll } from "../HScroll";
+import { PdfPreview } from "../PdfPreview";
+import { outputPdf } from "../pdf-output";
 import { href } from "../route";
 
 const ALL_KEYS: readonly Key[] = [...KEYS.major, ...KEYS.minor];
@@ -358,6 +367,101 @@ function KeyBoard({
   );
 }
 
+const PRINT_CHORDS: readonly { id: PrintChords; label: string }[] = [
+  { id: "both", label: "両方（上に三和音、下に四和音）" },
+  { id: "triad", label: "三和音" },
+  { id: "seventh", label: "四和音" },
+];
+
+/** 印刷：12 キーのダイアトニックコードの一覧表（A4 横の PDF） */
+function KeyPrint({ borrow }: { borrow: boolean }) {
+  const [o, setO] = useState<KeyPrintOptions>(() => ({ modes: ["major", "minor"], chords: "both", borrow }));
+  const [preview, setPreview] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const set = (patch: Partial<KeyPrintOptions>) => setO(x => ({ ...x, ...patch }));
+  const toggleMode = (mode: Key["mode"], on: boolean) =>
+    set({ modes: (["major", "minor"] as const).filter(m => (m === mode ? on : o.modes.includes(m))) });
+  const none = !o.modes.length;
+  const make = async (open: boolean) => {
+    setBusy(true);
+    setMsg("");
+    const out = outputPdf(() => buildKeyPrintPages(o), keyPrintFileName(o), open);
+    setMsg(await out);
+    setBusy(false);
+  };
+  return (
+    <details class="chart-pdf">
+      <summary>
+        <h2 id="kv-print-h">コードの一覧表を印刷</h2>
+      </summary>
+      <section class="form" aria-labelledby="kv-print-h">
+        <p class="muted small">
+          12 キーのダイアトニックコードを、五度圏の順（時計回り）に並べた A4 横の表を作ります。資料の文字は英語です。
+        </p>
+        <fieldset class="field">
+          <legend>キー</legend>
+          <label class="check">
+            <input
+              type="checkbox"
+              checked={o.modes.includes("major")}
+              onChange={e => toggleMode("major", e.currentTarget.checked)}
+            />
+            <span>メジャーキー（1 ページ）</span>
+          </label>
+          <label class="check">
+            <input
+              type="checkbox"
+              checked={o.modes.includes("minor")}
+              onChange={e => toggleMode("minor", e.currentTarget.checked)}
+            />
+            <span>マイナーキー（1 ページ）</span>
+          </label>
+        </fieldset>
+        <fieldset class="field">
+          <legend>コード</legend>
+          {PRINT_CHORDS.map(c => (
+            <label key={c.id} class="check">
+              <input
+                type="radio"
+                name="kv-print-chords"
+                checked={o.chords === c.id}
+                onChange={() => set({ chords: c.id })}
+              />
+              <span>{c.label}</span>
+            </label>
+          ))}
+        </fieldset>
+        <label class="check">
+          <input
+            type="checkbox"
+            checked={o.borrow}
+            disabled={!o.modes.includes("minor")}
+            onChange={e => set({ borrow: e.currentTarget.checked })}
+          />
+          <span>マイナーの Ⅴ・Ⅶ をハーモニックマイナーから借りる</span>
+        </label>
+        {none && <p class="ng">メジャーかマイナーを選んでください。</p>}
+        <div class="actions">
+          <button class="btn" disabled={none} aria-expanded={preview} onClick={() => setPreview(v => !v)}>
+            {preview ? "プレビューを閉じる" : `プレビュー（${keyPrintPageCount(o)} ページ）`}
+          </button>
+          <button class="btn primary" disabled={none || busy} onClick={() => void make(false)}>
+            {busy ? "作成中…" : "PDF をダウンロード"}
+          </button>
+          <button class="btn" disabled={none || busy} onClick={() => void make(true)}>
+            開いて印刷
+          </button>
+        </div>
+        <p class="muted small" role="status">
+          {msg}
+        </p>
+        {preview && !none && <PdfPreview pages={buildKeyPrintPages(o)} />}
+      </section>
+    </details>
+  );
+}
+
 export function KeyView({ query }: { query: string }) {
   const { settings } = useData();
   const [s, setS] = useState<KeyViewState>(() => fromParams(new URLSearchParams(query), DEFAULT_KEY_VIEW));
@@ -543,7 +647,11 @@ export function KeyView({ query }: { query: string }) {
               >
                 <span class="kv-card-roman">{c.roman}</span>
                 <span class="kv-card-name">{breakable(c.symbol)}</span>
-                {s.func && <span class={`kv-func kv-func--${funcOf(s.key, c.degree)}`}>{funcOf(s.key, c.degree)}</span>}
+                {s.func && (
+                  <span class={`kv-func kv-func--${funcOf(s.key, c.degree, s.borrow)}`}>
+                    {funcOf(s.key, c.degree, s.borrow)}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -571,7 +679,7 @@ export function KeyView({ query }: { query: string }) {
                 </span>
               ))}
             </p>
-            <p class="small">{FUNC_TEXT[funcOf(s.key, sel.degree)]}</p>
+            <p class="small">{FUNC_TEXT[funcOf(s.key, sel.degree, s.borrow)]}</p>
             <div class="actions">
               <button class="btn" onClick={() => playMidi(chordMidis(sel), { strum: true })}>
                 ▶ もう一度
@@ -679,6 +787,8 @@ export function KeyView({ query }: { query: string }) {
           {keyLabel(s.key)} のスケールをチャートで開く<span aria-hidden="true"> ›</span>
         </a>
       </nav>
+
+      <KeyPrint borrow={s.borrow} />
     </>
   );
 }
