@@ -46,7 +46,7 @@ describe("Drill", () => {
     const st = new Store(memoryStorage());
     st.update(d => ({ ...d, settings: { ...d.settings, sessionSize: 10 } }));
     const el = document.body.appendChild(document.createElement("div"));
-    await act(() => render(<Drill topic={topic} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    await act(() => render(<Drill topic={topic} store={st} rng={seeded(2)} clock={() => 0} />, el));
 
     let missed = false;
     for (let i = 0; i < 20 && el.querySelector(".prompt"); i++) {
@@ -77,6 +77,36 @@ describe("Drill", () => {
     expect(el.querySelector(".score")!.textContent).toMatch(/^10 \/ 11/);
     expect([...el.querySelectorAll(".weak li")].map(li => li.textContent)).toHaveLength(1);
     expect(Object.keys(st.data.items).sort()).toEqual(["stub/a", "stub/b", "stub/tap"]);
+  });
+
+  it("広い画面では、図のある問題だけ図と選択肢を左右に並べる（図の無い問題は 1 列のまま）", async () => {
+    const mm = vi.spyOn(window, "matchMedia").mockImplementation(
+      q =>
+        ({
+          matches: q === "(min-width: 960px)",
+          media: q,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList,
+    );
+    try {
+      const st = new Store(memoryStorage());
+      const el = document.body.appendChild(document.createElement("div"));
+      await act(() => render(<Drill topic={topic} store={st} rng={seeded(1)} clock={() => 0} />, el));
+      const seen = new Set<string>();
+      for (let i = 0; i < 20 && seen.size < 2 && el.querySelector(".prompt"); i++) {
+        const tap = el.querySelector(".prompt")!.textContent!.startsWith("1弦");
+        const screen = el.querySelector(".drill-screen")!;
+        expect(screen.classList.contains("split"), String(tap)).toBe(tap);
+        seen.add(String(tap));
+        if (tap) await click(el.querySelector('[aria-label="1弦 開放"]')!);
+        else await click(button(el, el.querySelector(".prompt")!.textContent![0]!));
+        await click(button(el, "次へ"));
+      }
+      expect(seen.size).toBe(2);
+    } finally {
+      mm.mockRestore();
+    }
   });
 
   it("fitSize の分野（今日の復習）は item の数で終わり、記録は recordKey に書く", async () => {

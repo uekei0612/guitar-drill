@@ -16,6 +16,24 @@
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;
+  /* 余白（padding・margin・gap）の段階。4 の倍数で、2px は細い線どうしのすき間だけ */
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 40px;
+  /* 画面の文字の大きさの段階（図の中の文字は図の座標で決める） */
+  --text-xs: 0.7rem;
+  --text-sm: 0.8rem;
+  --text-md: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.1rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2.4rem;
   font-family:
     system-ui,
     -apple-system,
@@ -54,8 +72,8 @@ main {
   background: #f97316;
   color: #000;
   text-align: center;
-  font-size: 0.8rem;
-  padding: 2px 8px;
+  font-size: var(--text-sm);
+  padding: var(--space-2xs) var(--space-sm);
 }
 
 /* 暗色：OS の設定に従う。設定画面で明色／暗色に固定したときは data-theme が勝つ */
@@ -270,15 +288,15 @@ main {
 
 /* 画面の共通部品 */
 h1 {
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   margin: 0;
 }
 h1:focus {
   outline: none;
 }
 h2 {
-  font-size: 1rem;
-  margin: 24px 0 8px;
+  font-size: var(--text-base);
+  margin: var(--space-xl) 0 var(--space-sm);
 }
 a {
   color: var(--accent);
@@ -298,7 +316,7 @@ a {
 .bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 44px;
   flex-wrap: wrap;
 }
@@ -330,7 +348,7 @@ a {
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 8px 16px;
+  padding: var(--space-sm) var(--space-lg);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -360,15 +378,15 @@ input:focus-visible {
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 16px 0;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
 }
 .topics {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 /* 分野の行：名前と「覚えた数・復習待ち」、右端に覚えた割合の輪（ここまでドリルへ）。いちばん右に「参考」 */
 .topic-item {
@@ -384,9 +402,9 @@ input:focus-visible {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   min-height: 56px;
-  padding: 8px 14px;
+  padding: var(--space-sm) var(--space-md);
   color: var(--fg);
   text-decoration: none;
 }
@@ -397,10 +415,10 @@ input:focus-visible {
   align-items: center;
   justify-content: center;
   min-width: 56px;
-  padding: 0 12px;
+  padding: 0 var(--space-md);
   border-left: 1px solid var(--line);
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   font-weight: 600;
   text-decoration: none;
 }
@@ -408,18 +426,18 @@ input:focus-visible {
   flex: 1;
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 .topic-sub {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .due-badge {
-  padding: 1px 8px;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
@@ -449,15 +467,15 @@ input:focus-visible {
   display: inline-block;
 }
 .prompt {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
 }
 .prompt:focus {
   outline: none;
 }
 .prompt-how {
   display: block;
-  margin-top: 2px;
-  font-size: 0.8rem;
+  margin-top: var(--space-2xs);
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 /* ヒントのボタンは図のすぐ下（右寄せ）。開くと同じ場所に文が出る */
@@ -465,7 +483,7 @@ input:focus-visible {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .drill-screen.fill .board-wrap.with-hint .hint-btn {
   margin-top: 0;
@@ -480,9 +498,9 @@ input:focus-visible {
   flex: 0 0 auto;
   width: auto;
   min-height: 44px;
-  margin: 8px auto 0;
-  padding: 0 18px;
-  font-size: 0.9rem;
+  margin: var(--space-sm) auto 0;
+  padding: 0 var(--space-lg);
+  font-size: var(--text-md);
   color: var(--accent);
   background: transparent;
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
@@ -494,7 +512,7 @@ input:focus-visible {
 .hint-block {
   flex: 0 0 auto;
   width: 100%;
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 .hint-block .hint-btn {
   margin-top: 0;
@@ -504,12 +522,12 @@ input:focus-visible {
 }
 .hint-text {
   white-space: pre-line;
-  margin: 8px 0 0;
-  padding: 6px 10px;
+  margin: var(--space-sm) 0 0;
+  padding: var(--space-sm) var(--space-md);
   border-left: 3px solid var(--accent);
   border-radius: 4px;
   background: var(--surface);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
 }
 .hint-text:empty {
   display: none;
@@ -517,14 +535,14 @@ input:focus-visible {
 .choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 16px 0;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
 }
 .choices.wide {
   grid-template-columns: 1fr;
 }
 .choice {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
 }
 .choice.ok {
   border-color: var(--ok);
@@ -536,15 +554,15 @@ input:focus-visible {
 }
 .explain > p {
   white-space: pre-line;
-  margin: 4px 0 8px;
+  margin: var(--space-xs) 0 var(--space-sm);
 }
 /* 解説の札の並び（五度圏の並び・進行のコード） */
 .strip {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 4px 0 8px;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 var(--space-sm);
   padding: 0;
 }
 .strip li {
@@ -555,7 +573,7 @@ input:focus-visible {
   flex: 1 0 auto;
   min-width: 40px;
   max-width: 33%;
-  padding: 4px 6px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
 }
@@ -603,7 +621,7 @@ input:focus-visible {
   color: var(--ng);
 }
 .strip-sub {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 /* 答えたあとは画面の高さいっぱいに使う（高さは Drill が測って入れる）。
@@ -617,7 +635,7 @@ main:has(.drill-screen.fill) {
   flex-direction: column;
   min-height: 0;
   /* いちばん下のボタンを画面の端（ホームバー）から離して、親指で押しやすくする */
-  padding-bottom: max(40px, calc(env(safe-area-inset-bottom) + 32px));
+  padding-bottom: max(var(--space-3xl), calc(env(safe-area-inset-bottom) + var(--space-2xl)));
 }
 .drill-screen.fill .question {
   flex: 1 1 auto;
@@ -632,7 +650,7 @@ main:has(.drill-screen.fill) {
   justify-content: center;
   /* 上端にそろえる（中央にすると、答えて下の中身の高さが変わったときに図が上下に動く） */
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-md);
 }
 /* 広い指板図（7 フレット以上の横向き）：縮めずに横スクロールで見せ、下に自前のスクロールバーを常に出す
    （iPhone の標準のバーはスクロール中しか出ないので、標準のほうは隠す） */
@@ -701,7 +719,7 @@ main:has(.drill-screen.fill) {
 }
 .question.keep + .dock.stacked > .dock-a {
   align-self: stretch;
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 /* 答える前に図の下が余るとき：図の枠を図の高さに縮め、余った高さで選択肢のボタンを大きくする
    （ヒントのすぐ下に続け、ボタンは 1 段 96px まで） */
@@ -725,16 +743,16 @@ main:has(.drill-screen.fill) {
   flex: 1 1 auto;
   grid-auto-rows: 1fr;
   max-height: calc(var(--rows, 2) * var(--choice-max, 96px) + (var(--rows, 2) - 1) * 8px);
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
 }
 .question.snug + .dock .actions {
   flex: 1 1 auto;
   max-height: 72px;
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
 }
 .question.snug + .dock .actions .btn.primary {
   flex: 1 1 auto;
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
 }
 /* 答えの欄は 1 枚のパネル：上に正誤と解説、下に「次へ」。正解は緑、不正解は赤の薄い地。
    余った高さはパネルの中に入るので、図との間に空白が残らない。
@@ -742,7 +760,7 @@ main:has(.drill-screen.fill) {
 .drill-screen.fill .dock-a {
   display: flex;
   flex-direction: column;
-  padding: 0 14px 14px;
+  padding: 0 var(--space-md) var(--space-md);
   border-radius: var(--radius-lg);
 }
 /* 正誤は色だけに頼らない：見出しの ✓ / ✗ と枠で示し、地の色は薄くする */
@@ -759,8 +777,8 @@ main:has(.drill-screen.fill) {
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--near) 45%, transparent);
 }
 .drill-screen.fill .dock-a .feedback-line {
-  font-size: 1.05rem;
-  margin: 10px 0 4px;
+  font-size: var(--text-lg);
+  margin: var(--space-sm) 0 var(--space-xs);
 }
 .drill-screen.fill .dock-a .next-bar {
   margin-top: auto;
@@ -770,11 +788,52 @@ main:has(.drill-screen.fill) {
 .drill-screen.fill .next-bar .btn {
   flex: 1 1 auto;
   min-height: 50px;
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   white-space: nowrap;
 }
 .drill-screen.fill .next-bar .btn.primary {
   flex-grow: 3;
+}
+/* 広い画面（PC）：図を左に、問題の答え方（選択肢・答え合わせ）と答えの欄（正誤・解説・次へ）を右に並べる。
+   上の見出し・範囲・進み具合は 2 列にまたがる。図の大きさは左の枠を測って決まる（Drill の SPLIT_QUERY と同じ条件） */
+@media (min-width: 960px) {
+  main:has(.drill-screen.split) {
+    max-width: 72rem;
+  }
+  .drill-screen.split {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    column-gap: var(--space-2xl);
+  }
+  .drill-screen.split > .bar,
+  .drill-screen.split > .scope-chip,
+  .drill-screen.split > .progress-track {
+    grid-column: 1 / -1;
+  }
+  .drill-screen.split > .scope-chip {
+    justify-self: start;
+  }
+  .drill-screen.split > .question {
+    grid-column: 1;
+    grid-row: 4;
+  }
+  /* 右の欄は問題文の高さから始める（選択肢と答えの欄は重ねたまま上にそろえる） */
+  .drill-screen.split > .dock {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  .drill-screen.split .dock.stacked > * {
+    align-self: start;
+  }
+  .drill-screen.split .question.snug + .dock .choices,
+  .drill-screen.split .dock .choices {
+    margin-top: 0;
+  }
 }
 /* 図の無い問題：選択肢は画面の下に大きめに。問題文は大きくして、選択肢の上の空いた高さの中ほどに置く
    （上に寄せると問題文の下が画面の半分ほど空く） */
@@ -782,11 +841,11 @@ main:has(.drill-screen.fill) {
 /* 問題文は、選択肢の上の空いた高さの上から 1/3 あたりに置く（真ん中だと宙に浮いて見え、選択肢とも離れる）。
    上下の空きを 1 : 2 で分ける */
 .drill-screen.text-only .prompt {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   line-height: 1.4;
   text-align: center;
   margin: 0;
-  padding: 16px 0 8px;
+  padding: var(--space-lg) 0 var(--space-sm);
 }
 .drill-screen.fill.text-only .question::before,
 .drill-screen.fill.text-only .question::after {
@@ -822,10 +881,10 @@ main:has(.drill-screen.fill) {
 }
 .feedback-line {
   font-weight: 600;
-  margin: 8px 0;
+  margin: var(--space-sm) 0;
 }
 .feedback-legend {
-  margin: -4px 0 6px;
+  margin: calc(-1 * var(--space-xs)) 0 var(--space-xs);
 }
 /* 印は見た目だけ（読み上げは「正解」「不正解」の文で足りる） */
 .feedback-line.ok::before,
@@ -859,7 +918,7 @@ main:has(.drill-screen.fill) {
   min-width: 0;
   margin: 0;
   white-space: pre-line;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
 }
 /* 「答え合わせ」は選択肢と同じく幅いっぱい。何も押していないあいだは押せない */
 .dock-q .actions .btn.primary {
@@ -883,7 +942,7 @@ main:has(.drill-screen.fill) {
 }
 .drill-screen:not(.fill) .dock .actions {
   margin: 0;
-  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  padding: var(--space-sm) 0 max(var(--space-sm), env(safe-area-inset-bottom));
 }
 .drill-screen:not(.fill) .dock .actions .btn.primary {
   flex: 1 1 auto;
@@ -894,7 +953,7 @@ main:has(.drill-screen.fill) {
   position: sticky;
   bottom: 0;
   margin: 0;
-  padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  padding: var(--space-sm) 0 max(var(--space-sm), env(safe-area-inset-bottom));
   background: var(--bg);
   border-top: 1px solid var(--line);
 }
@@ -908,20 +967,20 @@ main:has(.drill-screen.fill) {
 }
 .feedback p {
   font-weight: 600;
-  margin: 8px 0;
+  margin: var(--space-sm) 0;
 }
 .score {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-variant-numeric: tabular-nums;
 }
 .form {
   display: grid;
-  gap: 16px;
-  margin-top: 16px;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
 }
 .field {
   display: grid;
-  gap: 6px;
+  gap: var(--space-sm);
   border: 0;
   margin: 0;
   padding: 0;
@@ -929,7 +988,7 @@ main:has(.drill-screen.fill) {
 .check {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   min-height: 44px;
 }
 .check input {
@@ -969,14 +1028,14 @@ main:has(.drill-screen.fill) {
   transform: rotate(-135deg);
 }
 .topic-settings > .form {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-lg);
 }
 select,
 input[type="url"] {
   min-height: 44px;
   font: inherit;
   font-size: 16px; /* iOS で入力時に拡大されないように */
-  padding: 6px 10px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--bg);
@@ -992,15 +1051,15 @@ input[type="url"] {
 }
 /* 参考ページの教科書の部品（src/ui/Lesson.tsx）：要点の枠、節、覚え方のコツ、よくある間違い */
 .lesson-points {
-  margin: 12px 0 16px;
-  padding: 12px 16px;
+  margin: var(--space-md) 0 var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   border-left: 4px solid var(--accent);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 8%, var(--bg));
 }
 .lesson-label {
-  margin: 0 0 4px;
-  font-size: 0.8rem;
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--accent);
 }
@@ -1011,24 +1070,24 @@ input[type="url"] {
 }
 .lesson-points li + li,
 .lesson-pitfalls li + li {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 .lesson-sec {
-  margin-top: 24px;
+  margin-top: var(--space-xl);
 }
 .lesson-sec h3 {
-  margin: 16px 0 4px;
-  font-size: 1rem;
+  margin: var(--space-lg) 0 var(--space-xs);
+  font-size: var(--text-base);
 }
 .lesson-tips {
   margin: 0;
   display: grid;
   /* 横スクロールの図（HScroll）が枠を押し広げないように */
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: var(--space-md);
 }
 .lesson-tip {
-  padding: 10px 14px;
+  padding: var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -1037,7 +1096,7 @@ input[type="url"] {
   font-weight: 700;
 }
 .lesson-tip dd {
-  margin: 4px 0 0;
+  margin: var(--space-xs) 0 0;
 }
 .lesson-pitfalls li::marker {
   content: "⚠ ";
@@ -1046,13 +1105,13 @@ input[type="url"] {
 /* 参考の図（仕組み・コツ・間違いの横に置く） */
 .lesson-fig {
   min-width: 0;
-  margin: 12px 0;
+  margin: var(--space-md) 0;
 }
 .lesson-figs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  margin: 12px 0;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
   align-items: start;
 }
 .lesson-figs.wide {
@@ -1062,18 +1121,18 @@ input[type="url"] {
   margin: 0;
 }
 .lesson-fig-title {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-xs);
   font-weight: 700;
   text-align: center;
 }
 .lesson-fig figcaption {
-  margin-top: 6px;
-  font-size: 0.85rem;
+  margin-top: var(--space-sm);
+  font-size: var(--text-md);
   color: var(--muted);
 }
 .lesson-fig--ok,
 .lesson-fig--ng {
-  padding: 8px 10px 10px;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
   border: 2px solid var(--ok);
   border-radius: var(--radius);
 }
@@ -1082,8 +1141,8 @@ input[type="url"] {
 }
 .lesson-verdict {
   display: inline-block;
-  margin-bottom: 4px;
-  font-size: 0.8rem;
+  margin-bottom: var(--space-xs);
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--ok);
 }
@@ -1094,19 +1153,19 @@ input[type="url"] {
 .lesson-tip dd .lesson-figs,
 .lesson-tip dd .lesson-fig,
 .lesson-pitfalls li .lesson-figs {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 /* 音の並び */
 .steps {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  margin: 8px 0;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
 }
 .step-item {
   min-width: 2.2em;
-  padding: 4px 8px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -1116,7 +1175,7 @@ input[type="url"] {
 }
 .step-item small {
   display: block;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   font-weight: 400;
   color: var(--muted);
 }
@@ -1138,7 +1197,7 @@ input[type="url"] {
   background: color-mix(in srgb, var(--ng) 10%, var(--bg));
 }
 .step-gap {
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 .step-gap.hl {
@@ -1241,12 +1300,12 @@ input[type="url"] {
 .ref-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 16px 0;
+  margin: var(--space-lg) 0;
 }
 .ref-table th,
 .ref-table td {
   border-bottom: 1px solid var(--line);
-  padding: 6px 16px 6px 0;
+  padding: var(--space-sm) var(--space-lg) var(--space-sm) 0;
   text-align: left;
 }
 
@@ -1262,8 +1321,8 @@ input[type="url"] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-sm);
+  padding: var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -1275,12 +1334,12 @@ input[type="url"] {
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 16px;
+  gap: 0 var(--space-lg);
 }
 .pager {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
 }
 .pager h2 {
   flex: 1;
@@ -1314,14 +1373,14 @@ input[type="url"] {
   fill: var(--muted) !important;
 }
 .ref-list > div {
-  padding: 10px 0;
+  padding: var(--space-md) 0;
   border-bottom: 1px solid var(--line);
 }
 .ref-list dt {
   font-weight: 600;
 }
 .ref-list dd {
-  margin: 2px 0 0;
+  margin: var(--space-2xs) 0 0;
 }
 
 /* チャート：ボックスの帯とカポ */
@@ -1387,17 +1446,17 @@ main.wide {
   max-width: 72rem;
 }
 .small {
-  font-size: 0.85rem;
+  font-size: var(--text-md);
 }
 .seg {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 16px;
+  gap: 0 var(--space-lg);
 }
 .row3 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 fieldset:disabled {
   opacity: 0.5;
@@ -1414,10 +1473,10 @@ fieldset:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-xs);
   min-height: 44px;
   min-width: 44px;
-  padding: 0 14px;
+  padding: 0 var(--space-md);
   border: 0;
   background: transparent;
   color: var(--fg);
@@ -1438,17 +1497,17 @@ fieldset:disabled {
 .chart-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0 0;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 0;
 }
 .box-select {
   display: flex;
   max-width: 26rem;
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 .box-select button {
   flex: 1 1 0;
-  padding: 0 6px;
+  padding: 0 var(--space-xs);
 }
 .box-dot {
   width: 10px;
@@ -1475,8 +1534,8 @@ fieldset:disabled {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin: 12px 0 0;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 0;
 }
 .tone-dot {
   display: inline-flex;
@@ -1484,11 +1543,11 @@ fieldset:disabled {
   justify-content: center;
   min-width: 30px;
   height: 30px;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   border-radius: 15px;
   background: var(--fb-tone);
   color: var(--fb-on-dot);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 .tone-dot.root {
@@ -1502,13 +1561,13 @@ fieldset:disabled {
   font-weight: 600;
 }
 .chart-share h3 {
-  margin: 24px 0 4px;
+  margin: var(--space-xl) 0 var(--space-xs);
 }
 .chart-board {
-  margin: 8px 0;
+  margin: var(--space-sm) 0;
 }
 .chart-scroll-opt {
-  margin: 4px 0 8px;
+  margin: var(--space-xs) 0 var(--space-sm);
 }
 /* 長い選択肢（チューニング名など）で select が画面より広がらないように */
 select {
@@ -1520,7 +1579,7 @@ select {
 }
 .pdf-pages {
   display: grid;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 .pdf-pages figure {
   margin: 0;
@@ -1536,13 +1595,13 @@ select {
 /* コードの押さえ方の一覧 */
 .segmented {
   display: flex;
-  gap: 8px;
-  margin: 12px 0;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
 }
 .chord-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  gap: var(--space-md);
 }
 .chord-card {
   margin: 0;
@@ -1550,7 +1609,7 @@ select {
 .chord-card figcaption {
   font-weight: 700;
   text-align: center;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 /* 下のタブ（ドリル／チャート／設定）。ホームバーの分だけ下を空ける */
@@ -1558,7 +1617,7 @@ select {
   --tabbar-h: 56px;
 }
 main.with-tabs {
-  padding-bottom: calc(var(--tabbar-h) + max(24px, env(safe-area-inset-bottom) + 16px));
+  padding-bottom: calc(var(--tabbar-h) + max(var(--space-xl), env(safe-area-inset-bottom) + var(--space-lg)));
 }
 .tabbar {
   position: fixed;
@@ -1568,7 +1627,8 @@ main.with-tabs {
   z-index: 5;
   display: flex;
   justify-content: center;
-  padding: 0 max(8px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-left));
+  padding: 0 max(var(--space-sm), env(safe-area-inset-right)) env(safe-area-inset-bottom)
+    max(var(--space-sm), env(safe-area-inset-left));
   border-top: 1px solid var(--line);
   /* 透かすと下の文字がタブの名前に重なって読みにくいので、背景で塗る */
   background: var(--bg);
@@ -1579,9 +1639,9 @@ main.with-tabs {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-2xs);
   min-height: var(--tabbar-h);
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   color: var(--muted);
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
@@ -1613,7 +1673,7 @@ main.with-tabs {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 20px;
+  gap: 0 var(--space-lg);
 }
 .explain-links .chart-link {
   margin: 0;
@@ -1657,7 +1717,7 @@ main.with-tabs {
   background: rgb(0 0 0 / 0.4);
 }
 .sheet-inner {
-  padding: 0 16px max(24px, env(safe-area-inset-bottom));
+  padding: 0 var(--space-lg) max(var(--space-xl), env(safe-area-inset-bottom));
 }
 .sheet-head {
   position: sticky;
@@ -1665,8 +1725,8 @@ main.with-tabs {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 0;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
@@ -1677,14 +1737,14 @@ main.with-tabs {
 
 /* 今日の復習で、問題がどの分野のものか */
 .q-source {
-  margin: 8px 0 -8px;
-  font-size: 0.8rem;
+  margin: var(--space-sm) 0 calc(-1 * var(--space-sm));
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
 /* ホーム：見出しのアイコンと、次にやること */
 .home-head {
-  gap: 10px;
+  gap: var(--space-sm);
 }
 .app-icon {
   border-radius: var(--radius-sm);
@@ -1692,29 +1752,29 @@ main.with-tabs {
 .today {
   display: grid;
   justify-items: start;
-  gap: 4px;
-  margin-top: 16px;
-  padding: 16px;
+  gap: var(--space-xs);
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg));
 }
 .today h2 {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--accent);
 }
 .today-count {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--text-lg);
 }
 .today-count strong {
-  font-size: 1.6rem;
+  font-size: var(--text-2xl);
 }
 .today p.small {
   margin: 0;
 }
 .today .btn {
-  margin-top: 8px;
+  margin-top: var(--space-sm);
   min-width: 10rem;
 }
 
@@ -1725,6 +1785,7 @@ main.with-tabs {
   justify-content: center;
   width: 44px;
   height: 44px;
+  /* 余白の段階でなく位置合わせ：ボタンの内側のすき間ぶん左へ出し、アイコンを左端の線にそろえる */
   margin-left: -10px;
   border-radius: 50%;
   color: var(--muted);
@@ -1738,11 +1799,11 @@ main.with-tabs {
   stroke-linecap: round;
 }
 .drill-screen .bar {
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .progress-track {
   height: 4px;
-  margin: 4px 0 8px;
+  margin: var(--space-xs) 0 var(--space-sm);
   border-radius: 2px;
   background: var(--track);
   overflow: hidden;
@@ -1767,14 +1828,14 @@ main.with-tabs {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   text-decoration: none;
 }
 .page-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 /* 長い名前（「セカンダリードミナントと裏コード」）は文字数で縮めて 1 行に収める。80px は札と隙間と左右の余白 */
 .page-head h1 {
@@ -1783,20 +1844,20 @@ main.with-tabs {
 }
 .tag {
   flex: 0 0 auto;
-  padding: 2px 8px;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: 6px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 /* チャート：指板を先に、設定はその下（広い画面では横）。PDF は折りたたみ */
 .chart-quick {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
   max-width: 36rem;
-  margin-top: 8px;
+  margin-top: var(--space-sm);
 }
 .chart-quick > .field {
   flex: 0 1 7rem;
@@ -1809,7 +1870,7 @@ main.with-tabs {
 .degree-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .degree-chip {
   width: 44px;
@@ -1819,7 +1880,7 @@ main.with-tabs {
   background: var(--bg);
   color: var(--muted);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
   font-weight: 600;
   cursor: pointer;
 }
@@ -1839,7 +1900,7 @@ main.with-tabs {
   outline-offset: 2px;
 }
 .chart-pdf {
-  margin-top: 24px;
+  margin-top: var(--space-xl);
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
@@ -1873,7 +1934,7 @@ main.with-tabs {
   transform: rotate(-135deg);
 }
 .chart-pdf > .form {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-lg);
 }
 
 /* 広い画面のホーム：分野を 2〜3 列に並べる（スマホでは 1 列のまま） */
@@ -1929,25 +1990,25 @@ main.home .today {
     position: absolute;
     top: 6px;
     left: 8px;
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
     color: var(--muted);
   }
 }
 
 /* 結果画面 */
 .result h2 {
-  margin-top: 16px;
+  margin-top: var(--space-lg);
 }
 .score {
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
 }
 .score strong {
-  font-size: 2.4rem;
+  font-size: var(--text-3xl);
 }
 .next-review {
   display: inline-block;
-  margin: 12px 0 4px;
-  padding: 8px 12px;
+  margin: var(--space-md) 0 var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   background: var(--surface);
 }
@@ -1955,11 +2016,11 @@ main.home .today {
   margin: 0 0.2em;
 }
 .result h3 {
-  font-size: 0.95rem;
-  margin: 20px 0 4px;
+  font-size: var(--text-base);
+  margin: var(--space-xl) 0 var(--space-xs);
 }
 .weak {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-xs);
   padding-left: 1.2em;
 }
 .result .actions .btn {
@@ -1969,25 +2030,25 @@ main.home .today {
 /* ホームの見出しの右：連続日数 */
 .streak {
   margin: 0 0 0 auto;
-  padding: 4px 12px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: 999px;
   background: var(--surface);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--muted);
 }
 .streak strong {
   color: var(--accent);
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
 }
 
 /* ドリルの出題範囲（押すと設定へ） */
 .scope-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-xs);
   min-height: 32px;
-  margin: 0 0 2px;
-  font-size: 0.8rem;
+  margin: 0 0 var(--space-2xs);
+  font-size: var(--text-sm);
   color: var(--fg);
   text-decoration: none;
   white-space: nowrap;
@@ -2004,14 +2065,14 @@ main.home .today {
 .stacks {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
-  margin: 8px 0;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
 }
 .stack {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -2024,16 +2085,16 @@ main.home .today {
   text-decoration: underline;
 }
 .stack-gap {
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   color: var(--muted);
   line-height: 1;
 }
 .stack-name {
-  margin-top: 4px;
-  padding-top: 2px;
+  margin-top: var(--space-xs);
+  padding-top: var(--space-2xs);
   width: 100%;
   border-top: 1px solid var(--line);
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   text-align: center;
 }
@@ -2113,11 +2174,11 @@ main.home .today {
 .blues-bars {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  margin: 8px 0;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
 }
 .blues-bar {
-  padding: 4px 0;
+  padding: var(--space-xs) 0;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -2127,7 +2188,7 @@ main.home .today {
 }
 .blues-bar small {
   display: block;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   font-weight: 400;
   color: var(--muted);
 }
@@ -2140,12 +2201,12 @@ main.home .today {
 }
 /* 度数の表（スケールを半音 12 マスに並べる） */
 .dgrid {
-  margin: 8px 0;
+  margin: var(--space-sm) 0;
 }
 .dgrid-cells {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 .dgrid-cells > span {
   min-height: 24px;
@@ -2154,7 +2215,7 @@ main.home .today {
   justify-content: center;
   border-radius: 4px;
   background: color-mix(in srgb, var(--line) 35%, var(--bg));
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -2174,11 +2235,11 @@ main.home .today {
   color: var(--muted);
 }
 .dgrid-row {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 .dgrid-name {
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 /* ボイシングの音の積み方（下が低い音） */
@@ -2186,8 +2247,8 @@ main.home .today {
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
-  gap: 4px;
-  margin: 8px 0;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
 }
 .vstack .step-item {
   min-width: 4.2em;
@@ -2197,8 +2258,8 @@ main.home .today {
 .kv-pick {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 .kv-pick .field {
   flex: 1 1 auto;
@@ -2206,14 +2267,14 @@ main.home .today {
 }
 .kv-pick .btn {
   flex: 0 0 auto;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: var(--space-sm);
+  padding-right: var(--space-sm);
 }
 .kv-circle {
   display: block;
   width: 100%;
   max-width: 400px;
-  margin: 12px auto 0;
+  margin: var(--space-md) auto 0;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
@@ -2311,12 +2372,12 @@ main.home .today {
   font-size: 11px;
 }
 .kv-legend {
-  margin-top: 4px;
+  margin-top: var(--space-xs);
 }
 .kv-scale h2,
 .kv-chords h2 {
-  font-size: 1rem;
-  margin: 20px 0 0;
+  font-size: var(--text-base);
+  margin: var(--space-xl) 0 0;
 }
 /* 前のキーから変わった音 */
 .tone-dot.changed {
@@ -2324,17 +2385,17 @@ main.home .today {
   outline-offset: 2px;
 }
 .kv-change {
-  margin: 8px 0 0;
+  margin: var(--space-sm) 0 0;
 }
 .kv-related {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: 4px;
-  margin: 4px 0 0;
+  column-gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
 }
 .kv-related {
-  column-gap: 16px;
+  column-gap: var(--space-lg);
 }
 .kv-related > span {
   white-space: nowrap;
@@ -2343,16 +2404,16 @@ main.home .today {
 .kv-cards {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
-  margin: 12px 0 4px;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0 var(--space-xs);
 }
 .kv-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2xs);
   min-height: 64px;
-  padding: 6px 1px;
+  padding: var(--space-sm) var(--space-2xs);
   border: 1.5px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -2361,11 +2422,11 @@ main.home .today {
   cursor: pointer;
 }
 .kv-card-roman {
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 700;
 }
 .kv-card-name {
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
@@ -2393,9 +2454,9 @@ main.home .today {
 }
 .kv-func {
   margin-top: auto;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   border-radius: 4px;
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   color: var(--on-accent);
 }
@@ -2409,22 +2470,22 @@ main.home .today {
   background: var(--ng);
 }
 .kv-detail {
-  margin: 12px 0;
-  padding: 12px;
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
 }
 .kv-detail p {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-sm);
 }
 .kv-detail-name {
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
 }
 .kv-tones {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 .kv-tone {
   display: inline-flex;
@@ -2438,7 +2499,7 @@ main.home .today {
   justify-content: center;
   min-width: 36px;
   height: 36px;
-  padding: 0 4px;
+  padding: 0 var(--space-xs);
   border-radius: 18px;
   background: var(--fb-tone);
   color: var(--fb-on-dot);
@@ -2449,22 +2510,22 @@ main.home .today {
   color: var(--on-accent);
 }
 .kv-tone small {
-  margin-top: 2px;
+  margin-top: var(--space-2xs);
   color: var(--muted);
   font-weight: 600;
 }
 .kv-board h2 {
-  font-size: 1rem;
-  margin: 20px 0 0;
+  font-size: var(--text-base);
+  margin: var(--space-xl) 0 0;
 }
 .kv-board-fig {
-  margin: 8px 0 4px;
+  margin: var(--space-sm) 0 var(--space-xs);
 }
 .kv-links {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-top: 12px;
+  margin-top: var(--space-md);
 }
 /* 進行：五度圏の矢印と、並んだ札 */
 .kv-arrows path {
@@ -2489,15 +2550,15 @@ main.home .today {
   stroke-width: 5;
 }
 .kv-prog h2 {
-  font-size: 1rem;
-  margin: 20px 0 8px;
+  font-size: var(--text-base);
+  margin: var(--space-xl) 0 var(--space-sm);
 }
 .kv-steps {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  row-gap: 8px;
-  margin: 12px 0 4px;
+  row-gap: var(--space-sm);
+  margin: var(--space-md) 0 var(--space-xs);
   padding: 0;
   list-style: none;
 }
@@ -2510,7 +2571,7 @@ main.home .today {
   flex-direction: column;
   align-items: center;
   min-width: 3.4rem;
-  padding: 4px 6px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1.5px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -2522,8 +2583,8 @@ main.home .today {
   transform: scale(1.08);
 }
 .kv-motion {
-  padding: 0 4px;
-  font-size: 0.65rem;
+  padding: 0 var(--space-xs);
+  font-size: var(--text-xs);
   color: var(--muted);
   white-space: nowrap;
 }
