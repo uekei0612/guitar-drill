@@ -46,7 +46,7 @@ describe("Drill", () => {
     const st = new Store(memoryStorage());
     st.update(d => ({ ...d, settings: { ...d.settings, sessionSize: 10 } }));
     const el = document.body.appendChild(document.createElement("div"));
-    await act(() => render(<Drill topic={topic} store={st} rng={seeded(1)} clock={() => 0} />, el));
+    await act(() => render(<Drill topic={topic} store={st} rng={seeded(2)} clock={() => 0} />, el));
 
     let missed = false;
     for (let i = 0; i < 20 && el.querySelector(".prompt"); i++) {

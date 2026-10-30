@@ -153,7 +153,7 @@ export interface Topic<S = Record<string, never>> {
   readonly level: Level;
   readonly title: string;
   readonly settings?: TopicSettingsDef<S>;
-  /** 覚える単位。並び順は「先に覚えるもの」順（未出題のものはこの順に出す） */
+  /** 覚える単位（並び順は出題に使わない。未出題のものはこの中からランダムに選ぶ） */
   items(ctx: Context<S>): ItemId[];
   /** item を人が読む名前（結果画面の「苦手」に出す。例：「6弦 5f」「C メジャーの Ⅴ」） */
   itemLabel(item: ItemId, ctx: Context<S>): string;
