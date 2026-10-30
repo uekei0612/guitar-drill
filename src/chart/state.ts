@@ -26,7 +26,8 @@ export interface ChartState {
   readonly caged: boolean;
   /** 1 つだけ出すボックス（1 から）。null ならすべて */
   readonly box: number | null;
-  /** CAGED ボックスを、指板全体の横向き（6 弦が下）・横スクロールで見る（ボックスを選ぶと、そこまでスクロール） */
+  /** 指板全体を横向き（6 弦が下）・横スクロールで見る（既定。ボックスを選ぶと、そこまでスクロール）。
+      外すと、スマホは縦向き、広い画面は横向きで画面の幅に収める */
   readonly scroll: boolean;
   /** カスタムにしたときに、ボックスの位置を借りるスケール（指板で音を足し外しする前のスケール）。無ければ null */
   readonly boxScale: string | null;
@@ -51,7 +52,7 @@ export const DEFAULT_CHART: ChartState = {
   lefty: false,
   caged: false,
   box: null,
-  scroll: false,
+  scroll: true,
   boxScale: null,
   includeBoxes: true,
   includeDegrees: true,
@@ -104,7 +105,7 @@ export function toParams(s: ChartState): URLSearchParams {
   if (s.lefty) p.set("lefty", "1");
   if (s.caged) p.set("caged", "1");
   if (s.caged && s.box != null) p.set("box", String(s.box));
-  if (s.caged && s.scroll) p.set("scroll", "1");
+  if (!s.scroll) p.set("scroll", "0");
   if (s.chartType === "custom" && s.boxScale) p.set("boxscale", s.boxScale);
   if (!s.includeBoxes) p.set("boxes", "0");
   if (!s.includeDegrees) p.set("degrees", "0");
@@ -147,7 +148,11 @@ export function fromParams(p: URLSearchParams, base: ChartState = DEFAULT_CHART)
   if (p.has("lefty")) s = { ...s, lefty: p.get("lefty") === "1" };
   s = { ...s, caged: p.get("caged") === "1" };
   const box = Number.parseInt(p.get("box") ?? "", 10);
-  s = { ...s, box: s.caged && box >= 1 && box <= 5 ? box : null, scroll: s.caged && p.get("scroll") === "1" };
+  s = {
+    ...s,
+    box: s.caged && box >= 1 && box <= 5 ? box : null,
+    scroll: p.has("scroll") ? p.get("scroll") === "1" : base.scroll,
+  };
   s = {
     ...s,
     includeBoxes: p.get("boxes") !== "0",

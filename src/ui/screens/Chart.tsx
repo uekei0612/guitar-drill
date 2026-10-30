@@ -41,12 +41,28 @@ export const CHART_FRETS = 15;
 /** 指板の 1 マスのフレット方向の長さ（弦の間隔より長い長方形にして、実物の指板に近づける） */
 const CELL_ALONG = 64;
 
-/** on のとき、指板図を横スクロールの枠に入れる（focus の位置までスクロール） */
-function ChartScroll({ on, focus, children }: { on: boolean; focus?: number; children: ComponentChildren }) {
-  return on ? <HScroll focus={focus}>{children}</HScroll> : <>{children}</>;
+/** on のとき、指板図を横スクロールの枠に入れる（focus の位置までスクロール。始めはナットの側） */
+function ChartScroll({
+  on,
+  focus,
+  lefty,
+  children,
+}: {
+  on: boolean;
+  focus?: number;
+  lefty: boolean;
+  children: ComponentChildren;
+}) {
+  return on ? (
+    <HScroll focus={focus} startAtEnd={lefty}>
+      {children}
+    </HScroll>
+  ) : (
+    <>{children}</>
+  );
 }
 
-/** 横幅の広い画面では横向き、スマホでは縦向き */
+/** 横スクロールで見ないとき：横幅の広い画面では横向き、スマホでは縦向き */
 function useWide(): boolean {
   const q = "(min-width: 720px)";
   const [wide, setWide] = useState(() => typeof matchMedia === "function" && matchMedia(q).matches);
@@ -124,7 +140,7 @@ export function Chart({ query }: { query: string }) {
   }));
   // ボックスを 1 つだけ出すときは、そのボックスの前後 1 フレットまでに寄せて大きく描く。
   // 横スクロールで見るときは寄せずに指板全体を描き、そのボックスまでスクロールする
-  const scrollView = s.caged && s.scroll;
+  const scrollView = s.scroll;
   const iso = s.box != null ? boxes[s.box - 1] : undefined;
   const range =
     iso && !scrollView
@@ -232,12 +248,10 @@ export function Chart({ query }: { query: string }) {
             </div>
           )}
         </div>
-        {s.caged && boxes.length > 0 && (
-          <label class="check chart-scroll-opt">
-            <input type="checkbox" checked={s.scroll} onChange={e => set({ scroll: e.currentTarget.checked })} />
-            <span>横向き・横スクロールで見る</span>
-          </label>
-        )}
+        <label class="check chart-scroll-opt">
+          <input type="checkbox" checked={s.scroll} onChange={e => set({ scroll: e.currentTarget.checked })} />
+          <span>横向き・横スクロールで見る</span>
+        </label>
         {s.caged && boxes.length > 0 && (
           <div class="toggle-group box-select" role="group" aria-label="ボックスを 1 つだけ出す">
             <button aria-pressed={s.box == null} onClick={() => set({ box: null })}>
@@ -261,7 +275,7 @@ export function Chart({ query }: { query: string }) {
           <p class="muted small">ボックスの位置は、元の{boxChart!.name}のものです。</p>
         )}
         <div class="chart-board">
-          <ChartScroll on={scrollView} focus={scrollFocus}>
+          <ChartScroll on={scrollView} focus={scrollFocus} lefty={s.lefty}>
             <Fretboard
               tuning={t}
               range={range}
