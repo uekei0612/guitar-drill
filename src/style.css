@@ -794,6 +794,47 @@ main:has(.drill-screen.fill) {
 .drill-screen.fill .next-bar .btn.primary {
   flex-grow: 3;
 }
+/* 広い画面（PC）：図を左に、問題の答え方（選択肢・答え合わせ）と答えの欄（正誤・解説・次へ）を右に並べる。
+   上の見出し・範囲・進み具合は 2 列にまたがる。図の大きさは左の枠を測って決まる（Drill の SPLIT_QUERY と同じ条件） */
+@media (min-width: 960px) {
+  main:has(.drill-screen.split) {
+    max-width: 72rem;
+  }
+  .drill-screen.split {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    column-gap: var(--space-2xl);
+  }
+  .drill-screen.split > .bar,
+  .drill-screen.split > .scope-chip,
+  .drill-screen.split > .progress-track {
+    grid-column: 1 / -1;
+  }
+  .drill-screen.split > .scope-chip {
+    justify-self: start;
+  }
+  .drill-screen.split > .question {
+    grid-column: 1;
+    grid-row: 4;
+  }
+  /* 右の欄は問題文の高さから始める（選択肢と答えの欄は重ねたまま上にそろえる） */
+  .drill-screen.split > .dock {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  .drill-screen.split .dock.stacked > * {
+    align-self: start;
+  }
+  .drill-screen.split .question.snug + .dock .choices,
+  .drill-screen.split .dock .choices {
+    margin-top: 0;
+  }
+}
 /* 図の無い問題：選択肢は画面の下に大きめに。問題文は大きくして、選択肢の上の空いた高さの中ほどに置く
    （上に寄せると問題文の下が画面の半分ほど空く） */
 /* 中央寄せは上下の auto の余白で行う（justify-content: center だと、長い問題文が上の見出しへはみ出す） */

@@ -32,6 +32,7 @@ import { HScroll } from "../HScroll";
 import { exportSvgPng, shareUrl } from "../export-image";
 import { PdfPreview } from "../PdfPreview";
 import { outputPdf } from "../pdf-output";
+import { useMedia } from "../use-media";
 import { href } from "../route";
 import { TuningOptions } from "./Settings";
 import { BOX_SCALES } from "../../topics/scale-boxes";
@@ -63,18 +64,7 @@ function ChartScroll({
 }
 
 /** 横スクロールで見ないとき：横幅の広い画面では横向き、スマホでは縦向き */
-function useWide(): boolean {
-  const q = "(min-width: 720px)";
-  const [wide, setWide] = useState(() => typeof matchMedia === "function" && matchMedia(q).matches);
-  useEffect(() => {
-    if (typeof matchMedia !== "function") return;
-    const m = matchMedia(q);
-    const on = () => setWide(m.matches);
-    m.addEventListener("change", on);
-    return () => m.removeEventListener("change", on);
-  }, []);
-  return wide;
-}
+const useWide = () => useMedia("(min-width: 720px)");
 
 const degreeText = (d: string) => degreeLabel(degree(d));
 
