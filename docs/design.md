@@ -12,7 +12,7 @@ GitHub Pages から配る。
 
 | 項目 | 決定 | 理由 |
 |---|---|---|
-| 配り方 | PWA（GitHub Pages、`main` への push で公開） | 主な使い方が iPhone のホーム画面。オフラインでも動かす |
+| 配り方 | PWA（GitHub Pages、`main` への push で公開）。`develop` は同じサイトの `/guitar-drill/dev/` に公開（記録の保存先は `guitar-drill-dev` に分け、本番の service worker は `/dev/` を受け持たない） | 主な使い方が iPhone のホーム画面。オフラインでも動かす。Pages は 1 リポジトリ 1 サイトなので、develop は下の階層に置き、どちらへの push でも両方をビルドし直す |
 | 言語・ビルド | TypeScript + Vite | 分野が増えても型で守る。ビルドは GitHub Actions で行う |
 | UI | Preact | 画面が多くなるので部品化したい。実行時 4KB 程度で軽い |
 | テスト | Vitest（理論・出題・記録）、Playwright（画面） | 理論は DOM に触らない純粋関数にして単体テストで固める |
