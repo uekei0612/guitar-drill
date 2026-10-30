@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkTopic } from "../../drill/check";
 import { seeded } from "../../drill/rng";
+import { NECK } from "../../drill/topic";
 import { STANDARD, TUNINGS, chordTones, chordType, note, pc, pcAt } from "../../theory";
 import { barresOf, sounding, tabText } from "../chord-shapes/shape";
 import { FORMS, barreChords, barreShape, formOf } from ".";
@@ -56,19 +57,33 @@ describe("ハイコードの押さえ方", () => {
     ).toEqual([]);
   });
 
-  it("フォームを作る：ルートは示して、ほかの弦を 1 か所ずつ", () => {
+  it("フォームを作る：指板の長い図（開放〜12 フレット）から、ルートも含めて 1 弦 1 か所ずつ。ルートはヒントで出す", () => {
     const q = barreChords.question("5:m:C:play", ctx(), seeded(1));
-    expect(q.prompt.board!.marks).toEqual([{ pos: { string: 5, fret: 3 }, kind: "root", label: "R" }]);
+    expect(q.prompt.board!.marks).toEqual([]);
+    expect(q.prompt.board!.range).toEqual(NECK);
+    expect(q.hint!.marks).toEqual([{ pos: { string: 5, fret: 3 }, kind: "hint", label: "R" }]);
     expect(q.answer).toMatchObject({
       kind: "tap",
-      strings: [6, 4, 3, 2, 1],
+      range: NECK,
+      frets: { minFret: 1, maxFret: 12 },
       correct: [
+        { string: 5, fret: 3 },
         { string: 4, fret: 5 },
         { string: 3, fret: 5 },
         { string: 2, fret: 4 },
         { string: 1, fret: 3 },
       ],
     });
+  });
+
+  it("12 フレットより先にはみ出す形は、図をそこまで伸ばす。どのフォームも押さえ方は 1 通り（1 オクターブ上は図の外）", () => {
+    const q = barreChords.question("6:maj:E:play", ctx(), seeded(1));
+    expect(q.answer).toMatchObject({ range: { minFret: 0, maxFret: 14 }, frets: { minFret: 1, maxFret: 14 } });
+    for (const id of barreChords.items(ctx(all)).filter(x => x.endsWith(":play"))) {
+      const a = barreChords.question(id, ctx(all), seeded(1)).answer;
+      if (a.kind !== "tap") throw new Error();
+      expect(Math.min(...a.correct.map(p => p.fret)) + 12).toBeGreaterThan(a.range.maxFret);
+    }
   });
 
   it("何フレット・形 → 名前（もう一方の弦で読んだ名前が引っかけ）", () => {

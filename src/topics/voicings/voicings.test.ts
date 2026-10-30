@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkTopic } from "../../drill/check";
 import { seeded } from "../../drill/rng";
+import { NECK } from "../../drill/topic";
 import { STANDARD, TUNINGS } from "../../theory";
 import { VOICINGS, shapeOf, voicings } from ".";
 
@@ -29,6 +30,19 @@ describe("ボイシングの型", () => {
     expect(tab("shell-6a", "7", 3)).toBe("3x34xx"); // G7
     expect(tab("shell-5a", "m7", 3)).toBe("x313xx"); // Cm7
     expect(tab("drop2-6", "m7b5", 7)).toBe("7877xx"); // Bm7(♭5)
+  });
+
+  it("作る問題は指板の長い図（開放〜12 フレット）から R も含めて選ぶ（R はヒントで出す）。「何のコード？」は形のまわりだけ", () => {
+    for (const id of voicings.items(ctx())) {
+      const q = voicings.question(id, ctx(), seeded(1));
+      if (id.endsWith(":fill")) {
+        if (q.answer.kind !== "tap") throw new Error();
+        expect(q.answer.range).toEqual(NECK);
+        expect(q.prompt.board!.marks).toEqual([]);
+        expect(q.answer.correct[0]).toEqual(q.hint!.marks![0]!.pos);
+        expect(q.answer.correct).toEqual(q.explanation!.board!.marks.map(m => m.pos));
+      } else expect(q.prompt.board!.range.maxFret - q.prompt.board!.range.minFret).toBe(5);
+    }
   });
 
   it("シェルの「何のコード？」に m7(♭5) は出さない", () => {

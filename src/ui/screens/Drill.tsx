@@ -54,20 +54,22 @@ function tapMarks(correct: readonly Position[], taps: readonly Position[]): Mark
 }
 
 /** on のとき、中身（広い指板図）を横スクロールの枠に入れ、下にスクロールバーを出す。
-    問題が変わったら、ナットの側（左利きは右端）に戻す */
+    問題が変わったら、ナットの側（左利きは右端）に戻す。focus（図の幅に対する位置 0〜1）があればそこを真ん中に */
 function ScrollX({
   on,
   lefty,
   at,
+  focus,
   children,
 }: {
   on: boolean;
   lefty: boolean;
   at: number;
+  focus?: number;
   children: ComponentChildren;
 }) {
   return on ? (
-    <HScroll resetKey={at} startAtEnd={lefty}>
+    <HScroll resetKey={at} startAtEnd={lefty} focus={focus}>
       {children}
     </HScroll>
   ) : (
@@ -519,6 +521,15 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     !!shown &&
     (shown.orientation ?? chooseOrientation(shown.range)) === "horizontal" &&
     shown.range.maxFret - shown.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
+  // 横スクロールの図で答えたら、正解の点が見えるところまで送る（押したところから離れていて、画面の外のことがある）
+  const scrollFocus = (() => {
+    if (!result || !scrollX || a.kind !== "tap" || !shown) return undefined;
+    const SL = layout(stringCount(ctx.common.tuning), shown.range, ctx.common.lefty, "horizontal", {
+      headRow: (shown.muted?.length ?? 0) > 0,
+    });
+    const xs = a.correct.flatMap(p => SL.cellAt(p)?.c.x ?? []);
+    return xs.length ? (Math.min(...xs) + Math.max(...xs)) / 2 / SL.width : undefined;
+  })();
   // 左右に分けているときは、解説は右の欄に出るので図の横に並べない
   const tall = tallBoard && !stack && !split;
   // 横に並べたときと下に置いたときで、図が大きくなるほうを選ぶ（横に並べた状態で測ってから一度だけ決める）
@@ -705,7 +716,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
         )}
         {shown && (
           <div class={`board-wrap${hintBelow ? " with-hint" : ""}`} ref={boardRef}>
-            <ScrollX on={scrollX} lefty={ctx.common.lefty} at={session.index}>
+            <ScrollX on={scrollX} lefty={ctx.common.lefty} at={session.index} focus={scrollFocus}>
               <Fretboard
                 tuning={ctx.common.tuning}
                 lefty={ctx.common.lefty}
