@@ -37,15 +37,18 @@ export interface DiatonicSettings {
   readonly size: 3 | 4;
   /** マイナーキーの Ⅴ・Ⅶ をハーモニックマイナーから借りる */
   readonly borrowDominant: boolean;
+  /** 出すキー（keyId）。空ならすべて（キーの画面から 1 回だけ絞るときに使う） */
+  readonly keys: readonly string[];
 }
 
-const DEFAULTS: DiatonicSettings = { size: 4, borrowDominant: false };
+const DEFAULTS: DiatonicSettings = { size: 4, borrowDominant: false, keys: [] };
 
 function parse(raw: unknown): DiatonicSettings {
   const r = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
   return {
     size: r.size === 3 || r.size === 4 ? r.size : DEFAULTS.size,
     borrowDominant: typeof r.borrowDominant === "boolean" ? r.borrowDominant : DEFAULTS.borrowDominant,
+    keys: Array.isArray(r.keys) ? r.keys.filter((k): k is string => typeof k === "string" && keyById.has(k)) : [],
   };
 }
 
@@ -100,7 +103,10 @@ export const diatonic: Topic<DiatonicSettings> = {
   title: "ダイアトニックコード",
   settings: {
     defaults: DEFAULTS,
-    describe: s => `${s.size === 4 ? "4和音" : "3和音"}${s.borrowDominant ? "／マイナーの Ⅴ・Ⅶ を借りる" : ""}`,
+    describe: s =>
+      `${s.size === 4 ? "4和音" : "3和音"}${s.borrowDominant ? "／マイナーの Ⅴ・Ⅶ を借りる" : ""}${
+        s.keys.length ? `／キー ${s.keys.map(k => keyLabel(keyById.get(k)!)).join("・")}` : ""
+      }`,
     parse,
     view: ({ value, onChange }) => (
       <>
@@ -126,8 +132,8 @@ export const diatonic: Topic<DiatonicSettings> = {
     ),
   },
 
-  items({ settings: { size } }) {
-    return ALL_KEYS.flatMap(k => {
+  items({ settings: { size, keys } }) {
+    return ALL_KEYS.filter(k => !keys.length || keys.includes(keyId(k))).flatMap(k => {
       const id = keyId(k);
       const chords = [0, 1, 2, 3, 4, 5, 6].flatMap(i => [`${id}:${size}:d2c:${i}`, `${id}:${size}:c2d:${i}`]);
       const notes = [1, 2, 3, 4, 5, 6].map(i => `${id}:${size}:note:${i}`);

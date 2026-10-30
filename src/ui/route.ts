@@ -10,11 +10,14 @@ export type Route =
   /** open は開いておく分野の出題設定（ドリルの「範囲」から来たとき） */
   | { readonly name: "settings"; readonly open?: string }
   /** チャート。query は guitar_chart と同じ形の URL パラメーター */
-  | { readonly name: "chart"; readonly query: string };
+  | { readonly name: "chart"; readonly query: string }
+  /** キー（五度圏とダイアトニックコード）。query は keyview/state.ts の形 */
+  | { readonly name: "key"; readonly query: string };
 
 export function parseRoute(hash: string): Route {
   const [path = "", query = ""] = hash.replace(/^#\/?/, "").split("?");
   if (path === "chart") return { name: "chart", query };
+  if (path === "key") return { name: "key", query };
   const [name, id] = path.split("/").map(decodeURIComponent);
   if (name === "drill" && id) {
     const only = new URLSearchParams(query).get("only");
@@ -36,6 +39,8 @@ export function href(r: Route): string {
       return r.open ? `#/settings?${new URLSearchParams({ open: r.open })}` : "#/settings";
     case "chart":
       return r.query ? `#/chart?${r.query}` : "#/chart";
+    case "key":
+      return r.query ? `#/key?${r.query}` : "#/key";
     case "drill":
       return `#/drill/${encodeURIComponent(r.topicId)}${r.only ? `?${new URLSearchParams({ only: r.only })}` : ""}`;
     default:

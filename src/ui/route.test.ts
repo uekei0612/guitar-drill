@@ -20,4 +20,9 @@ describe("route", () => {
     });
     expect(href({ name: "settings" })).toBe("#/settings");
   });
+
+  it("キーの画面の query を往復できる", () => {
+    expect(parseRoute(href({ name: "key", query: "key=G&size=4" }))).toEqual({ name: "key", query: "key=G&size=4" });
+    expect(href({ name: "key", query: "" })).toBe("#/key");
+  });
 });

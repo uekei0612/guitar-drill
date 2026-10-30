@@ -1,14 +1,15 @@
-/* 画面の下のタブ（ドリル／チャート／設定）。ホーム画面版は片手で持つので、行き来の入口を親指の届く下に置く。
+/* 画面の下のタブ（ドリル／チャート／キー／設定）。ホーム画面版は片手で持つので、行き来の入口を親指の届く下に置く。
    ドリルを解いているあいだは出さない（問題に集中させ、下の「次へ」と重ねない） */
 import type { Route } from "./route";
 import { href } from "./route";
 
-type Tab = "drill" | "chart" | "settings";
+type Tab = "drill" | "chart" | "key" | "settings";
 
 /** 今の画面がどのタブに属するか（参考はドリルの一部） */
 export function tabOf(r: Route): Tab | undefined {
   if (r.name === "home" || r.name === "reference") return "drill";
   if (r.name === "chart") return "chart";
+  if (r.name === "key") return "key";
   if (r.name === "settings") return "settings";
   return undefined;
 }
@@ -30,6 +31,16 @@ const ICONS: Record<Tab, preact.JSX.Element> = {
       <path d="M9.3 3v18M14.7 3v18M4 9h16M4 15h16" />
     </>
   ),
+  // 五度圏（輪と、扇形に並ぶ 3 つの点）
+  key: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="3.5" r="1.6" class="tab-knob" />
+      <circle cx="18" cy="6" r="1.6" class="tab-knob" />
+      <circle cx="6" cy="6" r="1.6" class="tab-knob" />
+      <path d="M12 12 8.2 4.4M12 12l3.8-7.6" />
+    </>
+  ),
   // 歯車の代わりに、つまみ 3 本（設定）
   settings: (
     <>
@@ -44,6 +55,7 @@ const ICONS: Record<Tab, preact.JSX.Element> = {
 const TABS: readonly { id: Tab; label: string; route: Route }[] = [
   { id: "drill", label: "ドリル", route: { name: "home" } },
   { id: "chart", label: "チャート", route: { name: "chart", query: "" } },
+  { id: "key", label: "キー", route: { name: "key", query: "" } },
   { id: "settings", label: "設定", route: { name: "settings" } },
 ];
 

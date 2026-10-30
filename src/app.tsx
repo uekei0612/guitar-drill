@@ -7,6 +7,7 @@ import { useRoute } from "./ui/route";
 import { Chart } from "./ui/screens/Chart";
 import { Drill } from "./ui/screens/Drill";
 import { Home } from "./ui/screens/Home";
+import { KeyView } from "./ui/screens/KeyView";
 import { Reference } from "./ui/screens/Reference";
 import { Settings } from "./ui/screens/Settings";
 import { TabBar, tabOf } from "./ui/TabBar";
@@ -37,6 +38,7 @@ export function App() {
   let screen;
   if (route.name === "settings") screen = <Settings key={route.open} open={route.open} />;
   else if (route.name === "chart") screen = <Chart key={route.query} query={route.query} />;
+  else if (route.name === "key") screen = <KeyView key={route.query} query={route.query} />;
   else if (route.name === "drill" && topic)
     screen = <Drill key={`${topic.id}?${route.only ?? ""}`} topic={topic} only={route.only} />;
   else if (route.name === "reference" && topic) screen = <Reference topic={topic} />;

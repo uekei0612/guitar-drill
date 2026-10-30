@@ -302,3 +302,6 @@ export function customChart(intervals: readonly number[]): ChartDef {
 
 export const scaleChart = (id: string): ChartDef | undefined => CHART_SCALES.find(c => c.id === id);
 export const arpeggioChart = (id: string): ChartDef | undefined => CHART_ARPEGGIOS.find(c => c.id === id);
+/** コードの型（理論コアの ID：m7 など）のアルペジオの ID。無ければ undefined */
+export const arpeggioIdOf = (chordTypeId: string): string | undefined =>
+  ARP_META.find(m => m.chord === chordTypeId)?.id;

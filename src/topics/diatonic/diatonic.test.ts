@@ -24,6 +24,15 @@ describe("ダイアトニックコード", () => {
     expect(diatonic.items(ctx({ size: 3 }))[0]).toBe("C:3:d2c:0");
   });
 
+  it("キーを絞ると、そのキーの item だけ（キーの画面から 1 回だけ絞るとき）", () => {
+    const items = diatonic.items(ctx({ keys: ["G", "Em"] }));
+    expect(items).toHaveLength(2 * (14 + 6));
+    expect(new Set(items.map(i => i.split(":")[0]))).toEqual(new Set(["G", "Em"]));
+    // 知らないキーは捨てる（全部捨てたら全キー）
+    expect(diatonic.settings!.parse({ keys: ["H", "G"] }).keys).toEqual(["G"]);
+    expect(diatonic.items(ctx({ ...diatonic.settings!.parse({ keys: ["H"] }) }))).toHaveLength(24 * 20);
+  });
+
   it("旧アプリと同じ答え", () => {
     expect(diatonic.question("C:4:d2c:4", ctx(), seeded(1)).answer).toMatchObject({ correct: "G7" });
     expect(diatonic.question("F#:3:d2c:6", ctx({ size: 3 }), seeded(1)).answer).toMatchObject({ correct: "E♯dim" });
