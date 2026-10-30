@@ -5,6 +5,7 @@
 
 「チャート」（`#/chart`）では、スケール・アルペジオを指板で見て、A4 横の PDF 資料にできる
 （旧 [guitar_chart](https://github.com/uekei0612/guitar-chart) を取り込んだもの）。
+「キー」（`#/key`）では、五度圏とダイアトニックコードを見て鳴らし、12 キーのコードの一覧表を PDF にできる。
 
 - 設計：[docs/design.md](docs/design.md)
 - 前身の diatonic-drill から引き継ぐもの：[docs/reference-diatonic-drill.md](docs/reference-diatonic-drill.md)
