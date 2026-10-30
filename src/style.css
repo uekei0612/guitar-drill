@@ -1023,6 +1023,8 @@ input[type="url"] {
 .lesson-tips {
   margin: 0;
   display: grid;
+  /* 横スクロールの図（HScroll）が枠を押し広げないように */
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 .lesson-tip {
@@ -1040,6 +1042,201 @@ input[type="url"] {
 .lesson-pitfalls li::marker {
   content: "⚠ ";
   color: var(--ng);
+}
+/* 参考の図（仕組み・コツ・間違いの横に置く） */
+.lesson-fig {
+  min-width: 0;
+  margin: 12px 0;
+}
+.lesson-figs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+  align-items: start;
+}
+.lesson-figs.wide {
+  grid-template-columns: 1fr;
+}
+.lesson-figs .lesson-fig {
+  margin: 0;
+}
+.lesson-fig-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  text-align: center;
+}
+.lesson-fig figcaption {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.lesson-fig--ok,
+.lesson-fig--ng {
+  padding: 8px 10px 10px;
+  border: 2px solid var(--ok);
+  border-radius: var(--radius);
+}
+.lesson-fig--ng {
+  border-color: var(--ng);
+}
+.lesson-verdict {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ok);
+}
+.lesson-fig--ng .lesson-verdict {
+  color: var(--ng);
+}
+/* 図の中の dl / li の文は、図の下に続けて読めるように少し空ける */
+.lesson-tip dd .lesson-figs,
+.lesson-tip dd .lesson-fig,
+.lesson-pitfalls li .lesson-figs {
+  margin-bottom: 4px;
+}
+/* 音の並び */
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0;
+}
+.step-item {
+  min-width: 2.2em;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+.step-item small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.step-item.hl {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.step-item.hl small {
+  color: inherit;
+}
+.step-item.dim {
+  opacity: 0.4;
+  font-weight: 400;
+}
+.step-item.ng {
+  border-color: var(--ng);
+  color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 10%, var(--bg));
+}
+.step-gap {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.step-gap.hl {
+  color: var(--accent);
+  font-weight: 700;
+}
+/* 鍵盤 */
+.keys {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+.key-white {
+  fill: #fff;
+  stroke: #888;
+  stroke-width: 1;
+}
+.key-black {
+  fill: #222;
+  stroke: #222;
+}
+.key-name {
+  fill: var(--muted);
+  font-size: 12px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.key-arc path {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+.key-arc text {
+  fill: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+.key-arc.hl path {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.key-arc.hl text {
+  fill: var(--accent);
+}
+/* 鍵盤は暗色でも白いので、点の色は固定 */
+.key-mark circle {
+  fill: #1f2937;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+.key-mark text {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.key-mark--root circle {
+  fill: var(--accent);
+}
+.key-mark--em circle {
+  fill: #fff;
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.key-mark--em text {
+  fill: var(--accent);
+}
+/* 弦の向き・押さえる位置 */
+.string-order,
+.press-spot {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  margin: 0 auto;
+}
+.so-name {
+  fill: var(--fg);
+  font-size: 14px;
+  dominant-baseline: central;
+}
+.so-name.end {
+  font-weight: 700;
+}
+.so-line {
+  stroke: var(--fb-string);
+}
+.press-dot {
+  fill: var(--fb-root);
+  opacity: 0.9;
+}
+.press-note {
+  fill: var(--muted);
+  font-size: 14px;
+  text-anchor: middle;
 }
 .ref-table {
   width: 100%;
@@ -1802,4 +1999,196 @@ main.home .today {
 }
 .topic-settings {
   scroll-margin-top: 16px;
+}
+/* ダイアトニックコードの積み上げ */
+.stacks {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.stack-note {
+  font-weight: 700;
+  line-height: 1.3;
+}
+.stack-note.root {
+  text-decoration: underline;
+}
+.stack-gap {
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1;
+}
+.stack-name {
+  margin-top: 4px;
+  padding-top: 2px;
+  width: 100%;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+.stack--maj {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.stack--maj .stack-name {
+  color: var(--accent);
+}
+.stack--dim {
+  border-color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 10%, var(--bg));
+}
+.stack--dim .stack-name {
+  color: var(--ng);
+}
+/* 小さな五度圏（参考の図） */
+.c5mini {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+}
+.c5mini text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--fg);
+}
+.c5mini-ring {
+  fill: none;
+  stroke: var(--line);
+}
+.c5mini-dot {
+  fill: var(--surface);
+  stroke: var(--line);
+}
+.c5mini-dot.root {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.c5mini-dot.tone {
+  fill: var(--fg);
+  stroke: var(--fg);
+}
+.c5mini-major {
+  font-size: 15px;
+  font-weight: 700;
+}
+.c5mini .c5mini-major.root {
+  fill: var(--on-accent);
+}
+.c5mini .c5mini-major.tone {
+  fill: var(--bg);
+}
+.c5mini-minor {
+  font-size: 11px;
+}
+.c5mini .c5mini-minor.em {
+  fill: var(--accent);
+  font-weight: 700;
+}
+.c5mini-minor-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.c5mini-arrow path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.c5mini-arrow polygon {
+  fill: var(--accent);
+}
+/* 12 小節ブルースの小節 */
+.blues-bars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0;
+}
+.blues-bar {
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+.blues-bar small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.blues-bar--t {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.blues-bar--d {
+  border: 2px solid var(--fg);
+}
+/* 度数の表（スケールを半音 12 マスに並べる） */
+.dgrid {
+  margin: 8px 0;
+}
+.dgrid-cells {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 2px;
+}
+.dgrid-cells > span {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--line) 35%, var(--bg));
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dgrid-cells > span.on {
+  background: var(--surface);
+  border: 1px solid var(--fg);
+}
+.dgrid-cells > span.em {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.dgrid-head > span {
+  min-height: 0;
+  background: none;
+  font-weight: 400;
+  color: var(--muted);
+}
+.dgrid-row {
+  margin-top: 4px;
+}
+.dgrid-name {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+/* ボイシングの音の積み方（下が低い音） */
+.vstack {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0;
+}
+.vstack .step-item {
+  min-width: 4.2em;
 }
