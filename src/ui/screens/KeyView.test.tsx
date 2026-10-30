@@ -23,7 +23,7 @@ describe("キーの画面", () => {
     const el = await mount("key=G&size=3");
     expect(inCells(el)).toEqual(["Am", "Bm", "C", "D", "Em", "F♯dim", "G"].sort());
     expect(el.querySelector(".kv-cell.tonic text")!.textContent).toBe("G");
-    expect(cards(el).map(c => c.querySelector(".kv-card-name")!.textContent)).toEqual([
+    expect(cards(el).map(c => c.querySelector(".kv-card-name")!.textContent!.replace("\u200b", ""))).toEqual([
       "G",
       "Am",
       "Bm",
@@ -91,5 +91,37 @@ describe("キーの画面", () => {
     const a = [...el.querySelectorAll<HTMLAnchorElement>(".kv-links a")].find(x => x.href.includes("drill"))!;
     const only = new URLSearchParams(a.getAttribute("href")!.split("?")[1]).get("only")!;
     expect(JSON.parse(only)).toEqual({ size: 3, borrowDominant: false, keys: ["Em"] });
+  });
+
+  it("進行を選ぶと札が並び、五度圏に矢印が出る（Ⅱ–Ⅴ–Ⅰ は 5 度下が 2 回）", async () => {
+    const el = await mount("key=C&prog=251");
+    expect([...el.querySelectorAll(".kv-steps .kv-card-name")].map(e => e.textContent)).toEqual(["Dm7", "G7", "CM7"]);
+    expect([...el.querySelectorAll(".kv-motion.strong")].length).toBe(2);
+    expect(el.querySelectorAll(".kv-arrows path").length).toBe(2);
+  });
+
+  it("自分で作る進行は、札を押した順に足していく", async () => {
+    const el = await mount("key=C&prog=custom");
+    for (const i of [0, 5, 3, 4]) await act(() => cards(el)[i]!.click());
+    expect([...el.querySelectorAll(".kv-steps .kv-card-roman")].map(e => e.textContent)).toEqual(["Ⅰ", "Ⅵ", "Ⅳ", "Ⅴ"]);
+    expect(location.hash).toContain("seq=1-6-4-5");
+    await act(() =>
+      [...el.querySelectorAll<HTMLButtonElement>(".kv-prog button")].find(b => b.textContent === "1 つ戻す")!.click(),
+    );
+    expect(el.querySelectorAll(".kv-steps li").length).toBe(3);
+  });
+
+  it("マイナーキーに移ると、メジャーの進行は外れる", async () => {
+    const el = await mount("key=C&prog=ohdo");
+    await act(() => el.querySelector<HTMLButtonElement>(".kv-related button")!.click());
+    expect(el.querySelector<HTMLSelectElement>(".kv-prog select")!.value).toBe("");
+  });
+
+  it("扇形の外のコードは、輪の綴りでなく札と同じ綴りで出す（F♯m の Ⅴ は C♯）", async () => {
+    const el = await mount("key=F%23m&size=3&borrow=1");
+    expect([...el.querySelectorAll(".kv-cell.borrowed text:first-of-type")].map(t => t.textContent).sort()).toEqual([
+      "C♯",
+      "E♯dim",
+    ]);
   });
 });

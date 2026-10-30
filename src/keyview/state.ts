@@ -26,6 +26,10 @@ export interface KeyViewState {
   readonly chord: number | null;
   /** 指板に出すもの：スケール（選んだコードの構成音を重ねる）か、7 つのコードのルートの位置か */
   readonly board: "scale" | "roots";
+  /** 出している進行（KEY_PROGRESSIONS の id か "custom"）。無ければ null */
+  readonly prog: string | null;
+  /** 自分で作った進行（0 = Ⅰ … 6 = Ⅶ） */
+  readonly custom: readonly number[];
 }
 
 const ALL: readonly Key[] = [...KEYS.major, ...KEYS.minor];
@@ -38,7 +42,12 @@ export const DEFAULT_KEY_VIEW: KeyViewState = {
   borrow: false,
   chord: null,
   board: "scale",
+  prog: null,
+  custom: [],
 };
+
+/** 自分で作る進行の長さの上限 */
+export const MAX_CUSTOM = 8;
 
 export function toParams(s: KeyViewState): URLSearchParams {
   const p = new URLSearchParams();
@@ -48,6 +57,8 @@ export function toParams(s: KeyViewState): URLSearchParams {
   if (s.borrow) p.set("borrow", "1");
   if (s.chord != null) p.set("chord", String(s.chord + 1));
   if (s.board === "roots") p.set("board", "roots");
+  if (s.prog) p.set("prog", s.prog);
+  if (s.prog === "custom" && s.custom.length) p.set("seq", s.custom.map(d => d + 1).join("-"));
   return p;
 }
 
@@ -63,6 +74,25 @@ export function fromParams(p: URLSearchParams, base: KeyViewState = DEFAULT_KEY_
     borrow: p.has("borrow") ? p.get("borrow") === "1" : base.borrow,
     chord: chord >= 1 && chord <= 7 ? chord - 1 : null,
     board: p.get("board") === "roots" ? "roots" : p.get("board") === "scale" ? "scale" : base.board,
+    ...progFromParams(p, key, base),
+  };
+}
+
+function progFromParams(p: URLSearchParams, key: Key, base: KeyViewState): Pick<KeyViewState, "prog" | "custom"> {
+  const id = p.get("prog");
+  if (id === "custom") {
+    const seq = (p.get("seq") ?? "")
+      .split("-")
+      .map(x => Number.parseInt(x, 10) - 1)
+      .filter(d => d >= 0 && d <= 6)
+      .slice(0, MAX_CUSTOM);
+    return { prog: "custom", custom: seq };
+  }
+  // 進行はキーの種類（メジャー／マイナー）ごと。合わないものは出さない
+  if (id && progressionsFor(key).some(x => x.id === id)) return { prog: id, custom: base.custom };
+  return {
+    prog: base.prog && progressionsFor(key).some(x => x.id === base.prog) ? base.prog : null,
+    custom: base.custom,
   };
 }
 
@@ -127,4 +157,72 @@ export function changedNotes(prev: Key, next: Key) {
   const pa = new Set(a.map(pc)),
     pb = new Set(b.map(pc));
   return { from: a.filter(n => !pb.has(pc(n))), to: b.filter(n => !pa.has(pc(n))) };
+}
+
+/** 進行の 1 つのコード。scale を付けると、借りる設定によらずそのスケールのコードにする */
+export interface ProgStep {
+  readonly degree: number;
+  readonly scale?: "natural" | "harmonic";
+}
+
+export interface KeyProgression {
+  readonly id: string;
+  readonly name: string;
+  readonly mode: KeyMode;
+  readonly steps: readonly ProgStep[];
+}
+
+const steps = (s: string): ProgStep[] =>
+  s.split(" ").map(x => ({
+    degree: Number(x[0]) - 1,
+    ...(x[1] === "n" && { scale: "natural" as const }),
+    ...(x[1] === "h" && { scale: "harmonic" as const }),
+  }));
+
+/** キーの画面で鳴らす定番の進行（度数で持ち、三和音／四和音は画面の設定に合わせる） */
+export const KEY_PROGRESSIONS: readonly KeyProgression[] = [
+  { id: "1451", name: "Ⅰ–Ⅳ–Ⅴ–Ⅰ（終止）", mode: "major", steps: steps("1 4 5 1") },
+  { id: "251", name: "Ⅱ–Ⅴ–Ⅰ", mode: "major", steps: steps("2 5 1") },
+  { id: "1625", name: "Ⅰ–Ⅵ–Ⅱ–Ⅴ（循環）", mode: "major", steps: steps("1 6 2 5") },
+  { id: "1564", name: "Ⅰ–Ⅴ–Ⅵ–Ⅳ", mode: "major", steps: steps("1 5 6 4") },
+  { id: "ohdo", name: "王道進行（Ⅳ–Ⅴ–Ⅲ–Ⅵ）", mode: "major", steps: steps("4 5 3 6") },
+  { id: "komuro", name: "小室進行（Ⅵ–Ⅳ–Ⅴ–Ⅰ）", mode: "major", steps: steps("6 4 5 1") },
+  { id: "canon", name: "カノン進行", mode: "major", steps: steps("1 5 6 3 4 1 4 5") },
+  { id: "m1451", name: "Ⅰm–Ⅳm–Ⅴ–Ⅰm（終止）", mode: "minor", steps: steps("1 4 5h 1") },
+  { id: "m251", name: "マイナーの Ⅱ–Ⅴ–Ⅰ", mode: "minor", steps: steps("2 5h 1") },
+  { id: "m1673", name: "Ⅰm–♭Ⅵ–♭Ⅲ–♭Ⅶ", mode: "minor", steps: steps("1 6 3 7n") },
+  { id: "andalusian", name: "アンダルシア進行（Ⅰm–♭Ⅶ–♭Ⅵ–Ⅴ）", mode: "minor", steps: steps("1 7n 6 5h") },
+];
+
+export const progressionsFor = (k: Key): KeyProgression[] => KEY_PROGRESSIONS.filter(x => x.mode === k.mode);
+
+/** 出している進行のコード（無ければ空） */
+export function progChords(s: KeyViewState): DiatonicChord[] {
+  const base = chordsOf(s);
+  if (s.prog === "custom") return s.custom.map(d => base[d]!);
+  const pr = KEY_PROGRESSIONS.find(x => x.id === s.prog && x.mode === s.key.mode);
+  if (!pr) return [];
+  const nat = diatonicChords(s.key, s.size);
+  const har = diatonicChords(s.key, s.size, { borrowDominant: true });
+  return pr.steps.map(st => (st.scale === "natural" ? nat : st.scale === "harmonic" ? har : base)[st.degree]!);
+}
+
+/** ルートの動き（次のコードのルートまで）。5 度下は強く進む動き */
+export function rootMotion(from: DiatonicChord, to: DiatonicChord): { label: string; strong: boolean } {
+  const d = mod(pc(to.root) - pc(from.root), 12);
+  const label = [
+    "同じ",
+    "半音上",
+    "2度上",
+    "3度上",
+    "3度上",
+    "5度下",
+    "増4度",
+    "5度上",
+    "3度下",
+    "3度下",
+    "2度下",
+    "半音下",
+  ][d]!;
+  return { label, strong: d === 5 };
 }

@@ -2368,7 +2368,6 @@ main.home .today {
   font-size: 0.7rem;
   font-weight: 600;
   line-height: 1.2;
-  overflow-wrap: anywhere;
   text-align: center;
 }
 .kv-card--maj {
@@ -2466,4 +2465,72 @@ main.home .today {
   flex-direction: column;
   align-items: flex-start;
   margin-top: 12px;
+}
+/* 進行：五度圏の矢印と、並んだ札 */
+.kv-arrows path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.kv-arrowhead {
+  fill: var(--accent);
+}
+/* 鳴らしているあいだは、今のコードへ入る矢印だけ濃く */
+.kv-arrows.playing path {
+  opacity: 0.25;
+}
+.kv-arrows.playing path.now {
+  opacity: 1;
+  stroke-width: 4;
+}
+.kv-cell.playing circle {
+  stroke: var(--accent);
+  stroke-width: 5;
+}
+.kv-prog h2 {
+  font-size: 1rem;
+  margin: 20px 0 8px;
+}
+.kv-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 8px;
+  margin: 12px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.kv-steps li {
+  display: flex;
+  align-items: center;
+}
+.kv-step {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.4rem;
+  padding: 4px 6px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: transform 0.15s ease;
+}
+.kv-steps li.playing .kv-step {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+  transform: scale(1.08);
+}
+.kv-motion {
+  padding: 0 4px;
+  font-size: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.kv-motion::after {
+  content: " →";
+}
+.kv-motion.strong {
+  color: var(--accent);
+  font-weight: 700;
 }

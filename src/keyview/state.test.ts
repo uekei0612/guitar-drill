@@ -9,6 +9,8 @@ import {
   inFan,
   keyById,
   placeOf,
+  progChords,
+  rootMotion,
   slotOf,
   toParams,
 } from "./state";
@@ -18,7 +20,16 @@ const roundTrip = (s: typeof DEFAULT_KEY_VIEW) => fromParams(new URLSearchParams
 describe("キーの画面の状態", () => {
   it("URL と往復する", () => {
     expect(roundTrip(DEFAULT_KEY_VIEW)).toEqual(DEFAULT_KEY_VIEW);
-    const s = { key: keyById("F#m")!, size: 3 as const, func: true, borrow: true, chord: 4, board: "roots" as const };
+    const s = {
+      key: keyById("F#m")!,
+      size: 3 as const,
+      func: true,
+      borrow: true,
+      chord: 4,
+      board: "roots" as const,
+      prog: "custom",
+      custom: [0, 4, 5, 3],
+    };
     expect(roundTrip(s)).toEqual(s);
   });
 
@@ -69,6 +80,32 @@ describe("キーの画面の状態", () => {
     expect([f.from.map(fmt), f.to.map(fmt)]).toEqual([["E"], ["E♭"]]);
     // 平行調は同じ音
     expect(changedNotes(keyById("C")!, keyById("Am")!).to).toEqual([]);
+  });
+
+  it("進行はキーの種類に合うものだけ戻す（メジャーの王道進行はマイナーでは出さない）", () => {
+    expect(fromParams(new URLSearchParams("key=G&prog=ohdo")).prog).toBe("ohdo");
+    expect(fromParams(new URLSearchParams("key=Em&prog=ohdo")).prog).toBeNull();
+    expect(fromParams(new URLSearchParams("key=C&prog=custom&seq=2-5-9-1")).custom).toEqual([1, 4, 0]);
+  });
+
+  it("進行のコードは画面の和音の数に合わせ、借りる指定のあるコードはそのスケールから", () => {
+    const g = { ...DEFAULT_KEY_VIEW, key: keyById("G")!, prog: "251" };
+    expect(progChords(g).map(c => c.symbol)).toEqual(["Am7", "D7", "GM7"]);
+    expect(progChords({ ...g, size: 3 }).map(c => c.symbol)).toEqual(["Am", "D", "G"]);
+    // アンダルシア進行は ♭Ⅶ をナチュラルマイナー、Ⅴ をハーモニックマイナーから（借りる設定によらない）
+    const am = { ...DEFAULT_KEY_VIEW, key: keyById("Am")!, size: 3 as const, prog: "andalusian" };
+    expect(progChords(am).map(c => c.symbol)).toEqual(["Am", "G", "F", "E"]);
+    expect(progChords({ ...am, borrow: true }).map(c => c.symbol)).toEqual(["Am", "G", "F", "E"]);
+  });
+
+  it("ルートの動き：5 度下を強い動きとして見分ける", () => {
+    const [ii, v, i] = progChords({ ...DEFAULT_KEY_VIEW, prog: "251" });
+    expect(rootMotion(ii!, v!)).toEqual({ label: "5度下", strong: true });
+    expect(rootMotion(v!, i!)).toEqual({ label: "5度下", strong: true });
+    const [, , , iv] = progChords({ ...DEFAULT_KEY_VIEW, prog: "1564" });
+    const [one, five] = progChords({ ...DEFAULT_KEY_VIEW, prog: "1564" });
+    expect(rootMotion(one!, five!).label).toBe("5度上");
+    expect(rootMotion(five!, iv!).label).toBe("2度下");
   });
 
   it("異名同音のキーも同じ位置", () => {

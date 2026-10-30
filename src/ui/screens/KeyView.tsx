@@ -36,8 +36,12 @@ import {
   dimLabel,
   fromParams,
   funcOf,
+  MAX_CUSTOM,
   inFan,
   keyAt,
+  progChords,
+  progressionsFor,
+  rootMotion,
   placeOf,
   qualityOf,
   scaleOfKey,
@@ -71,8 +75,8 @@ const FUNC_TEXT: Readonly<Record<Func, string>> = {
 
 const QUALITY_CLASS: Readonly<Record<Ring, string>> = { major: "maj", minor: "min", dim: "dim" };
 
-/** 札の幅に収まらないときは「(」の前で折る（Bm7 / (♭5)） */
-const breakable = (symbol: string) => symbol.replace("(", "\u200b(");
+/** 札の幅に収まらないときは、型の切れ目で折る（Bm7 / (♭5)、E♯ / dim7） */
+const breakable = (symbol: string) => symbol.replace("(", "\u200b(").replace("dim", "\u200bdim");
 
 const chordMidis = (c: DiatonicChord) => voiced(pc(c.root), c.tones.map(pc));
 
@@ -115,21 +119,63 @@ function useFanAngle(slot: number): number {
   return ref.current;
 }
 
+/** 進行の矢印（コードからコードへ）。進む向きの左へ少しふくらませるので、行きと帰りの矢印は重ならない。
+    鳴らしているあいだは、今のコードへ入る矢印だけを濃くする */
+function ProgArrows({ path, playing }: { path: readonly DiatonicChord[]; playing: number | null }) {
+  const ps = path.map(placeOf);
+  return (
+    <g class={`kv-arrows${playing != null ? " playing" : ""}`} aria-hidden="true">
+      {ps.slice(1).map((b, i) => {
+        const a = ps[i]!;
+        if (a.ring === b.ring && a.slot === b.slot) return null;
+        const pa = pt(a.slot, RADIUS[a.ring]),
+          pb = pt(b.slot, RADIUS[b.ring]);
+        const len = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+        const u = { x: (pb.x - pa.x) / len, y: (pb.y - pa.y) / len };
+        const st = { x: pa.x + u.x * (CELL[a.ring] + 2), y: pa.y + u.y * (CELL[a.ring] + 2) };
+        const en = { x: pb.x - u.x * (CELL[b.ring] + 7), y: pb.y - u.y * (CELL[b.ring] + 7) };
+        const bend = Math.min(18, len * 0.18);
+        const ctl = { x: (st.x + en.x) / 2 + u.y * bend, y: (st.y + en.y) / 2 - u.x * bend };
+        return (
+          <path
+            key={i}
+            class={playing === i + 1 ? "now" : undefined}
+            d={`M ${st.x} ${st.y} Q ${ctl.x} ${ctl.y} ${en.x} ${en.y}`}
+            marker-end="url(#kv-arrowhead)"
+          />
+        );
+      })}
+    </g>
+  );
+}
+
 function KeyCircle({
   s,
   chords,
+  path = [],
+  playing = null,
   onPick,
 }: {
   s: KeyViewState;
   chords: readonly DiatonicChord[];
+  /** 進行（矢印でつなぐ） */
+  path?: readonly DiatonicChord[];
+  /** 鳴らしている進行のコード（path の何番目か） */
+  playing?: number | null;
   onPick: (k: Key) => void;
 }) {
+  const now = playing != null && path[playing] ? placeOf(path[playing]) : undefined;
   const center = slotOf(s.key);
   const angle = useFanAngle(center);
-  const places = chords.map(placeOf);
+  // 進行にだけ出てくるコード（アンダルシア進行の Ⅴ など）も輪の上に印を付ける
+  const shown = [
+    ...chords,
+    ...path.filter(c => !chords.some(x => pc(x.root) === pc(c.root) && qualityOf(x) === qualityOf(c))),
+  ];
+  const places = shown.map(placeOf);
   const at = (ring: Ring, slot: number) => {
     const i = places.findIndex(p => p.ring === ring && p.slot === slot);
-    return i < 0 ? undefined : { chord: chords[i]!, place: places[i]! };
+    return i < 0 ? undefined : { chord: shown[i]!, place: places[i]! };
   };
   const label = `五度圏。キー ${keyLabel(s.key)} のコードは ${chords.map(c => c.symbol).join("・")}`;
   return (
@@ -144,15 +190,18 @@ function KeyCircle({
         FIFTHS.major.map((_, slot) => {
           const { x, y } = pt(slot, RADIUS[ring]);
           const hit = at(ring, slot);
-          const name =
-            ring === "major"
+          // キーのコードは、札と同じ綴りで（F♯m の Ⅴ は D♭ でなく C♯）
+          const name = hit
+            ? `${fmt(hit.chord.root)}${{ major: "", minor: "m", dim: "dim" }[ring]}`
+            : ring === "major"
               ? fmt(note(FIFTHS.major[slot]!))
               : ring === "minor"
                 ? `${fmt(note(FIFTHS.minor[slot]!))}m`
                 : dimLabel(slot);
           const tonic = hit?.chord.degree === 0;
           const borrowed = hit && !inFan(center, hit.place as Place);
-          const selected = hit && s.chord === hit.chord.degree;
+          const selected = hit && s.chord === hit.chord.degree && chords.includes(hit.chord);
+          const isPlaying = now?.ring === ring && now.slot === slot;
           const cls = [
             "kv-cell",
             `kv-cell--${ring}`,
@@ -160,6 +209,7 @@ function KeyCircle({
             tonic && "tonic",
             borrowed && "borrowed",
             selected && "selected",
+            isPlaying && "playing",
           ]
             .filter(Boolean)
             .join(" ");
@@ -196,6 +246,12 @@ function KeyCircle({
           );
         }),
       )}
+      <defs>
+        <marker id="kv-arrowhead" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" class="kv-arrowhead" />
+        </marker>
+      </defs>
+      {path.length > 1 && <ProgArrows path={path} playing={playing} />}
       <text class="kv-center" x={C} y={C - 8} aria-hidden="true">
         {keyLabel(s.key)}
       </text>
@@ -205,6 +261,9 @@ function KeyCircle({
     </svg>
   );
 }
+
+/** 進行を鳴らす 1 コードの長さ（playChords の間隔と同じ） */
+const PROG_STEP_MS = 900;
 
 /** 指板に出すフレット（開放から 12 フレットまで＝ 1 オクターブ） */
 const BOARD_FRETS = 12;
@@ -313,11 +372,29 @@ export function KeyView({ query }: { query: string }) {
   const goKey = (k: Key) => {
     if (keyId(k) === keyId(s.key)) return;
     setPrev(s.key);
-    set({ key: k, chord: null });
+    // 進行はメジャーとマイナーで別。合わなくなったら外す（自分で作った進行は度数なので残す）
+    const fits = s.prog === "custom" || progressionsFor(k).some(x => x.id === s.prog);
+    set({ key: k, chord: null, ...(!fits && { prog: null }) });
+  };
+
+  // 進行を鳴らしているあいだ、今のコードを目立たせる（playChords と同じ間隔）
+  const [playing, setPlaying] = useState<number | null>(null);
+  const timers = useRef<number[]>([]);
+  const stopTimers = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  };
+  useEffect(() => stopTimers, []);
+  const playProg = (cs: readonly DiatonicChord[]) => {
+    stopTimers();
+    playChords(cs.map(chordMidis));
+    cs.forEach((_, i) => timers.current.push(window.setTimeout(() => setPlaying(i), i * PROG_STEP_MS)));
+    timers.current.push(window.setTimeout(() => setPlaying(null), cs.length * PROG_STEP_MS + 700));
   };
   const step = (d: number) => goKey(keyAt(s.key.mode, slotOf(s.key) + d));
 
   const chords = chordsOf(s);
+  const prog = progChords(s);
   const notes = scaleNotes(scaleOfKey(s.key), s.key.tonic);
   const change = prev ? changedNotes(prev, s.key) : undefined;
   const newPcs = new Set(change?.to.map(pc));
@@ -380,7 +457,7 @@ export function KeyView({ query }: { query: string }) {
             5度上 ▶
           </button>
         </div>
-        <KeyCircle s={s} chords={chords} onPick={goKey} />
+        <KeyCircle s={s} chords={chords} path={prog} playing={playing} onPick={goKey} />
         <p class="muted small kv-legend">
           扇形の 7 つがキー {keyLabel(s.key)}{" "}
           のコード（外：メジャー・中：マイナー・内：dim）。輪の文字を押すとキーが変わります。
@@ -458,7 +535,9 @@ export function KeyView({ query }: { query: string }) {
                 aria-pressed={s.chord === c.degree}
                 aria-label={`${c.label}（${c.symbol}）を鳴らす`}
                 onClick={() => {
-                  set({ chord: c.degree });
+                  // 自分で進行を作っているときは、押したコードを進行の後ろに足す
+                  const add = s.prog === "custom" && s.custom.length < MAX_CUSTOM;
+                  set({ chord: c.degree, ...(add && { custom: [...s.custom, c.degree] }) });
                   playMidi(chordMidis(c), { strum: true });
                 }}
               >
@@ -507,6 +586,76 @@ export function KeyView({ query }: { query: string }) {
               </a>
             )}
           </div>
+        )}
+      </section>
+
+      <section class="kv-prog" aria-labelledby="kv-prog-h">
+        <h2 id="kv-prog-h">進行</h2>
+        <label class="field">
+          <span class="sr-only">進行</span>
+          <select
+            value={s.prog ?? ""}
+            onChange={e => {
+              stopTimers();
+              setPlaying(null);
+              set({ prog: e.currentTarget.value || null });
+            }}
+          >
+            <option value="">（出さない）</option>
+            {progressionsFor(s.key).map(x => (
+              <option key={x.id} value={x.id}>
+                {x.name}
+              </option>
+            ))}
+            <option value="custom">自分で作る（札を押して足す）</option>
+          </select>
+        </label>
+        {s.prog && (
+          <>
+            {prog.length > 0 ? (
+              <ol class="kv-steps" aria-label="進行のコード">
+                {prog.map((c, i) => (
+                  <li key={i} class={playing === i ? "playing" : undefined}>
+                    {i > 0 && (
+                      <span class={`kv-motion${rootMotion(prog[i - 1]!, c).strong ? " strong" : ""}`}>
+                        {rootMotion(prog[i - 1]!, c).label}
+                      </span>
+                    )}
+                    <span class={`kv-step kv-card--${QUALITY_CLASS[qualityOf(c)]}`}>
+                      <span class="kv-card-roman">{c.roman}</span>
+                      <span class="kv-card-name">{c.symbol}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p class="muted small">上の札を押すと、押した順に進行に足していきます（{MAX_CUSTOM} つまで）。</p>
+            )}
+            <div class="actions">
+              <button class="btn primary" disabled={!prog.length} onClick={() => playProg(prog)}>
+                ▶ 進行を鳴らす
+              </button>
+              {s.prog === "custom" && (
+                <>
+                  <button
+                    class="btn"
+                    disabled={!s.custom.length}
+                    onClick={() => set({ custom: s.custom.slice(0, -1) })}
+                  >
+                    1 つ戻す
+                  </button>
+                  <button class="btn" disabled={!s.custom.length} onClick={() => set({ custom: [] })}>
+                    消す
+                  </button>
+                </>
+              )}
+            </div>
+            {prog.length > 1 && (
+              <p class="muted small">
+                五度圏の矢印が、コードからコードへの動き。「5度下」（反時計回りに 1 つ）は、いちばん強く進む動きです。
+              </p>
+            )}
+          </>
         )}
       </section>
 
