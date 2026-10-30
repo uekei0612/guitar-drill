@@ -71,4 +71,25 @@ describe("キーの画面", () => {
       "G♯dim",
     ]);
   });
+
+  it("指板：コードを選ぶと構成音を度数で、ほかのスケールの音を薄く出す", async () => {
+    const el = await mount("key=C&size=4&chord=5");
+    const marks = [...el.querySelectorAll(".kv-board .fb-mark")];
+    const labels = new Set(marks.filter(m => !m.classList.contains("dim")).map(m => m.textContent));
+    expect([...labels].sort()).toEqual(["3", "5", "R", "♭7"]);
+  });
+
+  it("指板：ルートの位置は低い 2 本の弦に、7 つのコードの度数で出す", async () => {
+    const el = await mount("key=C&board=roots");
+    const board = el.querySelector(".kv-board")!;
+    const romans = new Set([...board.querySelectorAll(".fb-mark")].map(m => m.textContent));
+    expect(romans).toEqual(new Set(["Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ"]));
+  });
+
+  it("ドリルへのリンクは、このキーと和音の数だけに絞る", async () => {
+    const el = await mount("key=Em&size=3");
+    const a = [...el.querySelectorAll<HTMLAnchorElement>(".kv-links a")].find(x => x.href.includes("drill"))!;
+    const only = new URLSearchParams(a.getAttribute("href")!.split("?")[1]).get("only")!;
+    expect(JSON.parse(only)).toEqual({ size: 3, borrowDominant: false, keys: ["Em"] });
+  });
 });

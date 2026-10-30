@@ -18,6 +18,11 @@ import {
   note,
   pc,
   scaleNotes,
+  STANDARD,
+  type Tuning,
+  pcAt,
+  stringCount,
+  tuningById,
 } from "../../theory";
 import { accidentals, relative, sigLabel } from "../../topics/circle-of-fifths";
 import {
@@ -39,6 +44,9 @@ import {
   slotOf,
   toParams,
 } from "../../keyview/state";
+import type { Mark } from "../../drill/topic";
+import { Fretboard } from "../Fretboard";
+import { HScroll } from "../HScroll";
 import { href } from "../route";
 
 const ALL_KEYS: readonly Key[] = [...KEYS.major, ...KEYS.minor];
@@ -195,6 +203,99 @@ function KeyCircle({
         {sigLabel(keySignature(s.key))}
       </text>
     </svg>
+  );
+}
+
+/** 指板に出すフレット（開放から 12 フレットまで＝ 1 オクターブ） */
+const BOARD_FRETS = 12;
+
+/** 指板：キーのスケール（選んだコードの構成音を重ねる）か、7 つのコードのルートの位置（低い 2 本の弦） */
+function KeyBoard({
+  s,
+  chords,
+  onView,
+}: {
+  s: KeyViewState;
+  chords: readonly DiatonicChord[];
+  onView: (v: KeyViewState["board"]) => void;
+}) {
+  const { settings } = useData();
+  const t = tuningById(settings.tuning) ?? STANDARD;
+  const n = stringCount(t);
+  const notes = scaleNotes(scaleOfKey(s.key), s.key.tonic);
+  const nameOf = new Map(notes.map(x => [pc(x), fmt(x)]));
+  const sel = s.chord != null ? chords[s.chord] : undefined;
+  const marks: Mark[] = [];
+  for (let string = 1; string <= n; string++)
+    for (let fret = 0; fret <= BOARD_FRETS; fret++) {
+      const pos = { string, fret };
+      const p = pcAt(t, pos);
+      if (s.board === "roots") {
+        // 低い 2 本の弦の上の、7 つのコードのルート（度数で書く）
+        if (string < n - 1) continue;
+        const c = chords.find(x => pc(x.root) === p);
+        if (!c) continue;
+        const kind =
+          c.degree === sel?.degree ? "target" : c.degree === 0 ? "root" : qualityOf(c) === "dim" ? "hint" : "tone";
+        // 2 本だけの指板に描くので、弦の番号を付け直す（低い弦が 2）
+        marks.push({ pos: { string: string - (n - 2), fret }, kind, label: c.roman });
+        continue;
+      }
+      if (!nameOf.has(p)) continue;
+      const i = sel ? sel.tones.findIndex(x => pc(x) === p) : -1;
+      if (sel && i >= 0) marks.push({ pos, kind: i === 0 ? "root" : "tone", label: sel.toneLabels[i]! });
+      else
+        marks.push({
+          pos,
+          kind: !sel && p === pc(s.key.tonic) ? "root" : "tone",
+          label: nameOf.get(p)!,
+          ...(sel && { dim: true }),
+        });
+    }
+  const standard = t.id === "standard";
+  /** 低い 2 本の弦だけのチューニング（ルートの位置の図） */
+  const low2: Tuning = { ...t, id: `${t.id}:low2`, open: t.open.slice(0, 2) };
+  return (
+    <section class="kv-board" aria-labelledby="kv-board-h">
+      <h2 id="kv-board-h">指板</h2>
+      <div class="chart-bar">
+        <div class="toggle-group" role="group" aria-label="指板に出すもの">
+          <button aria-pressed={s.board === "scale"} onClick={() => onView("scale")}>
+            スケール
+          </button>
+          <button aria-pressed={s.board === "roots"} onClick={() => onView("roots")}>
+            ルートの位置
+          </button>
+        </div>
+      </div>
+      <div class="kv-board-fig">
+        <HScroll startAtEnd={settings.lefty} resetKey={settings.lefty}>
+          <Fretboard
+            tuning={s.board === "roots" ? low2 : t}
+            {...(s.board === "roots" && { stringNames: [`${n - 1}弦`, `${n}弦`] })}
+            range={{ minFret: 0, maxFret: BOARD_FRETS }}
+            orientation="horizontal"
+            scale={0.8}
+            lefty={settings.lefty}
+            label={
+              s.board === "roots"
+                ? `キー ${keyLabel(s.key)} の 7 つのコードのルートの位置`
+                : `キー ${keyLabel(s.key)} のスケール${sel ? `と ${sel.symbol} の構成音` : ""}`
+            }
+            marks={marks}
+          />
+        </HScroll>
+      </div>
+      <p class="muted small">
+        {s.board === "roots"
+          ? `低い 2 本の弦の上の、7 つのコードのルート。${
+              standard ? "6 弦ルートと 5 弦ルートのハイコードを、この位置から押さえる。" : ""
+            }${sel ? `輪は ${sel.symbol}。` : "札を選ぶと、そのコードに輪が付く。"}`
+          : sel
+            ? `${sel.symbol} の構成音を度数で、ほかのスケールの音を薄く出しています。`
+            : "キーのスケールの音（オレンジが主音）。札を選ぶと、そのコードの構成音を重ねます。"}
+      </p>
+    </section>
   );
 }
 
@@ -409,9 +510,26 @@ export function KeyView({ query }: { query: string }) {
         )}
       </section>
 
-      <a class="chart-drill" href={chartLink({ chartType: "scale", scale: scaleOfKey(s.key), root: pc(s.key.tonic) })}>
-        {keyLabel(s.key)} のスケールをチャートで開く<span aria-hidden="true"> ›</span>
-      </a>
+      <KeyBoard s={s} chords={chords} onView={board => set({ board })} />
+
+      <nav class="kv-links" aria-label="このキーで続ける">
+        <a
+          class="chart-drill"
+          href={href({
+            name: "drill",
+            topicId: "diatonic",
+            only: JSON.stringify({ size: s.size, borrowDominant: s.borrow, keys: [keyId(s.key)] }),
+          })}
+        >
+          キー {keyLabel(s.key)} のコードをドリルで確かめる<span aria-hidden="true"> ›</span>
+        </a>
+        <a
+          class="chart-drill"
+          href={chartLink({ chartType: "scale", scale: scaleOfKey(s.key), root: pc(s.key.tonic) })}
+        >
+          {keyLabel(s.key)} のスケールをチャートで開く<span aria-hidden="true"> ›</span>
+        </a>
+      </nav>
     </>
   );
 }

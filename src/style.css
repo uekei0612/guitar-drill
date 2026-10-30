@@ -2454,3 +2454,16 @@ main.home .today {
   color: var(--muted);
   font-weight: 600;
 }
+.kv-board h2 {
+  font-size: 1rem;
+  margin: 20px 0 0;
+}
+.kv-board-fig {
+  margin: 8px 0 4px;
+}
+.kv-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 12px;
+}

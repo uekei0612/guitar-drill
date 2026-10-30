@@ -24,6 +24,8 @@ export interface KeyViewState {
   readonly borrow: boolean;
   /** 選んでいるコード（0 = Ⅰ … 6 = Ⅶ）。無ければ null */
   readonly chord: number | null;
+  /** 指板に出すもの：スケール（選んだコードの構成音を重ねる）か、7 つのコードのルートの位置か */
+  readonly board: "scale" | "roots";
 }
 
 const ALL: readonly Key[] = [...KEYS.major, ...KEYS.minor];
@@ -35,6 +37,7 @@ export const DEFAULT_KEY_VIEW: KeyViewState = {
   func: false,
   borrow: false,
   chord: null,
+  board: "scale",
 };
 
 export function toParams(s: KeyViewState): URLSearchParams {
@@ -44,6 +47,7 @@ export function toParams(s: KeyViewState): URLSearchParams {
   if (s.func) p.set("func", "1");
   if (s.borrow) p.set("borrow", "1");
   if (s.chord != null) p.set("chord", String(s.chord + 1));
+  if (s.board === "roots") p.set("board", "roots");
   return p;
 }
 
@@ -58,6 +62,7 @@ export function fromParams(p: URLSearchParams, base: KeyViewState = DEFAULT_KEY_
     func: p.has("func") ? p.get("func") === "1" : base.func,
     borrow: p.has("borrow") ? p.get("borrow") === "1" : base.borrow,
     chord: chord >= 1 && chord <= 7 ? chord - 1 : null,
+    board: p.get("board") === "roots" ? "roots" : p.get("board") === "scale" ? "scale" : base.board,
   };
 }
 

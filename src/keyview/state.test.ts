@@ -18,7 +18,7 @@ const roundTrip = (s: typeof DEFAULT_KEY_VIEW) => fromParams(new URLSearchParams
 describe("キーの画面の状態", () => {
   it("URL と往復する", () => {
     expect(roundTrip(DEFAULT_KEY_VIEW)).toEqual(DEFAULT_KEY_VIEW);
-    const s = { key: keyById("F#m")!, size: 3 as const, func: true, borrow: true, chord: 4 };
+    const s = { key: keyById("F#m")!, size: 3 as const, func: true, borrow: true, chord: 4, board: "roots" as const };
     expect(roundTrip(s)).toEqual(s);
   });
 
