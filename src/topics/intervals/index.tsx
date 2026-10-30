@@ -1,7 +1,7 @@
 /* 分野：度数の位置。ルートを指板に示し、「3度はどこ？」をタップで答える（オクターブ違いもすべて正解）。
    逆に、点を示して「ルートから何度？」を 4択で答える。ルートの位置は毎回変える（形で覚えるため）。 */
 import { pick, shuffle } from "../../drill/rng";
-import type { Hint, Mark, Question, Topic } from "../../drill/topic";
+import { type Hint, type Mark, NECK, type Question, type Topic } from "../../drill/topic";
 import {
   type FretRange,
   type Position,
@@ -114,7 +114,10 @@ export const intervals: Topic = {
     const [kind, d] = id.split(":") as [string, string];
     const semis = semitones(degree(d));
     const label = degreeLabel(degree(d));
-    const { root, range, rootPc } = setup(t, rng);
+    const set = setup(t, rng);
+    const { root, rootPc } = set;
+    // タップで答える問題は、指板の長い図から選ぶ（どのオクターブでもよいので、正解は図の中の全部）
+    const range = kind === "tap" ? NECK : set.range;
     const targets = positionsOf(t, mod(rootPc + semis, 12), range);
     const roots = positionsOf(t, rootPc, range);
     const rootMark: Mark = { pos: root, kind: "root", label: "R" };

@@ -30,6 +30,18 @@ export interface Mark {
   readonly dim?: boolean;
 }
 
+/** 指板のマスを選んで答える問題の図の範囲（開放〜12 フレット）。押さえる形のまわりだけを切り出すと、
+    図の範囲がそのまま答えの範囲になって場所を探さずに選べるので、長い図を横スクロールで動かして選ばせる。
+    12 フレットで止めるのは、同じ形を 1 オクターブ上でも押さえられて、正解が 2 つにならないように */
+export const NECK: FretRange = { minFret: 0, maxFret: 12 };
+
+/** 形を押さえさせる問題の図の範囲と押せるフレット。範囲は NECK に、はみ出す形（12 フレットより先）が収まるまで足す。
+    開放を使わない形では開放を押させない（12 フレットの形を、開放の形で答えさせない） */
+export function neckFor(ps: readonly Position[]): { range: FretRange; frets: FretRange } {
+  const maxFret = Math.max(NECK.maxFret, ...ps.map(p => p.fret));
+  return { range: { minFret: 0, maxFret }, frets: { minFret: ps.some(p => p.fret === 0) ? 0 : 1, maxFret } };
+}
+
 /** 指で押さえるバレー（セーハ）。low〜high 弦を fret で */
 export interface Barre {
   readonly fret: number;

@@ -1,10 +1,10 @@
 /* 分野：ハイコード（バレーコード）の押さえ方。6弦ルート（E 型）と 5弦ルート（A 型）のフォームを、
    メジャー・m・7・m7 から始め、M7・m7(♭5) を設定で足す。
-   フォームを作る（ルートを示して残りをタップ）、何フレットでバレーするか（4択）、形を見てコード名（4択）。
+   フォームを作る（長い指板図からルートも含めてタップ）、何フレットでバレーするか（4択）、形を見てコード名（4択）。
    フォームは根音のフレットを 0 にした押さえ方で持ち、根音のフレットだけずらす。 */
 import { useState } from "preact/hooks";
 import { shuffle } from "../../drill/rng";
-import type { Question, Topic } from "../../drill/topic";
+import { type Question, type Topic, neckFor } from "../../drill/topic";
 import { type Note, type Tuning, chordSymbol, chordType, fmt, mod, note, openNote, pc, spellings } from "../../theory";
 import { Fretboard } from "../../ui/Fretboard";
 import {
@@ -14,7 +14,6 @@ import {
   hideRoot,
   rootHint,
   shapeBoard,
-  shapeRange,
   shift,
   sounding,
   strumOf,
@@ -195,29 +194,26 @@ export const barreChords: Topic<BarreChordsSettings> = {
     const sound = strumOf(t, s);
 
     if (kind === "play") {
+      // 指板の長い図から、ルートも含めて押さえるマスを探して選ぶ（ルートの場所はヒントで出す）
       const rootPos = { string: f.rootString, fret };
-      const strings = [6, 5, 4, 3, 2, 1].filter(x => x !== f.rootString);
+      const neck = neckFor(sounding(s));
       return {
         item: id,
         prompt: {
           text: `${formName(f.rootString)}で ${name} を押さえる`,
-          how: `ルートは ${f.rootString}弦 ${fret}フレット。ほかに押さえるマスを全部タップ`,
-          board: {
-            range: shapeRange(s),
-            marks: [{ pos: rootPos, kind: "root", label: "R" }],
-            orientation: "horizontal",
-          },
+          how: "ルートも含めて、押さえるマスを全部タップ",
+          board: { range: neck.range, marks: [], orientation: "horizontal" },
         },
         answer: {
           kind: "tap",
           mode: "all",
-          range: shapeRange(s),
-          correct: sounding(s).filter(p => p.string !== f.rootString),
-          strings,
+          range: neck.range,
+          frets: neck.frets,
+          correct: sounding(s),
           orientation: "horizontal",
           onePerString: true,
         },
-        hint: { text: formHint(f, fret) },
+        hint: { text: formHint(f, fret), marks: [{ pos: rootPos, kind: "hint", label: "R" }] },
         explanation: ex,
         sound,
       };

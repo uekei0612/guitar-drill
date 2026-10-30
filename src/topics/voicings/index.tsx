@@ -1,9 +1,9 @@
 /* 分野：ボイシングの型（シェル・ドロップ 2・ドロップ 3）。
-   ルートを示して残りの音をタップで埋める「型を埋める」出題と、形を見てコードの型を答える出題。
+   長い指板図から R も含めて音をタップする「型を作る」出題と、形を見てコードの型を答える出題。
    形は「弦の組と、低い弦からの度数の並び」で持ち、各弦でルートにいちばん近いフレットに置いて作る
    （C7 のドロップ 2 なら x3535x、G7 のドロップ 3 なら 3x343x になる）。 */
 import { shuffle } from "../../drill/rng";
-import type { Mark, Question, Topic } from "../../drill/topic";
+import { type Mark, type Question, type Topic, neckFor } from "../../drill/topic";
 import {
   type Position,
   type Tuning,
@@ -216,19 +216,25 @@ export const voicings: Topic = {
       board: { range, marks: full },
     };
     const sound = { notes: shape.positions.map(p => midiAt(t, p)), strum: true };
-    if (kind === "fill")
+    // 作る問題は、指板の長い図から、R も含めて押さえるマスを探して選ぶ（R の場所はヒントで出す）
+    if (kind === "fill") {
+      const neck = neckFor(shape.positions);
       return {
         item: id,
         prompt: {
           text: `${v.name}で ${chord} を作る`,
-          how: `R 以外の ${shape.positions.length - 1} 音をタップ`,
-          board: { range, marks: [full[0]!] },
+          how: `${v.strings[0]}弦の R から ${shape.positions.length} 音を全部タップ`,
+          board: { range: neck.range, marks: [] },
         },
-        answer: { kind: "tap", mode: "all", range, correct: shape.positions.slice(1) },
-        hint: { text: `${howOf(v)}。${chord} は R から ${typeTones(v, type)}` },
+        answer: { kind: "tap", mode: "all", range: neck.range, frets: neck.frets, correct: shape.positions },
+        hint: {
+          text: `${howOf(v)}。${chord} は R から ${typeTones(v, type)}`,
+          marks: [{ pos: shape.positions[0]!, kind: "hint", label: "R" }],
+        },
         explanation,
         sound,
       };
+    }
     const correct = symbolOf(type);
     // シェルは m7 と m7(♭5) を形で区別できないので、選択肢はその形で作れる型だけ
     const options = shuffle(rng, [correct, ...v.types.filter(x => x !== type).map(symbolOf)]);
