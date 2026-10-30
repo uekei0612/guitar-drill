@@ -21,7 +21,17 @@ docker compose run --rm dev npm run check   # 型検査・整形・テスト・�
 
 画面上部のオレンジの帯は開発版の印で、本番（GitHub Pages）では出ない。
 
-## 公開
+## 進め方（Issue とブランチ）
+
+1. 作業の前に Issue を立てる。タイトルは「場所：内容」（例：「チャート：横向きを既定にする」）、ラベルを付ける
+2. ブランチは feature → develop → main。ブランチ名に Issue の番号を入れる（`feature/88-issue-flow`、直しは `fix/`）
+3. コミットのメッセージの最後に `Refs #88` を書く（GitHub の Issue に、そのコミットが並ぶ）
+4. develop へのマージ（`--no-ff`）のメッセージにも `Refs #88`
+5. 本番に出すとき（develop → main のマージ）のメッセージに、その回で出す Issue を `Closes #88` で並べる。
+   main は既定ブランチなので、push で Issue が閉じる
+
+本番に出すまで Issue は開いたまま。開いている Issue のうち develop にあるものが「本番に未反映」になる。
+
 
 | ブランチ | URL | 記録の保存先 |
 |---|---|---|
