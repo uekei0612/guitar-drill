@@ -2192,3 +2192,345 @@ main.home .today {
 .vstack .step-item {
   min-width: 4.2em;
 }
+
+/* キー（五度圏とダイアトニックコード） */
+.kv-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.kv-pick .field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kv-pick .btn {
+  flex: 0 0 auto;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.kv-circle {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 12px auto 0;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kv-circle text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--muted);
+  pointer-events: none;
+}
+.kv-ring {
+  fill: none;
+  stroke: var(--line);
+}
+/* 扇形：キーを変えると、近いほうへ回る */
+.kv-fan {
+  transform-origin: 180px 180px;
+  transition: transform 0.35s ease;
+}
+.kv-fan path {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 55%, transparent);
+  stroke-width: 1.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kv-fan {
+    transition: none;
+  }
+}
+.kv-cell circle {
+  fill: transparent;
+  stroke: none;
+}
+.kv-cell[role="button"] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.kv-cell[role="button"]:focus-visible {
+  outline: none;
+}
+.kv-cell[role="button"]:focus-visible circle {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.kv-cell--major text {
+  font-size: 16px;
+  font-weight: 600;
+}
+.kv-cell--minor text {
+  font-size: 12.5px;
+}
+.kv-cell--dim text {
+  font-size: 9.5px;
+}
+.kv-cell.in circle {
+  fill: var(--bg);
+  stroke: var(--fg);
+  stroke-width: 1.5;
+}
+.kv-circle .kv-cell.in text {
+  fill: var(--fg);
+  font-weight: 700;
+}
+.kv-cell.tonic circle {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.kv-circle .kv-cell.tonic text {
+  fill: var(--on-accent);
+}
+.kv-cell.borrowed circle {
+  stroke: var(--accent);
+  stroke-dasharray: 3 3;
+}
+.kv-cell.selected circle {
+  stroke: var(--accent);
+  stroke-width: 3.5;
+}
+.kv-cell.tonic.selected circle {
+  stroke: var(--fg);
+}
+.kv-circle .kv-roman {
+  font-size: 9px;
+  font-weight: 600;
+}
+.kv-cell--major .kv-roman {
+  font-size: 10px;
+}
+.kv-circle .kv-center {
+  fill: var(--fg);
+  font-size: 22px;
+  font-weight: 700;
+}
+.kv-circle .kv-center-sub {
+  font-size: 11px;
+}
+.kv-legend {
+  margin-top: 4px;
+}
+.kv-scale h2,
+.kv-chords h2 {
+  font-size: 1rem;
+  margin: 20px 0 0;
+}
+/* 前のキーから変わった音 */
+.tone-dot.changed {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 2px;
+}
+.kv-change {
+  margin: 8px 0 0;
+}
+.kv-related {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 4px;
+  margin: 4px 0 0;
+}
+.kv-related {
+  column-gap: 16px;
+}
+.kv-related > span {
+  white-space: nowrap;
+}
+/* 7 つの札。メジャー・マイナー・dim で色を分ける（参考の積み上げと同じ色） */
+.kv-cards {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 12px 0 4px;
+}
+.kv-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 6px 1px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+.kv-card-roman {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.kv-card-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+}
+.kv-card--maj {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.kv-card--maj .kv-card-roman {
+  color: var(--accent);
+}
+.kv-card--dim {
+  border-color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 10%, var(--bg));
+}
+.kv-card--dim .kv-card-roman {
+  color: var(--ng);
+}
+.kv-card.borrowed {
+  border-style: dashed;
+}
+.kv-card[aria-pressed="true"] {
+  outline: 3px solid var(--fg);
+  outline-offset: 1px;
+}
+.kv-func {
+  margin-top: auto;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--on-accent);
+}
+.kv-func--T {
+  background: var(--ok);
+}
+.kv-func--SD {
+  background: #2563eb;
+}
+.kv-func--D {
+  background: var(--ng);
+}
+.kv-detail {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.kv-detail p {
+  margin: 0 0 8px;
+}
+.kv-detail-name {
+  font-size: 1.05rem;
+}
+.kv-tones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.kv-tone {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 40px;
+}
+.kv-tone > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: 18px;
+  background: var(--fb-tone);
+  color: var(--fb-on-dot);
+  font-weight: 700;
+}
+.kv-tone.root > span {
+  background: var(--fb-root);
+  color: var(--on-accent);
+}
+.kv-tone small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.kv-board h2 {
+  font-size: 1rem;
+  margin: 20px 0 0;
+}
+.kv-board-fig {
+  margin: 8px 0 4px;
+}
+.kv-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 12px;
+}
+/* 進行：五度圏の矢印と、並んだ札 */
+.kv-arrows path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.kv-arrowhead {
+  fill: var(--accent);
+}
+/* 鳴らしているあいだは、今のコードへ入る矢印だけ濃く */
+.kv-arrows.playing path {
+  opacity: 0.25;
+}
+.kv-arrows.playing path.now {
+  opacity: 1;
+  stroke-width: 4;
+}
+.kv-cell.playing circle {
+  stroke: var(--accent);
+  stroke-width: 5;
+}
+.kv-prog h2 {
+  font-size: 1rem;
+  margin: 20px 0 8px;
+}
+.kv-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 8px;
+  margin: 12px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.kv-steps li {
+  display: flex;
+  align-items: center;
+}
+.kv-step {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 3.4rem;
+  padding: 4px 6px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: transform 0.15s ease;
+}
+.kv-steps li.playing .kv-step {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+  transform: scale(1.08);
+}
+.kv-motion {
+  padding: 0 4px;
+  font-size: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.kv-motion::after {
+  content: " →";
+}
+.kv-motion.strong {
+  color: var(--accent);
+  font-weight: 700;
+}
