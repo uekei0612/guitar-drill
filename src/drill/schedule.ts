@@ -58,8 +58,9 @@ export interface PlanOptions {
   readonly maxNew?: number;
 }
 
-/** 1 セッションで出す item の並び。期限切れ（古い順）→ 未出題（分野の並び順）→ 期限前（近い順）から選び、
-    同じ item が続かないように混ぜる。item が少ない分野では繰り返して埋める */
+/** 1 セッションで出す item の並び。期限切れ（古い順）→ 未出題（分野の中からランダム）→ 期限前（近い順）から選び、
+    同じ item が続かないように混ぜる。item が少ない分野では繰り返して埋める。
+    未出題を分野の並び順の先頭から取ると、並びの近い（同じ型・同じ弦などの）似た問題ばかりになる */
 export function planSession(
   items: readonly ItemId[],
   statOf: (id: ItemId) => ItemStat | undefined,
@@ -70,7 +71,10 @@ export function planSession(
   if (!items.length) return [];
   const byDue = (a: ItemId, b: ItemId) => statOf(a)!.due - statOf(b)!.due;
   const due = items.filter(id => statOf(id) && statOf(id)!.due <= now).sort(byDue);
-  const fresh = items.filter(id => !statOf(id));
+  const fresh = shuffle(
+    rng,
+    items.filter(id => !statOf(id)),
+  );
   const ahead = items.filter(id => statOf(id) && statOf(id)!.due > now).sort(byDue);
 
   const pool = due.slice(0, size);

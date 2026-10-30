@@ -45,7 +45,7 @@ describe("review", () => {
 describe("planSession", () => {
   const items = Array.from({ length: 100 }, (_, i) => `i${i}`);
 
-  it("期限切れを優先し、未出題は並び順に上限まで", () => {
+  it("期限切れを優先し、未出題は上限まで", () => {
     const stats = new Map<string, ItemStat>();
     for (let i = 50; i < 60; i++)
       stats.set(`i${i}`, { ease: 2.5, interval: 1, due: T0 - i * 1000, tries: 1, correct: 1 });
@@ -56,14 +56,33 @@ describe("planSession", () => {
     expect(new Set(plan).size).toBe(20);
     const set = new Set(plan);
     for (let i = 50; i < 60; i++) expect(set.has(`i${i}`)).toBe(true);
-    for (let i = 0; i < 8; i++) expect(set.has(`i${i}`)).toBe(true);
-    expect(set.has("i8")).toBe(false);
+    // 未出題（i0〜i49）からはちょうど 8 つ
+    expect(plan.filter(id => Number(id.slice(1)) < 50)).toHaveLength(8);
     expect(set.has("i60") && set.has("i61")).toBe(true);
   });
 
   it("期限切れも期限前も無ければ未出題で埋める", () => {
     const plan = planSession(items, () => undefined, T0, seeded(2));
-    expect([...plan].sort()).toEqual(items.slice(0, 20).sort());
+    expect(new Set(plan).size).toBe(20);
+    expect(plan.every(id => items.includes(id))).toBe(true);
+  });
+
+  it("未出題は分野の並び順の先頭からでなく、全体からランダムに選ぶ（似た問題ばかりにしない）", () => {
+    // ハイコードのように「型 → 弦 → ルート」と並ぶ分野：先頭の 20 は全部同じ型・同じ弦
+    const barre = ["maj", "m", "7", "m7"].flatMap(t =>
+      [6, 5].flatMap(s => [...Array(12).keys()].map(r => `${t}:${s}:${r}`)),
+    );
+    const plan = planSession(barre, () => undefined, T0, seeded(3));
+    expect(new Set(plan.map(id => id.split(":")[0])).size).toBeGreaterThan(1);
+    expect(new Set(plan.map(id => id.split(":")[1])).size).toBe(2);
+    // セッションごとに選ぶものが変わり、多数回では全体からほぼ均等に選ばれる
+    const count = new Map<string, number>();
+    for (let seed = 0; seed < 400; seed++)
+      for (const id of new Set(planSession(barre, () => undefined, T0, seeded(seed))))
+        count.set(id, (count.get(id) ?? 0) + 1);
+    expect(count.size).toBe(barre.length);
+    const n = [...count.values()];
+    expect(Math.max(...n) / Math.min(...n)).toBeLessThan(2.5);
   });
 
   it("item が少ない分野では繰り返すが、同じ item は続かない", () => {
