@@ -6,6 +6,7 @@ import {
   chordsOf,
   dimLabel,
   fromParams,
+  funcOf,
   inFan,
   keyById,
   placeOf,
@@ -110,5 +111,14 @@ describe("キーの画面の状態", () => {
 
   it("異名同音のキーも同じ位置", () => {
     expect(slotOf({ mode: "major", tonic: note("Gb") })).toBe(slotOf(keyById("F#")!));
+  });
+
+  it("機能：マイナーの ♭Ⅶ は SD、ハーモニックマイナーから借りた Ⅶdim は D", () => {
+    const am = keyById("Am")!;
+    expect(funcOf(am, 6)).toBe("SD");
+    expect(funcOf(am, 6, true)).toBe("D");
+    expect(funcOf(am, 4, true)).toBe("D");
+    expect(funcOf(keyById("C")!, 6, true)).toBe("D");
+    expect(funcOf(keyById("C")!, 5, true)).toBe("T");
   });
 });

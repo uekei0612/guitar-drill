@@ -141,12 +141,14 @@ export const chordsOf = (s: KeyViewState): DiatonicChord[] =>
 
 export type Func = "T" | "SD" | "D";
 /** 機能。メジャーは Ⅰ・Ⅲ・Ⅵ が T、Ⅱ・Ⅳ が SD、Ⅴ・Ⅶ が D。
-    マイナーは Ⅰ・♭Ⅲ が T、Ⅱ・Ⅳ・♭Ⅵ・♭Ⅶ が SD、Ⅴ が D（♭Ⅵ を T、♭Ⅶ を D とする本もある） */
+    マイナーは Ⅰ・♭Ⅲ が T、Ⅱ・Ⅳ・♭Ⅵ・♭Ⅶ が SD、Ⅴ が D（♭Ⅵ を T、♭Ⅶ を D とする本もある）。
+    ハーモニックマイナーから借りた Ⅶdim は導音の上のコードなので D */
 const FUNCS: Readonly<Record<KeyMode, readonly Func[]>> = {
   major: ["T", "SD", "T", "SD", "D", "T", "D"],
   minor: ["T", "SD", "T", "SD", "D", "SD", "SD"],
 };
-export const funcOf = (k: Key, degree: number): Func => FUNCS[k.mode][degree]!;
+export const funcOf = (k: Key, degree: number, borrow = false): Func =>
+  borrow && k.mode === "minor" && degree === 6 ? "D" : FUNCS[k.mode][degree]!;
 
 export const scaleOfKey = (k: Key) => (k.mode === "major" ? "major" : "natural_minor");
 

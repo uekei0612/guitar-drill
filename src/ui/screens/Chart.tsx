@@ -29,8 +29,9 @@ import { type Position, degree, degreeLabel, mod, pcAt, stringCount } from "../.
 import { type Band, Fretboard, posLabel } from "../Fretboard";
 import { layout } from "../fretboard-layout";
 import { HScroll } from "../HScroll";
-import { downloadBlob, exportSvgPng, shareUrl } from "../export-image";
+import { exportSvgPng, shareUrl } from "../export-image";
 import { PdfPreview } from "../PdfPreview";
+import { outputPdf } from "../pdf-output";
 import { href } from "../route";
 import { TuningOptions } from "./Settings";
 import { BOX_SCALES } from "../../topics/scale-boxes";
@@ -487,38 +488,11 @@ export function Chart({ query }: { query: string }) {
             const plan = pdfPlan(s);
             const none = !plan.boxes && !plan.degrees && !plan.allKeys;
             const make = async (open: boolean) => {
-              // 新しいタブは押したその場で開いておく（PDF を作り終えてから開くと、Safari はポップアップとして止める）
-              const tab = open ? window.open("", "_blank") : null;
-              if (open && !tab) {
-                setPdfMsg("新しいタブを開けませんでした（ポップアップを許可してください）");
-                return;
-              }
-              try {
-                if (tab) tab.document.body.textContent = "PDF を作っています…";
-              } catch {
-                // 中身を書けなくても、あとで PDF に切り替えるので構わない
-              }
               setPdfBusy(true);
               setPdfMsg("");
-              try {
-                const { renderPdf } = await import("../../chart/pdf/render-pdf");
-                const blob = await renderPdf(buildPdfPages(s));
-                if (tab) {
-                  const url = URL.createObjectURL(blob);
-                  tab.location.href = url;
-                  setTimeout(() => URL.revokeObjectURL(url), 60_000);
-                  setPdfMsg("新しいタブに開きました。そこから印刷できます。");
-                } else {
-                  const name = pdfFileName(s);
-                  downloadBlob(blob, name);
-                  setPdfMsg(`PDF を作りました（${name}）`);
-                }
-              } catch (e) {
-                tab?.close();
-                setPdfMsg(`PDF を作れませんでした：${(e as Error).message}`);
-              } finally {
-                setPdfBusy(false);
-              }
+              const msg = outputPdf(() => buildPdfPages(s), pdfFileName(s), open);
+              setPdfMsg(await msg);
+              setPdfBusy(false);
             };
             return (
               <>
