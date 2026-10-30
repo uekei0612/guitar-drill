@@ -25,6 +25,7 @@ import { ChartLink } from "../ChartLink";
 import { LessonBoard } from "../LessonFigures";
 import { playSound } from "../../chart/audio";
 import { href } from "../route";
+import { useMedia } from "../use-media";
 
 export interface DrillProps {
   readonly topic: AnyTopic;
@@ -39,6 +40,8 @@ export interface DrillProps {
 const MIN_TAP_SCALE = 44 / 48;
 /** 図の下のヒントのボタンが取る高さ（style.css の .hint-btn の高さ＋上の余白） */
 const HINT_BUTTON_HEIGHT = 56;
+/** 図と選択肢を左右に並べる画面の幅（style.css の @media と同じ） */
+const SPLIT_QUERY = "(min-width: 960px)";
 const same = (a: Position, b: Position) => a.string === b.string && a.fret === b.fret;
 
 /** タップの答え合わせ（解説の図が無いとき）：正しく押した点と押し忘れた点。押し間違いは別に足す */
@@ -178,6 +181,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   const wideTap =
     q?.answer.kind === "tap" && q.answer.range.maxFret - q.answer.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
   const fill = textOnly || (hasBoard && (!!result ? !(noFill && !wideTap) : !noFill));
+  // 広い画面では、図を左に、選択肢と答えの欄を右に並べる（style.css の .drill-screen.split と同じ条件）
+  const split = useMedia(SPLIT_QUERY) && fill && !textOnly;
   const snugAt = `${session.index}-${hinted}`;
   const isSnug = !result && snug?.at === snugAt;
   const boxAt = `${session.index}-${!!result}-${isSnug}`;
@@ -514,7 +519,8 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
     !!shown &&
     (shown.orientation ?? chooseOrientation(shown.range)) === "horizontal" &&
     shown.range.maxFret - shown.range.minFret + 1 > MAX_HORIZONTAL_FRETS;
-  const tall = tallBoard && !stack;
+  // 左右に分けているときは、解説は右の欄に出るので図の横に並べない
+  const tall = tallBoard && !stack && !split;
   // 横に並べたときと下に置いたときで、図が大きくなるほうを選ぶ（横に並べた状態で測ってから一度だけ決める）
   // 測った枠がこの問題（答える前／あと）のものか。「次へ」の直後は前の問題の枠が残っていて、それで決めると誤る
   const boardBox = measured?.at === boxAt ? measured : undefined;
@@ -627,7 +633,7 @@ export function Drill({ topic, rng = randomRng, clock = Date.now, store: st = st
   return (
     <div
       ref={screenRef}
-      class={`drill-screen${fill ? " fill" : ""}${textOnly ? " text-only" : ""}`}
+      class={`drill-screen${fill ? " fill" : ""}${textOnly ? " text-only" : ""}${split ? " split" : ""}`}
       style={fill && fillHeight ? { height: `${fillHeight}px` } : undefined}
     >
       <header class="bar">
