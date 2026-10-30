@@ -1,8 +1,11 @@
-/* localStorage への保存。キーは 1 つ。localStorage が使えない環境（プライベートモードなど）でも落ちず、
+/* localStorage への保存。キーは 1 つ（develop 版だけ別）。localStorage が使えない環境（プライベートモードなど）でも落ちず、
    そのときはメモリにだけ持つ。 */
+import { APP_ENV } from "../env";
 import { type SaveData, VERSION, emptyData, parseData } from "./schema";
 
-export const STORAGE_KEY = "guitar-drill";
+/** develop 版は本番と同じドメイン（Pages の /dev/）なので、記録を混ぜないよう別のキーに置く */
+export const storageKeyFor = (env: string): string => (env === "develop" ? "guitar-drill-dev" : "guitar-drill");
+export const STORAGE_KEY = storageKeyFor(APP_ENV);
 
 /** 保存先。localStorage と同じ getItem / setItem だけ使う */
 export interface KeyValue {

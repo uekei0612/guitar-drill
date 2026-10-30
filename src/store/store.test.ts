@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { review } from "../drill/schedule";
 import { DEFAULT_SETTINGS, VERSION, emptyData, parseData, parseSettings, parseStat } from "./schema";
-import { STORAGE_KEY, Store, exportJson, importJson, memoryStorage } from "./store";
+import { STORAGE_KEY, Store, storageKeyFor, exportJson, importJson, memoryStorage } from "./store";
 
 const T0 = Date.UTC(2026, 9, 25);
 const stat = review(undefined, true, T0);
@@ -128,5 +128,13 @@ describe("書き出し／読み込み", () => {
     expect(importJson("{").ok).toBe(false);
     expect(importJson(JSON.stringify({ version: 1 })).ok).toBe(false);
     expect(importJson(JSON.stringify({ app: "guitar-drill", version: VERSION + 1 }))).toMatchObject({ ok: false });
+  });
+});
+
+describe("保存先のキー", () => {
+  it("develop 版（Pages の /dev/）は本番と別のキーに保存する", () => {
+    expect(storageKeyFor("prod")).toBe("guitar-drill");
+    expect(storageKeyFor("dev")).toBe("guitar-drill");
+    expect(storageKeyFor("develop")).toBe("guitar-drill-dev");
   });
 });

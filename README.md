@@ -19,3 +19,13 @@ docker compose run --rm dev npm run check   # 型検査・整形・テスト・�
 ```
 
 画面上部のオレンジの帯は開発版の印で、本番（GitHub Pages）では出ない。
+
+## 公開
+
+| ブランチ | URL | 記録の保存先 |
+|---|---|---|
+| `main`（本番） | https://uekei0612.github.io/guitar-drill/ | `guitar-drill` |
+| `develop` | https://uekei0612.github.io/guitar-drill/dev/ | `guitar-drill-dev`（本番とは混ざらない） |
+
+どちらに push しても、`.github/workflows/pages.yml` が両方をビルドして 1 つのサイトとして公開し直す。
+develop 版は `npm run build:develop`（`vite build --mode develop`、設定は `.env.develop`）で作り、オレンジの帯が出る。
