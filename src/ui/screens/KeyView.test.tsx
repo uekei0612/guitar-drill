@@ -15,6 +15,9 @@ async function mount(query: string) {
 }
 
 const cards = (el: Element) => [...el.querySelectorAll<HTMLButtonElement>(".kv-card")];
+const cellOrNull = (el: Element, label: string) =>
+  [...el.querySelectorAll<SVGGElement>(".kv-cell[role=button]")].find(g => g.getAttribute("aria-label") === label);
+const cell = (el: Element, label: string) => cellOrNull(el, label)!;
 const inCells = (el: Element) =>
   [...el.querySelectorAll(".kv-cell.in")].map(g => g.querySelector("text")!.textContent).sort();
 
@@ -42,15 +45,28 @@ describe("キーの画面", () => {
     expect(location.hash).toContain("key=G");
   });
 
-  it("輪の文字を押すとキーが変わる（中の輪はマイナー）", async () => {
+  it("扇形の外の文字を押すとキーが変わる（中の輪はマイナー）", async () => {
     const el = await mount("key=C");
-    const em = [...el.querySelectorAll<SVGGElement>(".kv-cell[role=button]")].find(
-      g => g.getAttribute("aria-label") === "キー Em にする",
-    )!;
     await act(() => {
-      em.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      cell(el, "キー F♯m にする").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    expect(el.querySelector(".kv-cell.tonic text")!.textContent).toBe("Em");
+    expect(el.querySelector(".kv-cell.tonic text")!.textContent).toBe("F♯m");
+  });
+
+  it("扇形の中を押すと、札と同じくそのコードを選ぶ（キーは変わらない）", async () => {
+    const el = await mount("key=C&size=4");
+    // 扇形の中の G は、キーを変えるボタンではない
+    expect(cellOrNull(el, "キー G にする")).toBeUndefined();
+    await act(() => {
+      cell(el, "Ⅴ7（G7）を鳴らす").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(el.querySelector(".kv-cell.tonic text")!.textContent).toBe("C");
+    expect(cards(el)[4]!.getAttribute("aria-pressed")).toBe("true");
+    // 内の dim も、キーのコードなら押せる
+    await act(() => {
+      cell(el, "Ⅶm7(♭5)（Bm7(♭5)）を鳴らす").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(cards(el)[6]!.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("札を押すと、そのコードの構成音と機能が出る", async () => {

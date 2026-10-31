@@ -2313,6 +2313,16 @@ main.home .today {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+/* マウスで指したとき：扇形の外（キーを変える）は薄い輪、扇形の中（コードを鳴らす）は札と同じく濃く */
+@media (hover: hover) and (pointer: fine) {
+  .kv-cell[role="button"]:not(.in):hover circle {
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+  .kv-cell.in[role="button"]:hover circle {
+    stroke-width: 2.5;
+  }
+}
 .kv-cell[role="button"]:focus-visible {
   outline: none;
 }
