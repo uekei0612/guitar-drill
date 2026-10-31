@@ -2330,15 +2330,16 @@ main.home .today {
   stroke: var(--accent);
   stroke-width: 3;
 }
+/* 文字の大きさは viewBox（360）の単位。スマホ（幅 320px）でも 11px 前後より小さくならないように */
 .kv-cell--major text {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
 }
 .kv-cell--minor text {
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .kv-cell--dim text {
-  font-size: 9.5px;
+  font-size: 12px;
 }
 .kv-cell.in circle {
   fill: var(--bg);
@@ -2368,19 +2369,19 @@ main.home .today {
   stroke: var(--fg);
 }
 .kv-circle .kv-roman {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
 }
 .kv-cell--major .kv-roman {
-  font-size: 10px;
+  font-size: 12px;
 }
 .kv-circle .kv-center {
   fill: var(--fg);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
 }
 .kv-circle .kv-center-sub {
-  font-size: 11px;
+  font-size: 13px;
 }
 /* 進行のそばに出す五度圏の写し（広い画面では左の五度圏が見えているので出さない） */
 .kv-circle.mini {
