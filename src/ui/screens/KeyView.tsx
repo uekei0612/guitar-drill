@@ -172,6 +172,7 @@ function KeyCircle({
   path = [],
   playing = null,
   onPick,
+  onChord,
   mini = false,
 }: {
   s: KeyViewState;
@@ -181,6 +182,8 @@ function KeyCircle({
   /** 鳴らしている進行のコード（path の何番目か） */
   playing?: number | null;
   onPick?: (k: Key) => void;
+  /** キーのコード（扇形の中と、借りたコード）を押したとき。札を押したのと同じ */
+  onChord?: (c: DiatonicChord) => void;
   /** 進行のそばに出す小さな写し（押せない。読み上げない） */
   mini?: boolean;
 }) {
@@ -238,9 +241,11 @@ function KeyCircle({
           ]
             .filter(Boolean)
             .join(" ");
-          // 外と中の輪はキーを選ぶボタン（内の dim はキーではないので押せない）
-          const key = ring === "dim" || !onPick ? undefined : keyAt(ring, slot);
-          const pick = key && (() => onPick!(key));
+          // キーのコードは札と同じく、選んで鳴らす。ほかの外と中の輪はキーを選ぶボタン
+          // （内の dim はキーではないので、キーのコードでなければ押せない）
+          const chord = hit && chords.includes(hit.chord) ? hit.chord : undefined;
+          const key = chord || ring === "dim" || !onPick ? undefined : keyAt(ring, slot);
+          const pick = chord && onChord ? () => onChord(chord) : key && (() => onPick!(key));
           return (
             <g
               key={`${ring}${slot}`}
@@ -248,7 +253,7 @@ function KeyCircle({
               {...(pick && {
                 role: "button",
                 tabIndex: 0,
-                "aria-label": `キー ${keyLabel(key!)} にする`,
+                "aria-label": chord ? `${chord.label}（${chord.symbol}）を鳴らす` : `キー ${keyLabel(key!)} にする`,
                 onClick: pick,
                 onKeyDown: (e: KeyboardEvent) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -511,6 +516,12 @@ export function KeyView({ query }: { query: string }) {
     cs.forEach((_, i) => timers.current.push(window.setTimeout(() => setPlaying(i), i * PROG_STEP_MS)));
     timers.current.push(window.setTimeout(() => setPlaying(null), cs.length * PROG_STEP_MS + 700));
   };
+  /** コードを選んで鳴らす（札と、五度圏の扇形の中で同じ）。自分で進行を作っているときは、進行の後ろに足す */
+  const pickChord = (c: DiatonicChord) => {
+    const add = s.prog === "custom" && s.custom.length < MAX_CUSTOM;
+    set({ chord: c.degree, ...(add && { custom: [...s.custom, c.degree] }) });
+    playMidi(chordMidis(c), { strum: true });
+  };
   const step = (d: number) => goKey(keyAt(s.key.mode, slotOf(s.key) + d));
 
   const chords = chordsOf(s);
@@ -583,7 +594,7 @@ export function KeyView({ query }: { query: string }) {
               5度上 ▶
             </button>
           </div>
-          <KeyCircle s={s} chords={chords} path={prog} playing={playing} onPick={goKey} />
+          <KeyCircle s={s} chords={chords} path={prog} playing={playing} onPick={goKey} onChord={pickChord} />
           {change && prev && (
             <p class="small kv-change" role="status">
               {keyLabel(prev)} → {keyLabel(s.key)}：
@@ -607,12 +618,7 @@ export function KeyView({ query }: { query: string }) {
                     class={`kv-card kv-card--${QUALITY_CLASS[q]}${borrowed ? " borrowed" : ""}`}
                     aria-pressed={s.chord === c.degree}
                     aria-label={`${c.label}（${c.symbol}）を鳴らす`}
-                    onClick={() => {
-                      // 自分で進行を作っているときは、押したコードを進行の後ろに足す
-                      const add = s.prog === "custom" && s.custom.length < MAX_CUSTOM;
-                      set({ chord: c.degree, ...(add && { custom: [...s.custom, c.degree] }) });
-                      playMidi(chordMidis(c), { strum: true });
-                    }}
+                    onClick={() => pickChord(c)}
                   >
                     <span class="kv-card-roman">{c.roman}</span>
                     <span class="kv-card-name">{breakable(c.symbol)}</span>
@@ -651,9 +657,10 @@ export function KeyView({ query }: { query: string }) {
             )}
             <p class="muted small">
               札を押すとコードが鳴ります。五度圏の扇形の 7 つが、キー {keyLabel(s.key)}{" "}
-              のコード（外：メジャー・中：マイナー・内：dim）。オレンジがメジャー、灰色がマイナー、赤が dim
+              のコード（外：メジャー・中：マイナー・内：dim）で、押すと札と同じく鳴ります。オレンジがメジャー、灰色がマイナー、赤が
+              dim
               {s.borrow && s.key.mode === "minor" ? "、点線は借りたコード（扇形の外）" : ""}
-              。輪の文字を押すとキーが変わります。
+              。扇形の外の文字を押すと、キーが変わります。
             </p>
           </section>
 
