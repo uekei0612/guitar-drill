@@ -46,6 +46,23 @@ async function drag(svg: SVGSVGElement, from: number, to: number, r = 146) {
     window.dispatchEvent(pointer("pointerup", at(to, r)));
   });
 }
+/** マスを押したまま長押しの時間だけ待ち、離して click まで送る（moveTo があれば、押してすぐそこへ動かす） */
+async function hold(
+  g: Element,
+  p: { clientX: number; clientY: number },
+  moveTo?: { clientX: number; clientY: number },
+  click = true,
+) {
+  await act(() => {
+    g.dispatchEvent(pointer("pointerdown", p));
+    if (moveTo) window.dispatchEvent(pointer("pointermove", moveTo));
+  });
+  await act(() => new Promise(r => setTimeout(r, 600)));
+  await act(() => {
+    window.dispatchEvent(pointer("pointerup", moveTo ?? p));
+    if (click) g.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
 const center = (el: Element) => el.querySelector(".kv-side .kv-center")!.textContent;
 
 const inCells = (el: Element) =>
@@ -166,6 +183,31 @@ describe("キーの画面", () => {
     });
     expect(center(el)).toBe("G");
     expect(cards(el).some(c => c.getAttribute("aria-pressed") === "true")).toBe(false);
+  });
+
+  it("扇形の中のコードを長押しすると、そのキーへ移る（離してもコードは鳴らさない）", async () => {
+    const el = await mount("key=C&size=4");
+    circleOf(el);
+    await hold(cell(el, "Ⅴ7（G7）を鳴らす"), at(30, 146));
+    expect(center(el)).toBe("G");
+    expect(location.hash).toContain("key=G");
+    expect(cards(el).some(c => c.getAttribute("aria-pressed") === "true")).toBe(false);
+    // 回し方の案内は、回すまで出しておく
+    expect(el.querySelector(".kv-hint")).not.toBeNull();
+    // 中の輪はマイナーキーへ
+    await hold(cell(el, "Ⅵm7（Em7）を鳴らす"), at(30, 100));
+    expect(el.querySelector(".kv-cell.tonic text")!.textContent).toBe("Em");
+  });
+
+  it("主音を長押ししても、動かして回し始めても、長押しにはしない", async () => {
+    const el = await mount("key=C&size=4");
+    circleOf(el);
+    await hold(cell(el, "ⅠM7（CM7）を鳴らす"), at(0, 146));
+    expect(center(el)).toBe("C");
+    expect(cards(el)[0]!.getAttribute("aria-pressed")).toBe("true");
+    // G を押して少し回し、そのまま待ってから戻して離す
+    await hold(cell(el, "Ⅴ7（G7）を鳴らす"), at(30, 146), at(36, 146), false);
+    expect(center(el)).toBe("C");
   });
 
   it("扇形の外から動かしても回らない", async () => {

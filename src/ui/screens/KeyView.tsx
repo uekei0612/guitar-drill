@@ -157,6 +157,9 @@ const onFan = (x: number, y: number, angle: number) => {
 /** これ以上動いたらドラッグ（px）。指の小さなぶれではコードを鳴らせるように */
 const DRAG_PX = 8;
 
+/** これだけ動かさずに押し続けたら長押し（ms）。扇形の中のコードを長押しすると、そのキーへ移る */
+const HOLD_MS = 500;
+
 /** 扇形を 1 度でも回したか（回したら「回すとキーが変わる」の案内を出さない）。保存できなくても落ちない */
 const TURNED_KEY = `${STORAGE_KEY}:fan-turned`;
 const readTurned = () => {
@@ -250,9 +253,14 @@ function KeyCircle({
         base: number;
         delta: number;
         moved: boolean;
+        /** 長押しで移るキー（扇形の中の外と中の輪のコードを押したとき） */
+        hold?: Key;
+        /** 長押しでキーを変えた */
+        held: boolean;
       }
     | undefined
   >(undefined);
+  const holdTimer = useRef(0);
   /** ドラッグを離した直後の click（押したマスのコードを鳴らしてしまう）を捨てる期限 */
   const muteClickUntil = useRef(0);
   const canTurn = !!onPick && !mini;
@@ -262,25 +270,34 @@ function KeyCircle({
     return r.width ? { x: ((e.clientX - r.left) * S) / r.width, y: ((e.clientY - r.top) * S) / r.height } : null;
   };
   // window で受けるのは、指が図の外へ出ても回し続けるため。最新の props を見るよう ref から呼ぶ
-  const handlers = useRef({ move: (_: PointerEvent) => {}, end: (_: PointerEvent, _cancel: boolean) => {} });
+  const handlers = useRef({
+    move: (_: PointerEvent) => {},
+    end: (_: PointerEvent, _cancel: boolean) => {},
+    hold: () => {},
+  });
   handlers.current = {
     move: e => {
       const g = gesture.current;
-      if (!g || e.pointerId !== g.id) return;
+      if (!g || g.held || e.pointerId !== g.id) return;
       const p = toLocal(e);
       if (!p) return;
       const deg = polar(p.x, p.y).deg;
       g.delta += wrap(deg - g.last);
       g.last = deg;
-      if (!g.moved && Math.hypot(e.clientX - g.x, e.clientY - g.y) > DRAG_PX) g.moved = true;
+      if (!g.moved && Math.hypot(e.clientX - g.x, e.clientY - g.y) > DRAG_PX) {
+        g.moved = true;
+        clearTimeout(holdTimer.current);
+      }
       if (g.moved) setTurn({ base: g.base, delta: g.delta });
     },
     end: (e, cancel) => {
       const g = gesture.current;
       if (!g || e.pointerId !== g.id) return;
       gesture.current = undefined;
+      clearTimeout(holdTimer.current);
+      // 回したか長押ししたら、離した直後の click でコードを鳴らさない
+      if (g.moved || g.held) muteClickUntil.current = performance.now() + 500;
       if (!g.moved) return;
-      muteClickUntil.current = performance.now() + 500;
       // 離した角度から、いちばん近いキーへ回して止める（動かした分が半分に満たなければ元のキーへ戻る）
       fan.current = g.base + g.delta;
       setTurn(null);
@@ -288,6 +305,13 @@ function KeyCircle({
       if (cancel || n === 0) return;
       onPick!(keyAt(given.key.mode, slotOf(given.key) + n));
       onTurned?.();
+    },
+    hold: () => {
+      const g = gesture.current;
+      if (!g?.hold || g.moved) return;
+      g.held = true;
+      navigator.vibrate?.(10);
+      onPick!(g.hold);
     },
   };
   useEffect(() => {
@@ -297,22 +321,31 @@ function KeyCircle({
     const cancel = (e: PointerEvent) => handlers.current.end(e, true);
     // 扇の上から始めたときだけ、ページのスクロールを止める（iOS Safari は touch-action を SVG の中で見ないので）
     const touch = (e: TouchEvent) => gesture.current && e.cancelable && e.preventDefault();
+    // 長押しで Android のメニューを出さない
+    const menu = (e: Event) => e.preventDefault();
     const el = svg.current!;
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancel);
     el.addEventListener("touchmove", touch, { passive: false });
+    el.addEventListener("contextmenu", menu);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", cancel);
       el.removeEventListener("touchmove", touch);
+      el.removeEventListener("contextmenu", menu);
+      clearTimeout(holdTimer.current);
     };
   }, [canTurn]);
   const onPointerDown = (e: PointerEvent) => {
     if (!e.isPrimary || e.button !== 0) return;
     const p = toLocal(e);
     if (!p || !onFan(p.x, p.y, fan.current)) return;
+    const cell = (e.target as Element).closest?.<SVGGElement>("[data-hold]");
+    const [ring, slot] = cell?.dataset.hold?.split(":") ?? [];
+    clearTimeout(holdTimer.current);
+    if (ring) holdTimer.current = window.setTimeout(() => handlers.current.hold(), HOLD_MS);
     gesture.current = {
       id: e.pointerId,
       x: e.clientX,
@@ -321,6 +354,8 @@ function KeyCircle({
       base: fan.current,
       delta: 0,
       moved: false,
+      hold: ring ? keyAt(ring as "major" | "minor", Number(slot)) : undefined,
+      held: false,
     };
   };
   const onKeyDown = (e: KeyboardEvent) => {
@@ -409,6 +444,8 @@ function KeyCircle({
           const chord = hit && chords.includes(hit.chord) ? hit.chord : undefined;
           const key = chord || ring === "dim" || !onPick ? undefined : keyAt(ring, slot);
           const pick = chord && onChord ? () => onChord(chord) : key && (() => onPick!(key));
+          // 扇形の中の外と中の輪のコードは、長押しするとそのキーへ移る（今のキーの主音は除く）
+          const hold = canTurn && chord && ring !== "dim" && !(ring === s.key.mode && slot === center);
           return (
             <g
               key={`${ring}${slot}`}
@@ -416,6 +453,7 @@ function KeyCircle({
               {...(pick && {
                 role: "button",
                 tabindex: 0,
+                ...(hold && { "data-hold": `${ring}:${slot}` }),
                 "aria-label": chord ? `${chord.label}（${chord.symbol}）を鳴らす` : `キー ${keyLabel(key!)} にする`,
                 onClick: pick,
                 onKeyDown: (e: KeyboardEvent) => {
@@ -760,7 +798,7 @@ export function KeyView({ query }: { query: string }) {
               saveTurned();
             }}
           />
-          {!turned && <p class="small muted kv-hint">扇形をつかんで回すとキーが変わる</p>}
+          {!turned && <p class="small muted kv-hint">扇形をつかんで回すか、コードを長押しするとキーが変わる</p>}
           {change && prev && (
             <p class="small kv-change" role="status">
               {keyLabel(prev)} → {keyLabel(s.key)}：
@@ -850,7 +888,7 @@ export function KeyView({ query }: { query: string }) {
               )}
             </ul>
             <p class="muted small">
-              扇形の中と札はコードが鳴ります。キーは、扇形をつかんで回すか、扇形の外の文字を押すと変わります。
+              扇形の中と札はコードが鳴ります。キーは、扇形をつかんで回すか、扇形の中のコードを長押しするか、扇形の外の文字を押すと変わります。
             </p>
           </section>
 
