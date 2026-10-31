@@ -2305,6 +2305,27 @@ main.home .today {
     transition: none;
   }
 }
+/* 扇形はつかんで回せる。回しているあいだは指にそのままついてくる */
+.kv-circle.turnable {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.kv-circle.turnable .kv-fan path {
+  cursor: grab;
+  touch-action: none;
+}
+.kv-circle.turning,
+.kv-circle.turning * {
+  cursor: grabbing !important;
+}
+.kv-circle.turning .kv-fan {
+  transition: none;
+}
+.kv-hint {
+  margin: var(--space-xs) 0 0;
+  text-align: center;
+}
 /* 色の意味は 1 色 1 つ：オレンジ（--accent）は主音と、今選んでいる・鳴っているものだけ。
    メジャー・マイナー・dim は背景の濃さで分ける（文字にも m・dim が付くので、色だけに頼らない） */
 :root {
@@ -2331,7 +2352,8 @@ main.home .today {
     stroke-width: 2.5;
   }
 }
-.kv-cell[role="button"]:focus-visible {
+/* 四角い枠は出さず、キーボードで移ったときだけ丸の縁をオレンジに */
+.kv-cell[role="button"]:focus {
   outline: none;
 }
 .kv-cell[role="button"]:focus-visible .kv-dot {

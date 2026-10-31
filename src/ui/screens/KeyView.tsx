@@ -60,6 +60,7 @@ import { HScroll } from "../HScroll";
 import { PdfPreview } from "../PdfPreview";
 import { outputPdf } from "../pdf-output";
 import { href } from "../route";
+import { STORAGE_KEY } from "../../store/store";
 
 const ALL_KEYS: readonly Key[] = [...KEYS.major, ...KEYS.minor];
 
@@ -106,13 +107,15 @@ const pt = (i: number, r: number) => {
   const a = (i * Math.PI) / 6;
   return { x: C + r * Math.sin(a), y: C - r * Math.cos(a) };
 };
+/** 扇形の半径（外・中・内）と、内の輪の幅の半分の角度 */
+const FAN_SIZE = { o: 174, m: 80, i: 36, w: 21 };
 /** 真上（位置 0）を真ん中にした扇形。外と中の輪は 3 つ分、内の輪は 1 つ分（dim の丸がはみ出さないよう、少し広く） */
 const FAN = (() => {
   const p = (deg: number, r: number) => {
     const a = (deg * Math.PI) / 180;
     return `${(C + r * Math.sin(a)).toFixed(2)} ${(C - r * Math.cos(a)).toFixed(2)}`;
   };
-  const [o, m, i, w] = [174, 80, 36, 21];
+  const { o, m, i, w } = FAN_SIZE;
   return [
     `M ${p(-45, o)}`,
     `A ${o} ${o} 0 0 1 ${p(45, o)}`,
@@ -126,14 +129,50 @@ const FAN = (() => {
   ].join(" ");
 })();
 
-/** 扇形の回転（度）。前の向きから近いほうへ回るよう、角度を積み上げる */
-function useFanAngle(slot: number): number {
+/** 扇形の回転（度）。前の向きから近いほうへ回るよう、角度を積み上げる。
+    ドラッグで回したあとは、離したときの角度を入れておくと、そこから近いキーへ回る */
+function useFanAngle(slot: number) {
   const ref = useRef(slot * 30);
-  const prev = ref.current;
-  const d = mod(slot * 30 - prev + 180, 360) - 180;
-  ref.current = prev + d;
-  return ref.current;
+  ref.current += mod(slot * 30 - ref.current + 180, 360) - 180;
+  return ref;
 }
+
+/** -180〜180 度に */
+const wrap = (deg: number) => mod(deg + 180, 360) - 180;
+
+/** viewBox の点の、中心から見た向き（真上が 0、時計回りの度）と半径 */
+const polar = (x: number, y: number) => ({
+  deg: (Math.atan2(x - C, C - y) * 180) / Math.PI,
+  r: Math.hypot(x - C, y - C),
+});
+
+/** 点が扇形（angle 度に回したもの）の上か */
+const onFan = (x: number, y: number, angle: number) => {
+  const { deg, r } = polar(x, y);
+  const d = Math.abs(wrap(deg - angle));
+  const { o, m, i, w } = FAN_SIZE;
+  return (r >= m && r <= o && d <= 45) || (r >= i && r < m && d <= w);
+};
+
+/** これ以上動いたらドラッグ（px）。指の小さなぶれではコードを鳴らせるように */
+const DRAG_PX = 8;
+
+/** 扇形を 1 度でも回したか（回したら「回すとキーが変わる」の案内を出さない）。保存できなくても落ちない */
+const TURNED_KEY = `${STORAGE_KEY}:fan-turned`;
+const readTurned = () => {
+  try {
+    return localStorage.getItem(TURNED_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+const saveTurned = () => {
+  try {
+    localStorage.setItem(TURNED_KEY, "1");
+  } catch {
+    /* 保存できなければ、次に開いたときにまた案内を出すだけ */
+  }
+};
 
 /** 進行の矢印（コードからコードへ）。進む向きの左へ少しふくらませるので、行きと帰りの矢印は重ならない。
     鳴らしているあいだは、今のコードへ入る矢印だけを濃くする */
@@ -174,12 +213,13 @@ function ProgArrows({
 }
 
 function KeyCircle({
-  s,
-  chords,
-  path = [],
-  playing = null,
+  s: given,
+  chords: givenChords,
+  path: givenPath = [],
+  playing: givenPlaying = null,
   onPick,
   onChord,
+  onTurned,
   mini = false,
 }: {
   s: KeyViewState;
@@ -191,12 +231,113 @@ function KeyCircle({
   onPick?: (k: Key) => void;
   /** キーのコード（扇形の中と、借りたコード）を押したとき。札を押したのと同じ */
   onChord?: (c: DiatonicChord) => void;
+  /** 扇形をドラッグで回してキーを変えたとき */
+  onTurned?: () => void;
   /** 進行のそばに出す小さな写し（押せない。読み上げない） */
   mini?: boolean;
 }) {
-  const now = playing != null && path[playing] ? placeOf(path[playing]) : undefined;
+  const fan = useFanAngle(slotOf(given.key));
+  const svg = useRef<SVGSVGElement>(null);
+  /** 扇形のドラッグ。扇の上で押して動かすと、扇が指について回り、離すといちばん近いキーで止まる。
+      回しているあいだは、行き先のキーのコードを扇の中に出す */
+  const [turn, setTurn] = useState<{ base: number; delta: number } | null>(null);
+  const gesture = useRef<
+    | {
+        id: number;
+        x: number;
+        y: number;
+        last: number;
+        base: number;
+        delta: number;
+        moved: boolean;
+      }
+    | undefined
+  >(undefined);
+  /** ドラッグを離した直後の click（押したマスのコードを鳴らしてしまう）を捨てる期限 */
+  const muteClickUntil = useRef(0);
+  const canTurn = !!onPick && !mini;
+  const steps = turn ? Math.round(turn.delta / 30) : 0;
+  const toLocal = (e: PointerEvent) => {
+    const r = svg.current!.getBoundingClientRect();
+    return r.width ? { x: ((e.clientX - r.left) * S) / r.width, y: ((e.clientY - r.top) * S) / r.height } : null;
+  };
+  // window で受けるのは、指が図の外へ出ても回し続けるため。最新の props を見るよう ref から呼ぶ
+  const handlers = useRef({ move: (_: PointerEvent) => {}, end: (_: PointerEvent, _cancel: boolean) => {} });
+  handlers.current = {
+    move: e => {
+      const g = gesture.current;
+      if (!g || e.pointerId !== g.id) return;
+      const p = toLocal(e);
+      if (!p) return;
+      const deg = polar(p.x, p.y).deg;
+      g.delta += wrap(deg - g.last);
+      g.last = deg;
+      if (!g.moved && Math.hypot(e.clientX - g.x, e.clientY - g.y) > DRAG_PX) g.moved = true;
+      if (g.moved) setTurn({ base: g.base, delta: g.delta });
+    },
+    end: (e, cancel) => {
+      const g = gesture.current;
+      if (!g || e.pointerId !== g.id) return;
+      gesture.current = undefined;
+      if (!g.moved) return;
+      muteClickUntil.current = performance.now() + 500;
+      // 離した角度から、いちばん近いキーへ回して止める（動かした分が半分に満たなければ元のキーへ戻る）
+      fan.current = g.base + g.delta;
+      setTurn(null);
+      const n = Math.round(g.delta / 30);
+      if (cancel || n === 0) return;
+      onPick!(keyAt(given.key.mode, slotOf(given.key) + n));
+      onTurned?.();
+    },
+  };
+  useEffect(() => {
+    if (!canTurn) return;
+    const move = (e: PointerEvent) => handlers.current.move(e);
+    const up = (e: PointerEvent) => handlers.current.end(e, false);
+    const cancel = (e: PointerEvent) => handlers.current.end(e, true);
+    // 扇の上から始めたときだけ、ページのスクロールを止める（iOS Safari は touch-action を SVG の中で見ないので）
+    const touch = (e: TouchEvent) => gesture.current && e.cancelable && e.preventDefault();
+    const el = svg.current!;
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
+    el.addEventListener("touchmove", touch, { passive: false });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
+      el.removeEventListener("touchmove", touch);
+    };
+  }, [canTurn]);
+  const onPointerDown = (e: PointerEvent) => {
+    if (!e.isPrimary || e.button !== 0) return;
+    const p = toLocal(e);
+    if (!p || !onFan(p.x, p.y, fan.current)) return;
+    gesture.current = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      last: polar(p.x, p.y).deg,
+      base: fan.current,
+      delta: 0,
+      moved: false,
+    };
+  };
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    onPick!(keyAt(given.key.mode, slotOf(given.key) + (e.key === "ArrowRight" ? 1 : -1)));
+  };
+
+  // 回しているあいだは、行き先のキーで書く（進行の矢印は、行き先で合わないこともあるので消す）
+  const s = turn ? { ...given, key: keyAt(given.key.mode, slotOf(given.key) + steps), chord: null } : given;
+  const chords = turn ? chordsOf(s) : givenChords;
+  const path = turn ? [] : givenPath;
+  const playing = turn ? null : givenPlaying;
+  const angle = turn ? turn.base + turn.delta : fan.current;
+  const cur = playing != null ? path[playing] : undefined;
+  const now = cur ? placeOf(cur) : undefined;
   const center = slotOf(s.key);
-  const angle = useFanAngle(center);
   // 進行にだけ出てくるコード（アンダルシア進行の Ⅴ など）も輪の上に印を付ける
   const shown = [
     ...chords,
@@ -207,13 +348,28 @@ function KeyCircle({
     const i = places.findIndex(p => p.ring === ring && p.slot === slot);
     return i < 0 ? undefined : { chord: shown[i]!, place: places[i]! };
   };
-  const label = `五度圏。キー ${keyLabel(s.key)} のコードは ${chords.map(c => c.symbol).join("・")}`;
+  const label =
+    `五度圏。キー ${keyLabel(s.key)} のコードは ${chords.map(c => c.symbol).join("・")}` +
+    (canTurn ? "。← → でキーを 5 度ずつ回す" : "");
   const marker = mini ? "kv-arrowhead-mini" : "kv-arrowhead";
   return (
     <svg
-      class={`kv-circle${mini ? " mini" : ""}`}
+      ref={svg}
+      class={["kv-circle", mini && "mini", canTurn && "turnable", turn && "turning"].filter(Boolean).join(" ")}
       viewBox={`0 0 ${S} ${S}`}
-      {...(mini ? { "aria-hidden": "true" } : { role: "group", "aria-label": label })}
+      {...(mini
+        ? { "aria-hidden": "true" }
+        : {
+            role: "group",
+            "aria-label": label,
+            ...(canTurn && {
+              onPointerDown,
+              onKeyDown,
+              onClickCapture: (e: MouseEvent) => {
+                if (performance.now() < muteClickUntil.current) e.stopPropagation();
+              },
+            }),
+          })}
     >
       <g class="kv-fan" style={{ transform: `rotate(${angle}deg)` }} aria-hidden="true">
         <path d={FAN} />
@@ -259,7 +415,7 @@ function KeyCircle({
               class={cls}
               {...(pick && {
                 role: "button",
-                tabIndex: 0,
+                tabindex: 0,
                 "aria-label": chord ? `${chord.label}（${chord.symbol}）を鳴らす` : `キー ${keyLabel(key!)} にする`,
                 onClick: pick,
                 onKeyDown: (e: KeyboardEvent) => {
@@ -498,6 +654,8 @@ export function KeyView({ query }: { query: string }) {
   const [s, setS] = useState<KeyViewState>(() => fromParams(new URLSearchParams(query), DEFAULT_KEY_VIEW));
   /** 1 つ前のキー（変わった音を出すため。URL には持たない） */
   const [prev, setPrev] = useState<Key | null>(null);
+  /** 扇形を回したことがあるか（無ければ回し方を案内する） */
+  const [turned, setTurned] = useState(readTurned);
 
   useEffect(() => {
     history.replaceState(null, "", href({ name: "key", query: toParams(s).toString() }));
@@ -590,7 +748,19 @@ export function KeyView({ query }: { query: string }) {
               5度上 ▶
             </button>
           </div>
-          <KeyCircle s={s} chords={chords} path={prog} playing={playing} onPick={goKey} onChord={pickChord} />
+          <KeyCircle
+            s={s}
+            chords={chords}
+            path={prog}
+            playing={playing}
+            onPick={goKey}
+            onChord={pickChord}
+            onTurned={() => {
+              setTurned(true);
+              saveTurned();
+            }}
+          />
+          {!turned && <p class="small muted kv-hint">扇形をつかんで回すとキーが変わる</p>}
           {change && prev && (
             <p class="small kv-change" role="status">
               {keyLabel(prev)} → {keyLabel(s.key)}：
@@ -679,7 +849,9 @@ export function KeyView({ query }: { query: string }) {
                 </li>
               )}
             </ul>
-            <p class="muted small">扇形の中と札はコードが鳴り、扇形の外の文字はキーが変わります。</p>
+            <p class="muted small">
+              扇形の中と札はコードが鳴ります。キーは、扇形をつかんで回すか、扇形の外の文字を押すと変わります。
+            </p>
           </section>
 
           {/* 選んだコードと指板は 1 つのまとまり（選んでいなければ、指板にキーのスケールを出す） */}

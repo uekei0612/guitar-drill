@@ -6,6 +6,7 @@ import { KeyView } from "./KeyView";
 
 afterEach(() => {
   document.body.innerHTML = "";
+  localStorage.clear();
 });
 
 async function mount(query: string) {
@@ -18,6 +19,35 @@ const cards = (el: Element) => [...el.querySelectorAll<HTMLButtonElement>(".kv-c
 const cellOrNull = (el: Element, label: string) =>
   [...el.querySelectorAll<SVGGElement>(".kv-cell[role=button]")].find(g => g.getAttribute("aria-label") === label);
 const cell = (el: Element, label: string) => cellOrNull(el, label)!;
+/** 五度圏の図（画面の座標を viewBox と同じにしておく） */
+function circleOf(el: Element) {
+  const svg = el.querySelector<SVGSVGElement>(".kv-side .kv-circle")!;
+  svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 360, height: 360 }) as DOMRect;
+  return svg;
+}
+/** 中心から見た向き（真上が 0、時計回りの度）と半径の点 */
+const at = (deg: number, r: number) => {
+  const a = (deg * Math.PI) / 180;
+  return { clientX: 180 + r * Math.sin(a), clientY: 180 - r * Math.cos(a) };
+};
+const pointer = (type: string, p: { clientX: number; clientY: number }) =>
+  new PointerEvent(type, { bubbles: true, pointerId: 1, isPrimary: true, button: 0, ...p });
+/** 図の上で、from 度から to 度まで、半径 r を通って動かす */
+async function drag(svg: SVGSVGElement, from: number, to: number, r = 146) {
+  await act(() => {
+    svg.dispatchEvent(pointer("pointerdown", at(from, r)));
+  });
+  const n = 10;
+  for (let i = 1; i <= n; i++)
+    await act(() => {
+      window.dispatchEvent(pointer("pointermove", at(from + ((to - from) * i) / n, r)));
+    });
+  await act(() => {
+    window.dispatchEvent(pointer("pointerup", at(to, r)));
+  });
+}
+const center = (el: Element) => el.querySelector(".kv-side .kv-center")!.textContent;
+
 const inCells = (el: Element) =>
   [...el.querySelectorAll(".kv-cell.in")].map(g => g.querySelector("text")!.textContent).sort();
 
@@ -67,6 +97,95 @@ describe("キーの画面", () => {
       cell(el, "Ⅶm7(♭5)（Bm7(♭5)）を鳴らす").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(cards(el)[6]!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("扇形をつかんで回すと、離したところに近いキーになる（コードは鳴らさない）", async () => {
+    const el = await mount("key=C&size=4");
+    const svg = circleOf(el);
+    expect(el.querySelector(".kv-hint")).not.toBeNull();
+    // C の位置から時計回りに 1 つ分（G のところまで）
+    await drag(svg, 0, 30);
+    expect(center(el)).toBe("G");
+    expect(location.hash).toContain("key=G");
+    expect(el.querySelector(".kv-change")!.textContent).toContain("F が F♯ に変わる");
+    expect(cards(el).some(c => c.getAttribute("aria-pressed") === "true")).toBe(false);
+    // 1 度回したら、回し方の案内は出さない（次に開いたときも）
+    expect(el.querySelector(".kv-hint")).toBeNull();
+    expect(localStorage.length).toBe(1);
+    // 中の輪から反時計回りに 2.6 つ分 → 3 つ戻って B♭
+    await drag(svg, 30, 30 - 78, 100);
+    expect(center(el)).toBe("B♭");
+    // 半分に満たなければ元のキーのまま
+    await drag(svg, -60, -50);
+    expect(center(el)).toBe("B♭");
+  });
+
+  it("回しているあいだは、行き先のキーのコードを扇形に出す", async () => {
+    const el = await mount("key=C&size=3");
+    const svg = circleOf(el);
+    await act(() => {
+      svg.dispatchEvent(pointer("pointerdown", at(0, 146)));
+    });
+    await act(() => {
+      window.dispatchEvent(pointer("pointermove", at(32, 146)));
+    });
+    expect(svg.classList.contains("turning")).toBe(true);
+    expect(center(el)).toBe("G");
+    expect(inCells(el)).toEqual(["Am", "Bm", "C", "D", "Em", "F♯dim", "G"].sort());
+    // 札はまだ元のキー
+    expect(cards(el)[0]!.textContent).toContain("C");
+    await act(() => {
+      window.dispatchEvent(pointer("pointercancel", at(32, 146)));
+    });
+    // 取り消されたら元のキーに戻る
+    expect(center(el)).toBe("C");
+  });
+
+  it("扇形の上の小さなぶれはドラッグにせず、押したコードを鳴らす", async () => {
+    const el = await mount("key=C&size=4");
+    const svg = circleOf(el);
+    const g = cell(el, "Ⅴ7（G7）を鳴らす");
+    await act(() => {
+      g.dispatchEvent(pointer("pointerdown", at(30, 146)));
+      window.dispatchEvent(pointer("pointermove", at(31, 147)));
+      window.dispatchEvent(pointer("pointerup", at(31, 147)));
+      g.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(svg.classList.contains("turning")).toBe(false);
+    expect(center(el)).toBe("C");
+    expect(cards(el)[4]!.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("回したあとの click ではコードを鳴らさない", async () => {
+    const el = await mount("key=C&size=4");
+    const svg = circleOf(el);
+    await drag(svg, 30, 60);
+    // 押したところと離したところが同じマスなら、ブラウザはそのマスに click を送る
+    await act(() => {
+      svg.querySelector(".kv-cell.tonic")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(center(el)).toBe("G");
+    expect(cards(el).some(c => c.getAttribute("aria-pressed") === "true")).toBe(false);
+  });
+
+  it("扇形の外から動かしても回らない", async () => {
+    const el = await mount("key=C");
+    await drag(circleOf(el), 120, 150);
+    expect(center(el)).toBe("C");
+  });
+
+  it("図の中で ← → を押すと 5 度ずつ回る", async () => {
+    const el = await mount("key=C");
+    const g = cell(el, "キー A にする");
+    await act(() => {
+      g.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    });
+    expect(center(el)).toBe("G");
+    for (let i = 0; i < 2; i++)
+      await act(() => {
+        g.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+      });
+    expect(center(el)).toBe("F");
   });
 
   it("札を押すと、そのコードの構成音と機能が出る", async () => {
