@@ -270,7 +270,9 @@ function KeyCircle({
                 },
               })}
             >
-              {(hit || pick) && <circle cx={x} cy={y} r={CELL[ring]} />}
+              {(hit || pick) && <circle class="kv-dot" cx={x} cy={y} r={CELL[ring]} />}
+              {/* 選んでいる印は、札と同じく外側のオレンジの輪 */}
+              {selected && <circle class="kv-sel-ring" cx={x} cy={y} r={CELL[ring] + 5} />}
               <text x={x} y={hit ? y - CELL[ring] * 0.28 : y} aria-hidden="true">
                 {name}
               </text>
@@ -625,7 +627,7 @@ export function KeyView({ query }: { query: string }) {
                 return (
                   <button
                     key={c.degree}
-                    class={`kv-card kv-card--${QUALITY_CLASS[q]}${borrowed ? " borrowed" : ""}`}
+                    class={`kv-card kv-card--${QUALITY_CLASS[q]}${c.degree === 0 ? " tonic" : ""}${borrowed ? " borrowed" : ""}`}
                     aria-pressed={s.chord === c.degree}
                     aria-label={`${c.label}（${c.symbol}）を鳴らす`}
                     onClick={() => pickChord(c)}
@@ -665,12 +667,37 @@ export function KeyView({ query }: { query: string }) {
                 <span>Ⅴ・Ⅶ をハーモニックマイナーから借りる</span>
               </label>
             )}
+            <ul class="kv-key" aria-label="色と形の見方">
+              <li>
+                <span class="kv-sw kv-card--maj" aria-hidden="true" />
+                メジャー
+              </li>
+              <li>
+                <span class="kv-sw kv-card--min" aria-hidden="true" />
+                マイナー
+              </li>
+              <li>
+                <span class="kv-sw kv-card--dim" aria-hidden="true" />
+                dim
+              </li>
+              <li>
+                <span class="kv-sw tonic" aria-hidden="true" />
+                主音（Ⅰ）
+              </li>
+              <li>
+                <span class="kv-sw selected" aria-hidden="true" />
+                選んでいるコード
+              </li>
+              {s.borrow && s.key.mode === "minor" && (
+                <li>
+                  <span class="kv-sw borrowed" aria-hidden="true" />
+                  借りたコード（扇形の外）
+                </li>
+              )}
+            </ul>
             <p class="muted small">
-              札を押すとコードが鳴ります。五度圏の扇形の 7 つが、キー {keyLabel(s.key)}{" "}
-              のコード（外：メジャー・中：マイナー・内：dim）で、押すと札と同じく鳴ります。オレンジがメジャー、灰色がマイナー、赤が
-              dim
-              {s.borrow && s.key.mode === "minor" ? "、点線は借りたコード（扇形の外）" : ""}
-              。扇形の外の文字を押すと、キーが変わります。
+              札を押すとコードが鳴ります。五度圏の扇形の 7 つがキー {keyLabel(s.key)}{" "}
+              のコード（外：メジャー・中：マイナー・内：dim）で、押すと札と同じく鳴ります。扇形の外の文字を押すと、キーが変わります。
             </p>
           </section>
 
@@ -744,7 +771,9 @@ export function KeyView({ query }: { query: string }) {
                             {rootMotion(prog[i - 1]!, c).label}
                           </span>
                         )}
-                        <span class={`kv-step kv-card--${QUALITY_CLASS[qualityOf(c)]}`}>
+                        <span
+                          class={`kv-step kv-card--${QUALITY_CLASS[qualityOf(c)]}${c.degree === 0 ? " tonic" : ""}`}
+                        >
                           <span class="kv-card-roman">{c.roman}</span>
                           <span class="kv-card-name">{c.symbol}</span>
                         </span>
