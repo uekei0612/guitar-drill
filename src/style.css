@@ -2273,7 +2273,8 @@ main.home .today {
 .kv-circle {
   display: block;
   width: 100%;
-  max-width: 400px;
+  /* スマホでは小さめにして、すぐ下の札と一緒に画面に入れる */
+  max-width: 320px;
   margin: var(--space-md) auto 0;
   touch-action: manipulation;
   user-select: none;
@@ -2371,13 +2372,58 @@ main.home .today {
 .kv-circle .kv-center-sub {
   font-size: 11px;
 }
-.kv-legend {
-  margin-top: var(--space-xs);
+/* 進行のそばに出す五度圏の写し（広い画面では左の五度圏が見えているので出さない） */
+.kv-circle.mini {
+  max-width: 240px;
+  margin-top: var(--space-md);
+}
+/* 選んだコード：構成音と指板を 1 つの枠に */
+.kv-focus.on {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.kv-focus.on .kv-detail {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.kv-focus.on .kv-board h2 {
+  margin-top: var(--space-md);
+}
+/* 広い画面：五度圏を左に止めて、右に札・選んだコードと指板・進行を並べる（押した結果が左に見えたまま） */
+@media (min-width: 960px) {
+  main.key {
+    max-width: 72rem;
+  }
+  .kv-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 26rem) minmax(0, 1fr);
+    column-gap: var(--space-2xl);
+    align-items: start;
+  }
+  .kv-side {
+    position: sticky;
+    top: var(--space-lg);
+  }
+  .kv-side .kv-circle {
+    max-width: 100%;
+  }
+  .kv-circle.mini {
+    display: none;
+  }
 }
 .kv-scale h2,
 .kv-chords h2 {
   font-size: var(--text-base);
   margin: var(--space-xl) 0 0;
+}
+/* 札は五度圏のすぐ下に（押した結果が真上の輪に出る） */
+.kv-chords h2 {
+  margin-top: var(--space-sm);
 }
 /* 前のキーから変わった音 */
 .tone-dot.changed {

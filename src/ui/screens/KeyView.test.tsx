@@ -97,7 +97,11 @@ describe("キーの画面", () => {
     const el = await mount("key=C&prog=251");
     expect([...el.querySelectorAll(".kv-steps .kv-card-name")].map(e => e.textContent)).toEqual(["Dm7", "G7", "CM7"]);
     expect([...el.querySelectorAll(".kv-motion.strong")].length).toBe(2);
-    expect(el.querySelectorAll(".kv-arrows path").length).toBe(2);
+    expect(el.querySelectorAll(".kv-side .kv-arrows path").length).toBe(2);
+    // 進行のそばにも、押せない五度圏の写しを出す（スマホで上の五度圏が画面の外でも矢印が見える）
+    const mini = el.querySelector(".kv-prog .kv-circle.mini")!;
+    expect(mini.querySelectorAll(".kv-arrows path").length).toBe(2);
+    expect(mini.querySelector("[role=button]")).toBeNull();
   });
 
   it("自分で作る進行は、札を押した順に足していく", async () => {
