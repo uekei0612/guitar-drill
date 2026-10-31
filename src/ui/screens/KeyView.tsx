@@ -291,13 +291,13 @@ function KeyCircle({
         </marker>
       </defs>
       {path.length > 1 && <ProgArrows path={path} playing={playing} marker={marker} />}
-      <text class="kv-center" x={C} y={C - 14} aria-hidden="true">
+      <text class="kv-center" x={C} y={C - 13} aria-hidden="true">
         {fmt(s.key.tonic)}
       </text>
-      <text class="kv-center-sub" x={C} y={C + 10} aria-hidden="true">
+      <text class="kv-center-sub" x={C} y={C + 9} aria-hidden="true">
         {MODE_TEXT[s.key.mode]}
       </text>
-      <text class="kv-center-sub" x={C} y={C + 26} aria-hidden="true">
+      <text class="kv-center-sub" x={C} y={C + 22} aria-hidden="true">
         調号{sigLabel(keySignature(s.key))}
       </text>
     </svg>
@@ -389,12 +389,10 @@ function KeyBoard({
       </div>
       <p class="muted small">
         {s.board === "roots"
-          ? `低い 2 本の弦の上の、7 つのコードのルート。${
-              standard ? "6 弦ルートと 5 弦ルートのハイコードを、この位置から押さえる。" : ""
-            }${sel ? `輪は ${sel.symbol}。` : "札を選ぶと、そのコードに輪が付く。"}`
+          ? `低い 2 本の弦の上の、7 つのコードのルート。${standard ? "ハイコードはこの位置から押さえる。" : ""}${sel ? `輪は ${sel.symbol}。` : ""}`
           : sel
-            ? `${sel.symbol} の構成音を度数で、ほかのスケールの音を薄く出しています。`
-            : "キーのスケールの音（オレンジが主音）。札を選ぶと、そのコードの構成音を重ねます。"}
+            ? `${sel.symbol} の構成音を度数で。薄いのはほかのスケールの音。`
+            : "キーのスケールの音（オレンジが主音）。"}
       </p>
     </section>
   );
@@ -563,20 +561,6 @@ export function KeyView({ query }: { query: string }) {
     <>
       <header class="bar">
         <h1 tabIndex={-1}>キー</h1>
-        <button
-          class="bar-link link-btn"
-          onClick={() =>
-            playMidi(
-              scaleMidis(
-                pc(s.key.tonic),
-                notes.map(n => mod(pc(n) - pc(s.key.tonic), 12)),
-              ),
-            )
-          }
-          aria-label={`${keyLabel(s.key)} のスケールを試聴`}
-        >
-          ▶ スケール
-        </button>
       </header>
 
       <div class="kv-layout">
@@ -632,8 +616,8 @@ export function KeyView({ query }: { query: string }) {
                     aria-label={`${c.label}（${c.symbol}）を鳴らす`}
                     onClick={() => pickChord(c)}
                   >
-                    <span class="kv-card-roman">{c.roman}</span>
                     <span class="kv-card-name">{breakable(c.symbol)}</span>
+                    <span class="kv-card-roman">{c.roman}</span>
                     {s.func && (
                       <span class={`kv-func kv-func--${funcOf(s.key, c.degree, s.borrow)}`}>
                         {funcOf(s.key, c.degree, s.borrow)}
@@ -695,10 +679,7 @@ export function KeyView({ query }: { query: string }) {
                 </li>
               )}
             </ul>
-            <p class="muted small">
-              札を押すとコードが鳴ります。五度圏の扇形の 7 つがキー {keyLabel(s.key)}{" "}
-              のコード（外：メジャー・中：マイナー・内：dim）で、押すと札と同じく鳴ります。扇形の外の文字を押すと、キーが変わります。
-            </p>
+            <p class="muted small">扇形の中と札はコードが鳴り、扇形の外の文字はキーが変わります。</p>
           </section>
 
           {/* 選んだコードと指板は 1 つのまとまり（選んでいなければ、指板にキーのスケールを出す） */}
@@ -707,6 +688,13 @@ export function KeyView({ query }: { query: string }) {
               <div class="kv-detail" role="region" aria-label={`${sel.symbol} の構成音`}>
                 <p class="kv-detail-name">
                   <strong>{sel.label}</strong>＝<strong>{sel.symbol}</strong>
+                  <button
+                    class="kv-replay"
+                    onClick={() => playMidi(chordMidis(sel), { strum: true })}
+                    aria-label={`${sel.symbol} をもう一度鳴らす`}
+                  >
+                    ▶
+                  </button>
                 </p>
                 <p class="kv-tones">
                   {sel.tones.map((n, i) => (
@@ -717,11 +705,6 @@ export function KeyView({ query }: { query: string }) {
                   ))}
                 </p>
                 <p class="small">{FUNC_TEXT[funcOf(s.key, sel.degree, s.borrow)]}</p>
-                <div class="actions">
-                  <button class="btn" onClick={() => playMidi(chordMidis(sel), { strum: true })}>
-                    ▶ もう一度
-                  </button>
-                </div>
                 {arpeggioIdOf(sel.type.id) && (
                   <a
                     class="chart-drill"
@@ -774,8 +757,8 @@ export function KeyView({ query }: { query: string }) {
                         <span
                           class={`kv-step kv-card--${QUALITY_CLASS[qualityOf(c)]}${c.degree === 0 ? " tonic" : ""}`}
                         >
-                          <span class="kv-card-roman">{c.roman}</span>
                           <span class="kv-card-name">{c.symbol}</span>
+                          <span class="kv-card-roman">{c.roman}</span>
                         </span>
                       </li>
                     ))}
@@ -806,10 +789,7 @@ export function KeyView({ query }: { query: string }) {
                   <>
                     {/* スマホでは上の五度圏が画面の外なので、矢印の動きを進行のそばの写しで見せる */}
                     <KeyCircle s={s} chords={chords} path={prog} playing={playing} mini />
-                    <p class="muted small">
-                      五度圏の矢印が、コードからコードへの動き。「5度下」（反時計回りに 1
-                      つ）は、いちばん強く進む動きです。
-                    </p>
+                    <p class="muted small">矢印がコードの動き。「5度下」（反時計回りに 1 つ）がいちばん強い。</p>
                   </>
                 )}
               </>
@@ -817,9 +797,25 @@ export function KeyView({ query }: { query: string }) {
           </section>
 
           <section class="kv-scale" aria-labelledby="kv-scale-h">
-            <h2 id="kv-scale-h">
-              {fmt(s.key.tonic)} {MODE_TEXT[s.key.mode]}・{sigText(s.key)}
-            </h2>
+            <div class="kv-scale-h">
+              <h2 id="kv-scale-h">
+                {fmt(s.key.tonic)} {MODE_TEXT[s.key.mode]}・{sigText(s.key)}
+              </h2>
+              <button
+                class="kv-replay"
+                onClick={() =>
+                  playMidi(
+                    scaleMidis(
+                      pc(s.key.tonic),
+                      notes.map(n => mod(pc(n) - pc(s.key.tonic), 12)),
+                    ),
+                  )
+                }
+                aria-label={`${keyLabel(s.key)} のスケールを鳴らす`}
+              >
+                ▶
+              </button>
+            </div>
             <p class="chart-tones">
               {notes.map((n, i) => (
                 <span key={i} class={`tone-dot${i === 0 ? " root" : ""}${newPcs.has(pc(n)) ? " changed" : ""}`}>
@@ -827,20 +823,23 @@ export function KeyView({ query }: { query: string }) {
                 </span>
               ))}
             </p>
-            <p class="kv-related">
-              <span>
-                <button class="link-btn" onClick={() => goKey(rel)}>
-                  平行調 {keyLabel(rel)}
-                </button>
-                <span class="muted small">（調号が同じ）</span>
-              </span>
-              <span>
-                <button class="link-btn" onClick={() => goKey(par)}>
-                  同主調 {keyLabel(par)}
-                </button>
-                <span class="muted small">（主音が同じ）</span>
-              </span>
-            </p>
+            <div class="kv-related" role="group" aria-label="関係のあるキーへ移る">
+              <button
+                class="kv-chip"
+                onClick={() => goKey(rel)}
+                aria-label={`平行調 ${keyLabel(rel)} にする（調号が同じ）`}
+              >
+                平行調 {keyLabel(rel)}
+              </button>
+              <button
+                class="kv-chip"
+                onClick={() => goKey(par)}
+                aria-label={`同主調 ${keyLabel(par)} にする（主音が同じ）`}
+              >
+                同主調 {keyLabel(par)}
+              </button>
+              <span class="muted small">平行調は調号が、同主調は主音が同じ</span>
+            </div>
           </section>
 
           <nav class="kv-links" aria-label="このキーで続ける">
