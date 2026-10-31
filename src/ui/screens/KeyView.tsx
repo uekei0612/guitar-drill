@@ -33,7 +33,6 @@ import {
   DEFAULT_KEY_VIEW,
   changedNotes,
   chordsOf,
-  dimLabel,
   fromParams,
   funcOf,
   MAX_CUSTOM,
@@ -71,6 +70,14 @@ const parallel = (k: Key): Key =>
     mode: k.mode === "major" ? "minor" : "major",
   };
 
+const MODE_TEXT: Readonly<Record<Key["mode"], string>> = { major: "メジャー", minor: "マイナー" };
+
+/** 選択欄のキーの名前（省略しない：C メジャー（♯♭なし）、F♯ マイナー（♯3つ）） */
+const keyOptionText = (k: Key) => {
+  const n = keySignature(k);
+  return `${fmt(k.tonic)} ${MODE_TEXT[k.mode]}（${n ? sigLabel(n) : "♯♭なし"}）`;
+};
+
 const sigText = (k: Key) => {
   const n = keySignature(k);
   return `調号${sigLabel(n)}${n ? `（${accidentals(n).join(" ")}）` : ""}`;
@@ -92,28 +99,28 @@ const chordMidis = (c: DiatonicChord) => voiced(pc(c.root), c.tones.map(pc));
 /* 五度圏の寸法（viewBox 360 × 360） */
 const S = 360,
   C = S / 2;
-const RADIUS: Readonly<Record<Ring, number>> = { major: 146, minor: 100, dim: 62 };
-const CELL: Readonly<Record<Ring, number>> = { major: 22, minor: 18, dim: 16 };
+const RADIUS: Readonly<Record<Ring, number>> = { major: 146, minor: 100, dim: 60 };
+const CELL: Readonly<Record<Ring, number>> = { major: 23, minor: 19, dim: 20 };
 /** 位置 i（C = 0 が真上、時計回り）の点 */
 const pt = (i: number, r: number) => {
   const a = (i * Math.PI) / 6;
   return { x: C + r * Math.sin(a), y: C - r * Math.cos(a) };
 };
-/** 真上（位置 0）を真ん中にした扇形。外と中の輪は 3 つ分、内の輪は 1 つ分 */
+/** 真上（位置 0）を真ん中にした扇形。外と中の輪は 3 つ分、内の輪は 1 つ分（dim の丸がはみ出さないよう、少し広く） */
 const FAN = (() => {
   const p = (deg: number, r: number) => {
     const a = (deg * Math.PI) / 180;
     return `${(C + r * Math.sin(a)).toFixed(2)} ${(C - r * Math.cos(a)).toFixed(2)}`;
   };
-  const [o, m, i] = [174, 81, 42];
+  const [o, m, i, w] = [174, 80, 36, 21];
   return [
     `M ${p(-45, o)}`,
     `A ${o} ${o} 0 0 1 ${p(45, o)}`,
     `L ${p(45, m)}`,
-    `A ${m} ${m} 0 0 0 ${p(15, m)}`,
-    `L ${p(15, i)}`,
-    `A ${i} ${i} 0 0 0 ${p(-15, i)}`,
-    `L ${p(-15, m)}`,
+    `A ${m} ${m} 0 0 0 ${p(w, m)}`,
+    `L ${p(w, i)}`,
+    `A ${i} ${i} 0 0 0 ${p(-w, i)}`,
+    `L ${p(-w, m)}`,
     `A ${m} ${m} 0 0 0 ${p(-45, m)}`,
     "Z",
   ].join(" ");
@@ -218,14 +225,14 @@ function KeyCircle({
         FIFTHS.major.map((_, slot) => {
           const { x, y } = pt(slot, RADIUS[ring]);
           const hit = at(ring, slot);
+          // 内の dim の輪は、キーのコード（と進行に出てくるもの）だけを書く。ほかの 11 個は飾りなので出さない
+          if (ring === "dim" && !hit) return null;
           // キーのコードは、札と同じ綴りで（F♯m の Ⅴ は D♭ でなく C♯）
           const name = hit
             ? `${fmt(hit.chord.root)}${{ major: "", minor: "m", dim: "dim" }[ring]}`
             : ring === "major"
               ? fmt(note(FIFTHS.major[slot]!))
-              : ring === "minor"
-                ? `${fmt(note(FIFTHS.minor[slot]!))}m`
-                : dimLabel(slot);
+              : `${fmt(note(FIFTHS.minor[slot]!))}m`;
           const tonic = hit?.chord.degree === 0;
           const borrowed = hit && !inFan(center, hit.place as Place);
           const selected = hit && s.chord === hit.chord.degree && chords.includes(hit.chord);
@@ -282,11 +289,14 @@ function KeyCircle({
         </marker>
       </defs>
       {path.length > 1 && <ProgArrows path={path} playing={playing} marker={marker} />}
-      <text class="kv-center" x={C} y={C - 8} aria-hidden="true">
-        {keyLabel(s.key)}
+      <text class="kv-center" x={C} y={C - 14} aria-hidden="true">
+        {fmt(s.key.tonic)}
       </text>
-      <text class="kv-center-sub" x={C} y={C + 14} aria-hidden="true">
-        {sigLabel(keySignature(s.key))}
+      <text class="kv-center-sub" x={C} y={C + 10} aria-hidden="true">
+        {MODE_TEXT[s.key.mode]}
+      </text>
+      <text class="kv-center-sub" x={C} y={C + 26} aria-hidden="true">
+        調号{sigLabel(keySignature(s.key))}
       </text>
     </svg>
   );
@@ -583,7 +593,7 @@ export function KeyView({ query }: { query: string }) {
                   <optgroup key={mode} label={mode === "major" ? "メジャー" : "マイナー"}>
                     {KEYS[mode].map(k => (
                       <option key={keyId(k)} value={keyId(k)}>
-                        {keyLabel(k)}（{sigLabel(keySignature(k))}）
+                        {keyOptionText(k)}
                       </option>
                     ))}
                   </optgroup>
@@ -779,7 +789,7 @@ export function KeyView({ query }: { query: string }) {
 
           <section class="kv-scale" aria-labelledby="kv-scale-h">
             <h2 id="kv-scale-h">
-              {keyLabel(s.key)} {s.key.mode === "major" ? "メジャー" : "マイナー"}・{sigText(s.key)}
+              {fmt(s.key.tonic)} {MODE_TEXT[s.key.mode]}・{sigText(s.key)}
             </h2>
             <p class="chart-tones">
               {notes.map((n, i) => (

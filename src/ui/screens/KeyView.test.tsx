@@ -137,6 +137,19 @@ describe("キーの画面", () => {
     expect(el.querySelector<HTMLSelectElement>(".kv-prog select")!.value).toBe("");
   });
 
+  it("内の dim の輪はキーの dim だけを書き、中心と選択欄はキーの名前を省略しない", async () => {
+    const el = await mount("key=G&size=3");
+    expect([...el.querySelectorAll(".kv-cell--dim text:first-of-type")].map(t => t.textContent)).toEqual(["F♯dim"]);
+    expect([...el.querySelectorAll(".kv-center, .kv-center-sub")].map(t => t.textContent)).toEqual([
+      "G",
+      "メジャー",
+      "調号♯1つ",
+    ]);
+    const opts = [...el.querySelectorAll("option")].map(o => o.textContent);
+    expect(opts).toContain("C メジャー（♯♭なし）");
+    expect(opts).toContain("F♯ マイナー（♯3つ）");
+  });
+
   it("扇形の外のコードは、輪の綴りでなく札と同じ綴りで出す（F♯m の Ⅴ は C♯）", async () => {
     const el = await mount("key=F%23m&size=3&borrow=1");
     expect([...el.querySelectorAll(".kv-cell.borrowed text:first-of-type")].map(t => t.textContent).sort()).toEqual([
