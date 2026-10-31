@@ -127,9 +127,6 @@ export function placeOf(c: DiatonicChord): Place {
   return { ring, slot };
 }
 
-/** 内の輪に書く dim の名前（外のメジャーキーの Ⅶ の三和音。B dim、E♯dim のように綴りはキーに合わせる） */
-export const dimLabel = (slot: number): string => diatonicChords(keyAt("major", slot), 3)[6]!.symbol;
-
 /** 扇形に入るか（外と中は主音の位置と両隣、内は主音の位置だけ） */
 export const inFan = (center: number, p: Place): boolean => {
   const d = mod(p.slot - center + 6, 12) - 6;

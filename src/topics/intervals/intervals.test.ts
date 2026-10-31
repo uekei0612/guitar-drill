@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { checkTopic } from "../../drill/check";
+import { NECK } from "../../drill/topic";
 import { seeded } from "../../drill/rng";
-import { STANDARD, TUNINGS, mod, pcAt } from "../../theory";
+import { STANDARD, TUNINGS, mod, pcAt, positionsOf } from "../../theory";
 import { intervals, shapeHint } from ".";
 
 const ctx = (tuning = STANDARD) => ({ common: { tuning, lefty: false }, settings: {} });
@@ -11,14 +12,19 @@ describe("度数の位置", () => {
     for (const t of TUNINGS) expect(checkTopic(intervals, ctx(t))).toEqual([]);
   });
 
-  it("タップの正解は、窓の中にあるその度数の位置すべて", () => {
+  it("タップは指板の長い図（開放〜12 フレット）で、正解はその中にあるその度数の位置すべて", () => {
     for (let n = 0; n < 100; n++) {
       const q = intervals.question("tap:3", ctx(), seeded(n));
       const root = q.prompt.board!.marks[0]!.pos;
       if (q.answer.kind !== "tap") throw new Error();
-      expect(q.answer.correct.length).toBeGreaterThan(0);
+      expect(q.answer.range).toEqual(NECK);
+      expect(q.prompt.board!.range).toEqual(NECK);
+      expect(q.answer.correct).toHaveLength(positionsOf(STANDARD, mod(pcAt(STANDARD, root) + 4, 12), NECK).length);
       for (const p of q.answer.correct) expect(mod(pcAt(STANDARD, p) - pcAt(STANDARD, root), 12)).toBe(4);
     }
+    // 「何度？」は今までどおり R のまわりだけ
+    const r = intervals.question("name:3", ctx(), seeded(1)).prompt.board!.range;
+    expect(r.maxFret - r.minFret + 1).toBe(6);
   });
 
   it("「何度？」の正解は、示した点とルートの半音差", () => {

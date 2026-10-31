@@ -33,7 +33,6 @@ import {
   DEFAULT_KEY_VIEW,
   changedNotes,
   chordsOf,
-  dimLabel,
   fromParams,
   funcOf,
   MAX_CUSTOM,
@@ -71,6 +70,14 @@ const parallel = (k: Key): Key =>
     mode: k.mode === "major" ? "minor" : "major",
   };
 
+const MODE_TEXT: Readonly<Record<Key["mode"], string>> = { major: "メジャー", minor: "マイナー" };
+
+/** 選択欄のキーの名前（省略しない：C メジャー（♯♭なし）、F♯ マイナー（♯3つ）） */
+const keyOptionText = (k: Key) => {
+  const n = keySignature(k);
+  return `${fmt(k.tonic)} ${MODE_TEXT[k.mode]}（${n ? sigLabel(n) : "♯♭なし"}）`;
+};
+
 const sigText = (k: Key) => {
   const n = keySignature(k);
   return `調号${sigLabel(n)}${n ? `（${accidentals(n).join(" ")}）` : ""}`;
@@ -92,28 +99,28 @@ const chordMidis = (c: DiatonicChord) => voiced(pc(c.root), c.tones.map(pc));
 /* 五度圏の寸法（viewBox 360 × 360） */
 const S = 360,
   C = S / 2;
-const RADIUS: Readonly<Record<Ring, number>> = { major: 146, minor: 100, dim: 62 };
-const CELL: Readonly<Record<Ring, number>> = { major: 22, minor: 18, dim: 16 };
+const RADIUS: Readonly<Record<Ring, number>> = { major: 146, minor: 100, dim: 60 };
+const CELL: Readonly<Record<Ring, number>> = { major: 23, minor: 19, dim: 20 };
 /** 位置 i（C = 0 が真上、時計回り）の点 */
 const pt = (i: number, r: number) => {
   const a = (i * Math.PI) / 6;
   return { x: C + r * Math.sin(a), y: C - r * Math.cos(a) };
 };
-/** 真上（位置 0）を真ん中にした扇形。外と中の輪は 3 つ分、内の輪は 1 つ分 */
+/** 真上（位置 0）を真ん中にした扇形。外と中の輪は 3 つ分、内の輪は 1 つ分（dim の丸がはみ出さないよう、少し広く） */
 const FAN = (() => {
   const p = (deg: number, r: number) => {
     const a = (deg * Math.PI) / 180;
     return `${(C + r * Math.sin(a)).toFixed(2)} ${(C - r * Math.cos(a)).toFixed(2)}`;
   };
-  const [o, m, i] = [174, 81, 42];
+  const [o, m, i, w] = [174, 80, 36, 21];
   return [
     `M ${p(-45, o)}`,
     `A ${o} ${o} 0 0 1 ${p(45, o)}`,
     `L ${p(45, m)}`,
-    `A ${m} ${m} 0 0 0 ${p(15, m)}`,
-    `L ${p(15, i)}`,
-    `A ${i} ${i} 0 0 0 ${p(-15, i)}`,
-    `L ${p(-15, m)}`,
+    `A ${m} ${m} 0 0 0 ${p(w, m)}`,
+    `L ${p(w, i)}`,
+    `A ${i} ${i} 0 0 0 ${p(-w, i)}`,
+    `L ${p(-w, m)}`,
     `A ${m} ${m} 0 0 0 ${p(-45, m)}`,
     "Z",
   ].join(" ");
@@ -130,7 +137,15 @@ function useFanAngle(slot: number): number {
 
 /** 進行の矢印（コードからコードへ）。進む向きの左へ少しふくらませるので、行きと帰りの矢印は重ならない。
     鳴らしているあいだは、今のコードへ入る矢印だけを濃くする */
-function ProgArrows({ path, playing }: { path: readonly DiatonicChord[]; playing: number | null }) {
+function ProgArrows({
+  path,
+  playing,
+  marker,
+}: {
+  path: readonly DiatonicChord[];
+  playing: number | null;
+  marker: string;
+}) {
   const ps = path.map(placeOf);
   return (
     <g class={`kv-arrows${playing != null ? " playing" : ""}`} aria-hidden="true">
@@ -150,7 +165,7 @@ function ProgArrows({ path, playing }: { path: readonly DiatonicChord[]; playing
             key={i}
             class={playing === i + 1 ? "now" : undefined}
             d={`M ${st.x} ${st.y} Q ${ctl.x} ${ctl.y} ${en.x} ${en.y}`}
-            marker-end="url(#kv-arrowhead)"
+            marker-end={`url(#${marker})`}
           />
         );
       })}
@@ -164,6 +179,8 @@ function KeyCircle({
   path = [],
   playing = null,
   onPick,
+  onChord,
+  mini = false,
 }: {
   s: KeyViewState;
   chords: readonly DiatonicChord[];
@@ -171,7 +188,11 @@ function KeyCircle({
   path?: readonly DiatonicChord[];
   /** 鳴らしている進行のコード（path の何番目か） */
   playing?: number | null;
-  onPick: (k: Key) => void;
+  onPick?: (k: Key) => void;
+  /** キーのコード（扇形の中と、借りたコード）を押したとき。札を押したのと同じ */
+  onChord?: (c: DiatonicChord) => void;
+  /** 進行のそばに出す小さな写し（押せない。読み上げない） */
+  mini?: boolean;
 }) {
   const now = playing != null && path[playing] ? placeOf(path[playing]) : undefined;
   const center = slotOf(s.key);
@@ -187,8 +208,13 @@ function KeyCircle({
     return i < 0 ? undefined : { chord: shown[i]!, place: places[i]! };
   };
   const label = `五度圏。キー ${keyLabel(s.key)} のコードは ${chords.map(c => c.symbol).join("・")}`;
+  const marker = mini ? "kv-arrowhead-mini" : "kv-arrowhead";
   return (
-    <svg class="kv-circle" viewBox={`0 0 ${S} ${S}`} role="group" aria-label={label}>
+    <svg
+      class={`kv-circle${mini ? " mini" : ""}`}
+      viewBox={`0 0 ${S} ${S}`}
+      {...(mini ? { "aria-hidden": "true" } : { role: "group", "aria-label": label })}
+    >
       <g class="kv-fan" style={{ transform: `rotate(${angle}deg)` }} aria-hidden="true">
         <path d={FAN} />
       </g>
@@ -199,14 +225,14 @@ function KeyCircle({
         FIFTHS.major.map((_, slot) => {
           const { x, y } = pt(slot, RADIUS[ring]);
           const hit = at(ring, slot);
+          // 内の dim の輪は、キーのコード（と進行に出てくるもの）だけを書く。ほかの 11 個は飾りなので出さない
+          if (ring === "dim" && !hit) return null;
           // キーのコードは、札と同じ綴りで（F♯m の Ⅴ は D♭ でなく C♯）
           const name = hit
             ? `${fmt(hit.chord.root)}${{ major: "", minor: "m", dim: "dim" }[ring]}`
             : ring === "major"
               ? fmt(note(FIFTHS.major[slot]!))
-              : ring === "minor"
-                ? `${fmt(note(FIFTHS.minor[slot]!))}m`
-                : dimLabel(slot);
+              : `${fmt(note(FIFTHS.minor[slot]!))}m`;
           const tonic = hit?.chord.degree === 0;
           const borrowed = hit && !inFan(center, hit.place as Place);
           const selected = hit && s.chord === hit.chord.degree && chords.includes(hit.chord);
@@ -222,9 +248,11 @@ function KeyCircle({
           ]
             .filter(Boolean)
             .join(" ");
-          // 外と中の輪はキーを選ぶボタン（内の dim はキーではないので押せない）
-          const key = ring === "dim" ? undefined : keyAt(ring, slot);
-          const pick = key && (() => onPick(key));
+          // キーのコードは札と同じく、選んで鳴らす。ほかの外と中の輪はキーを選ぶボタン
+          // （内の dim はキーではないので、キーのコードでなければ押せない）
+          const chord = hit && chords.includes(hit.chord) ? hit.chord : undefined;
+          const key = chord || ring === "dim" || !onPick ? undefined : keyAt(ring, slot);
+          const pick = chord && onChord ? () => onChord(chord) : key && (() => onPick!(key));
           return (
             <g
               key={`${ring}${slot}`}
@@ -232,7 +260,7 @@ function KeyCircle({
               {...(pick && {
                 role: "button",
                 tabIndex: 0,
-                "aria-label": `キー ${keyLabel(key!)} にする`,
+                "aria-label": chord ? `${chord.label}（${chord.symbol}）を鳴らす` : `キー ${keyLabel(key!)} にする`,
                 onClick: pick,
                 onKeyDown: (e: KeyboardEvent) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -242,7 +270,9 @@ function KeyCircle({
                 },
               })}
             >
-              {(hit || pick) && <circle cx={x} cy={y} r={CELL[ring]} />}
+              {(hit || pick) && <circle class="kv-dot" cx={x} cy={y} r={CELL[ring]} />}
+              {/* 選んでいる印は、札と同じく外側のオレンジの輪 */}
+              {selected && <circle class="kv-sel-ring" cx={x} cy={y} r={CELL[ring] + 5} />}
               <text x={x} y={hit ? y - CELL[ring] * 0.28 : y} aria-hidden="true">
                 {name}
               </text>
@@ -256,16 +286,19 @@ function KeyCircle({
         }),
       )}
       <defs>
-        <marker id="kv-arrowhead" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <marker id={marker} viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" orient="auto">
           <path d="M 0 0 L 10 5 L 0 10 z" class="kv-arrowhead" />
         </marker>
       </defs>
-      {path.length > 1 && <ProgArrows path={path} playing={playing} />}
-      <text class="kv-center" x={C} y={C - 8} aria-hidden="true">
-        {keyLabel(s.key)}
+      {path.length > 1 && <ProgArrows path={path} playing={playing} marker={marker} />}
+      <text class="kv-center" x={C} y={C - 13} aria-hidden="true">
+        {fmt(s.key.tonic)}
       </text>
-      <text class="kv-center-sub" x={C} y={C + 14} aria-hidden="true">
-        {sigLabel(keySignature(s.key))}
+      <text class="kv-center-sub" x={C} y={C + 9} aria-hidden="true">
+        {MODE_TEXT[s.key.mode]}
+      </text>
+      <text class="kv-center-sub" x={C} y={C + 22} aria-hidden="true">
+        調号{sigLabel(keySignature(s.key))}
       </text>
     </svg>
   );
@@ -356,12 +389,10 @@ function KeyBoard({
       </div>
       <p class="muted small">
         {s.board === "roots"
-          ? `低い 2 本の弦の上の、7 つのコードのルート。${
-              standard ? "6 弦ルートと 5 弦ルートのハイコードを、この位置から押さえる。" : ""
-            }${sel ? `輪は ${sel.symbol}。` : "札を選ぶと、そのコードに輪が付く。"}`
+          ? `低い 2 本の弦の上の、7 つのコードのルート。${standard ? "ハイコードはこの位置から押さえる。" : ""}${sel ? `輪は ${sel.symbol}。` : ""}`
           : sel
-            ? `${sel.symbol} の構成音を度数で、ほかのスケールの音を薄く出しています。`
-            : "キーのスケールの音（オレンジが主音）。札を選ぶと、そのコードの構成音を重ねます。"}
+            ? `${sel.symbol} の構成音を度数で。薄いのはほかのスケールの音。`
+            : "キーのスケールの音（オレンジが主音）。"}
       </p>
     </section>
   );
@@ -495,6 +526,12 @@ export function KeyView({ query }: { query: string }) {
     cs.forEach((_, i) => timers.current.push(window.setTimeout(() => setPlaying(i), i * PROG_STEP_MS)));
     timers.current.push(window.setTimeout(() => setPlaying(null), cs.length * PROG_STEP_MS + 700));
   };
+  /** コードを選んで鳴らす（札と、五度圏の扇形の中で同じ）。自分で進行を作っているときは、進行の後ろに足す */
+  const pickChord = (c: DiatonicChord) => {
+    const add = s.prog === "custom" && s.custom.length < MAX_CUSTOM;
+    set({ chord: c.degree, ...(add && { custom: [...s.custom, c.degree] }) });
+    playMidi(chordMidis(c), { strum: true });
+  };
   const step = (d: number) => goKey(keyAt(s.key.mode, slotOf(s.key) + d));
 
   const chords = chordsOf(s);
@@ -518,277 +555,315 @@ export function KeyView({ query }: { query: string }) {
   const rel = relative(s.key),
     par = parallel(s.key);
 
+  // 並び：スマホは「キー → 五度圏 → 札 → 選んだコードと指板 → 進行 → スケールと関係調」の 1 列で、
+  // 札を押すと真上の五度圏と真下の指板に結果が出る。広い画面では五度圏を左に止めて、右に札から下を並べる
   return (
     <>
       <header class="bar">
         <h1 tabIndex={-1}>キー</h1>
-        <button
-          class="bar-link link-btn"
-          onClick={() =>
-            playMidi(
-              scaleMidis(
-                pc(s.key.tonic),
-                notes.map(n => mod(pc(n) - pc(s.key.tonic), 12)),
-              ),
-            )
-          }
-          aria-label={`${keyLabel(s.key)} のスケールを試聴`}
-        >
-          ▶ スケール
-        </button>
       </header>
 
-      <section aria-label="五度圏">
-        <div class="kv-pick">
-          <button class="btn" onClick={() => step(-1)} aria-label="5 度下のキーへ（反時計回り）">
-            ◀ 5度下
-          </button>
-          <label class="field">
-            <span class="sr-only">キー</span>
-            <select value={keyId(s.key)} onChange={e => goKey(ALL_KEYS.find(k => keyId(k) === e.currentTarget.value)!)}>
-              {(["major", "minor"] as const).map(mode => (
-                <optgroup key={mode} label={mode === "major" ? "メジャー" : "マイナー"}>
-                  {KEYS[mode].map(k => (
-                    <option key={keyId(k)} value={keyId(k)}>
-                      {keyLabel(k)}（{sigLabel(keySignature(k))}）
-                    </option>
+      <div class="kv-layout">
+        <section class="kv-side" aria-label="五度圏">
+          <div class="kv-pick">
+            <button class="btn" onClick={() => step(-1)} aria-label="5 度下のキーへ（反時計回り）">
+              ◀ 5度下
+            </button>
+            <label class="field">
+              <span class="sr-only">キー</span>
+              <select
+                value={keyId(s.key)}
+                onChange={e => goKey(ALL_KEYS.find(k => keyId(k) === e.currentTarget.value)!)}
+              >
+                {(["major", "minor"] as const).map(mode => (
+                  <optgroup key={mode} label={mode === "major" ? "メジャー" : "マイナー"}>
+                    {KEYS[mode].map(k => (
+                      <option key={keyId(k)} value={keyId(k)}>
+                        {keyOptionText(k)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <button class="btn" onClick={() => step(1)} aria-label="5 度上のキーへ（時計回り）">
+              5度上 ▶
+            </button>
+          </div>
+          <KeyCircle s={s} chords={chords} path={prog} playing={playing} onPick={goKey} onChord={pickChord} />
+          {change && prev && (
+            <p class="small kv-change" role="status">
+              {keyLabel(prev)} → {keyLabel(s.key)}：
+              {change.to.length === 0
+                ? "スケールの音は同じ（調号が同じ）"
+                : `${change.from.map(fmt).join("・")} が ${change.to.map(fmt).join("・")} に変わる`}
+            </p>
+          )}
+        </section>
+
+        <div class="kv-main">
+          <section class="kv-chords" aria-labelledby="kv-chords-h">
+            <h2 id="kv-chords-h">ダイアトニックコード</h2>
+            <div class="kv-cards">
+              {chords.map(c => {
+                const q = qualityOf(c);
+                const borrowed = !inFan(slotOf(s.key), placeOf(c));
+                return (
+                  <button
+                    key={c.degree}
+                    class={`kv-card kv-card--${QUALITY_CLASS[q]}${c.degree === 0 ? " tonic" : ""}${borrowed ? " borrowed" : ""}`}
+                    aria-pressed={s.chord === c.degree}
+                    aria-label={`${c.label}（${c.symbol}）を鳴らす`}
+                    onClick={() => pickChord(c)}
+                  >
+                    <span class="kv-card-name">{breakable(c.symbol)}</span>
+                    <span class="kv-card-roman">{c.roman}</span>
+                    {s.func && (
+                      <span class={`kv-func kv-func--${funcOf(s.key, c.degree, s.borrow)}`}>
+                        {funcOf(s.key, c.degree, s.borrow)}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div class="chart-bar">
+              <div class="toggle-group" role="group" aria-label="和音の数">
+                <button aria-pressed={s.size === 3} onClick={() => set({ size: 3 })}>
+                  三和音
+                </button>
+                <button aria-pressed={s.size === 4} onClick={() => set({ size: 4 })}>
+                  四和音
+                </button>
+              </div>
+              <div class="toggle-group">
+                <button aria-pressed={s.func} onClick={() => set({ func: !s.func })}>
+                  機能
+                </button>
+              </div>
+              <button class="btn" onClick={() => playChords(chords.map(chordMidis))}>
+                ▶ Ⅰ から順に鳴らす
+              </button>
+            </div>
+            {s.key.mode === "minor" && (
+              <label class="check">
+                <input type="checkbox" checked={s.borrow} onChange={e => set({ borrow: e.currentTarget.checked })} />
+                <span>Ⅴ・Ⅶ をハーモニックマイナーから借りる</span>
+              </label>
+            )}
+            <ul class="kv-key" aria-label="色と形の見方">
+              <li>
+                <span class="kv-sw kv-card--maj" aria-hidden="true" />
+                メジャー
+              </li>
+              <li>
+                <span class="kv-sw kv-card--min" aria-hidden="true" />
+                マイナー
+              </li>
+              <li>
+                <span class="kv-sw kv-card--dim" aria-hidden="true" />
+                dim
+              </li>
+              <li>
+                <span class="kv-sw tonic" aria-hidden="true" />
+                主音（Ⅰ）
+              </li>
+              <li>
+                <span class="kv-sw selected" aria-hidden="true" />
+                選んでいるコード
+              </li>
+              {s.borrow && s.key.mode === "minor" && (
+                <li>
+                  <span class="kv-sw borrowed" aria-hidden="true" />
+                  借りたコード（扇形の外）
+                </li>
+              )}
+            </ul>
+            <p class="muted small">扇形の中と札はコードが鳴り、扇形の外の文字はキーが変わります。</p>
+          </section>
+
+          {/* 選んだコードと指板は 1 つのまとまり（選んでいなければ、指板にキーのスケールを出す） */}
+          <div class={`kv-focus${sel ? " on" : ""}`}>
+            {sel && (
+              <div class="kv-detail" role="region" aria-label={`${sel.symbol} の構成音`}>
+                <p class="kv-detail-name">
+                  <strong>{sel.label}</strong>＝<strong>{sel.symbol}</strong>
+                  <button
+                    class="kv-replay"
+                    onClick={() => playMidi(chordMidis(sel), { strum: true })}
+                    aria-label={`${sel.symbol} をもう一度鳴らす`}
+                  >
+                    ▶
+                  </button>
+                </p>
+                <p class="kv-tones">
+                  {sel.tones.map((n, i) => (
+                    <span key={i} class={`kv-tone${i === 0 ? " root" : ""}`}>
+                      <span>{fmt(n)}</span>
+                      <small>{sel.toneLabels[i]}</small>
+                    </span>
                   ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          <button class="btn" onClick={() => step(1)} aria-label="5 度上のキーへ（時計回り）">
-            5度上 ▶
-          </button>
-        </div>
-        <KeyCircle s={s} chords={chords} path={prog} playing={playing} onPick={goKey} />
-        <p class="muted small kv-legend">
-          扇形の 7 つがキー {keyLabel(s.key)}{" "}
-          のコード（外：メジャー・中：マイナー・内：dim）。輪の文字を押すとキーが変わります。
-        </p>
-      </section>
-
-      <section class="kv-scale" aria-labelledby="kv-scale-h">
-        <h2 id="kv-scale-h">
-          {keyLabel(s.key)} {s.key.mode === "major" ? "メジャー" : "マイナー"}・{sigText(s.key)}
-        </h2>
-        <p class="chart-tones">
-          {notes.map((n, i) => (
-            <span key={i} class={`tone-dot${i === 0 ? " root" : ""}${newPcs.has(pc(n)) ? " changed" : ""}`}>
-              {fmt(n)}
-            </span>
-          ))}
-        </p>
-        {change && prev && (
-          <p class="small kv-change" role="status">
-            {keyLabel(prev)} → {keyLabel(s.key)}：
-            {change.to.length === 0
-              ? "スケールの音は同じ（調号が同じ）"
-              : change.to.length === 1
-                ? `${fmt(change.from[0]!)} が ${fmt(change.to[0]!)} に変わる（輪で囲んだ音）`
-                : `${change.to.length} つの音が変わる（輪で囲んだ音）`}
-          </p>
-        )}
-        <p class="kv-related">
-          <span>
-            <button class="link-btn" onClick={() => goKey(rel)}>
-              平行調 {keyLabel(rel)}
-            </button>
-            <span class="muted small">（調号が同じ）</span>
-          </span>
-          <span>
-            <button class="link-btn" onClick={() => goKey(par)}>
-              同主調 {keyLabel(par)}
-            </button>
-            <span class="muted small">（主音が同じ）</span>
-          </span>
-        </p>
-      </section>
-
-      <section class="kv-chords" aria-labelledby="kv-chords-h">
-        <h2 id="kv-chords-h">ダイアトニックコード</h2>
-        <div class="chart-bar">
-          <div class="toggle-group" role="group" aria-label="和音の数">
-            <button aria-pressed={s.size === 3} onClick={() => set({ size: 3 })}>
-              三和音
-            </button>
-            <button aria-pressed={s.size === 4} onClick={() => set({ size: 4 })}>
-              四和音
-            </button>
+                </p>
+                <p class="small">{FUNC_TEXT[funcOf(s.key, sel.degree, s.borrow)]}</p>
+                {arpeggioIdOf(sel.type.id) && (
+                  <a
+                    class="chart-drill"
+                    href={chartLink({
+                      chartType: "arpeggio",
+                      arpeggio: arpeggioIdOf(sel.type.id)!,
+                      root: pc(sel.root),
+                    })}
+                  >
+                    {sel.symbol} のアルペジオをチャートで開く<span aria-hidden="true"> ›</span>
+                  </a>
+                )}
+              </div>
+            )}
+            <KeyBoard s={s} chords={chords} onView={board => set({ board })} />
           </div>
-          <div class="toggle-group">
-            <button aria-pressed={s.func} onClick={() => set({ func: !s.func })}>
-              機能
-            </button>
-          </div>
-        </div>
-        {s.key.mode === "minor" && (
-          <label class="check">
-            <input type="checkbox" checked={s.borrow} onChange={e => set({ borrow: e.currentTarget.checked })} />
-            <span>Ⅴ・Ⅶ をハーモニックマイナーから借りる</span>
-          </label>
-        )}
-        <div class="kv-cards">
-          {chords.map(c => {
-            const q = qualityOf(c);
-            const borrowed = !inFan(slotOf(s.key), placeOf(c));
-            return (
-              <button
-                key={c.degree}
-                class={`kv-card kv-card--${QUALITY_CLASS[q]}${borrowed ? " borrowed" : ""}`}
-                aria-pressed={s.chord === c.degree}
-                aria-label={`${c.label}（${c.symbol}）を鳴らす`}
-                onClick={() => {
-                  // 自分で進行を作っているときは、押したコードを進行の後ろに足す
-                  const add = s.prog === "custom" && s.custom.length < MAX_CUSTOM;
-                  set({ chord: c.degree, ...(add && { custom: [...s.custom, c.degree] }) });
-                  playMidi(chordMidis(c), { strum: true });
+
+          <section class="kv-prog" aria-labelledby="kv-prog-h">
+            <h2 id="kv-prog-h">進行</h2>
+            <label class="field">
+              <span class="sr-only">進行</span>
+              <select
+                value={s.prog ?? ""}
+                onChange={e => {
+                  stopTimers();
+                  setPlaying(null);
+                  set({ prog: e.currentTarget.value || null });
                 }}
               >
-                <span class="kv-card-roman">{c.roman}</span>
-                <span class="kv-card-name">{breakable(c.symbol)}</span>
-                {s.func && (
-                  <span class={`kv-func kv-func--${funcOf(s.key, c.degree, s.borrow)}`}>
-                    {funcOf(s.key, c.degree, s.borrow)}
-                  </span>
+                <option value="">（出さない）</option>
+                {progressionsFor(s.key).map(x => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
+                ))}
+                <option value="custom">自分で作る（札を押して足す）</option>
+              </select>
+            </label>
+            {s.prog && (
+              <>
+                {prog.length > 0 ? (
+                  <ol class="kv-steps" aria-label="進行のコード">
+                    {prog.map((c, i) => (
+                      <li key={i} class={playing === i ? "playing" : undefined}>
+                        {i > 0 && (
+                          <span class={`kv-motion${rootMotion(prog[i - 1]!, c).strong ? " strong" : ""}`}>
+                            {rootMotion(prog[i - 1]!, c).label}
+                          </span>
+                        )}
+                        <span
+                          class={`kv-step kv-card--${QUALITY_CLASS[qualityOf(c)]}${c.degree === 0 ? " tonic" : ""}`}
+                        >
+                          <span class="kv-card-name">{c.symbol}</span>
+                          <span class="kv-card-roman">{c.roman}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p class="muted small">上の札を押すと、押した順に進行に足していきます（{MAX_CUSTOM} つまで）。</p>
                 )}
-              </button>
-            );
-          })}
-        </div>
-        <p class="muted small">
-          札を押すとコードが鳴ります。オレンジがメジャー、灰色がマイナー、赤が dim
-          {s.borrow && s.key.mode === "minor" ? "、点線は借りたコード（扇形の外）" : ""}。
-        </p>
-        <div class="actions">
-          <button class="btn" onClick={() => playChords(chords.map(chordMidis))}>
-            ▶ Ⅰ から順に鳴らす
-          </button>
-        </div>
+                <div class="actions">
+                  <button class="btn primary" disabled={!prog.length} onClick={() => playProg(prog)}>
+                    ▶ 進行を鳴らす
+                  </button>
+                  {s.prog === "custom" && (
+                    <>
+                      <button
+                        class="btn"
+                        disabled={!s.custom.length}
+                        onClick={() => set({ custom: s.custom.slice(0, -1) })}
+                      >
+                        1 つ戻す
+                      </button>
+                      <button class="btn" disabled={!s.custom.length} onClick={() => set({ custom: [] })}>
+                        消す
+                      </button>
+                    </>
+                  )}
+                </div>
+                {prog.length > 1 && (
+                  <>
+                    {/* スマホでは上の五度圏が画面の外なので、矢印の動きを進行のそばの写しで見せる */}
+                    <KeyCircle s={s} chords={chords} path={prog} playing={playing} mini />
+                    <p class="muted small">矢印がコードの動き。「5度下」（反時計回りに 1 つ）がいちばん強い。</p>
+                  </>
+                )}
+              </>
+            )}
+          </section>
 
-        {sel && (
-          <div class="kv-detail" role="region" aria-label={`${sel.symbol} の構成音`}>
-            <p class="kv-detail-name">
-              <strong>{sel.label}</strong>＝<strong>{sel.symbol}</strong>
-            </p>
-            <p class="kv-tones">
-              {sel.tones.map((n, i) => (
-                <span key={i} class={`kv-tone${i === 0 ? " root" : ""}`}>
-                  <span>{fmt(n)}</span>
-                  <small>{sel.toneLabels[i]}</small>
+          <section class="kv-scale" aria-labelledby="kv-scale-h">
+            <div class="kv-scale-h">
+              <h2 id="kv-scale-h">
+                {fmt(s.key.tonic)} {MODE_TEXT[s.key.mode]}・{sigText(s.key)}
+              </h2>
+              <button
+                class="kv-replay"
+                onClick={() =>
+                  playMidi(
+                    scaleMidis(
+                      pc(s.key.tonic),
+                      notes.map(n => mod(pc(n) - pc(s.key.tonic), 12)),
+                    ),
+                  )
+                }
+                aria-label={`${keyLabel(s.key)} のスケールを鳴らす`}
+              >
+                ▶
+              </button>
+            </div>
+            <p class="chart-tones">
+              {notes.map((n, i) => (
+                <span key={i} class={`tone-dot${i === 0 ? " root" : ""}${newPcs.has(pc(n)) ? " changed" : ""}`}>
+                  {fmt(n)}
                 </span>
               ))}
             </p>
-            <p class="small">{FUNC_TEXT[funcOf(s.key, sel.degree, s.borrow)]}</p>
-            <div class="actions">
-              <button class="btn" onClick={() => playMidi(chordMidis(sel), { strum: true })}>
-                ▶ もう一度
-              </button>
-            </div>
-            {arpeggioIdOf(sel.type.id) && (
-              <a
-                class="chart-drill"
-                href={chartLink({ chartType: "arpeggio", arpeggio: arpeggioIdOf(sel.type.id)!, root: pc(sel.root) })}
+            <div class="kv-related" role="group" aria-label="関係のあるキーへ移る">
+              <button
+                class="kv-chip"
+                onClick={() => goKey(rel)}
+                aria-label={`平行調 ${keyLabel(rel)} にする（調号が同じ）`}
               >
-                {sel.symbol} のアルペジオをチャートで開く<span aria-hidden="true"> ›</span>
-              </a>
-            )}
-          </div>
-        )}
-      </section>
-
-      <section class="kv-prog" aria-labelledby="kv-prog-h">
-        <h2 id="kv-prog-h">進行</h2>
-        <label class="field">
-          <span class="sr-only">進行</span>
-          <select
-            value={s.prog ?? ""}
-            onChange={e => {
-              stopTimers();
-              setPlaying(null);
-              set({ prog: e.currentTarget.value || null });
-            }}
-          >
-            <option value="">（出さない）</option>
-            {progressionsFor(s.key).map(x => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-            <option value="custom">自分で作る（札を押して足す）</option>
-          </select>
-        </label>
-        {s.prog && (
-          <>
-            {prog.length > 0 ? (
-              <ol class="kv-steps" aria-label="進行のコード">
-                {prog.map((c, i) => (
-                  <li key={i} class={playing === i ? "playing" : undefined}>
-                    {i > 0 && (
-                      <span class={`kv-motion${rootMotion(prog[i - 1]!, c).strong ? " strong" : ""}`}>
-                        {rootMotion(prog[i - 1]!, c).label}
-                      </span>
-                    )}
-                    <span class={`kv-step kv-card--${QUALITY_CLASS[qualityOf(c)]}`}>
-                      <span class="kv-card-roman">{c.roman}</span>
-                      <span class="kv-card-name">{c.symbol}</span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p class="muted small">上の札を押すと、押した順に進行に足していきます（{MAX_CUSTOM} つまで）。</p>
-            )}
-            <div class="actions">
-              <button class="btn primary" disabled={!prog.length} onClick={() => playProg(prog)}>
-                ▶ 進行を鳴らす
+                平行調 {keyLabel(rel)}
               </button>
-              {s.prog === "custom" && (
-                <>
-                  <button
-                    class="btn"
-                    disabled={!s.custom.length}
-                    onClick={() => set({ custom: s.custom.slice(0, -1) })}
-                  >
-                    1 つ戻す
-                  </button>
-                  <button class="btn" disabled={!s.custom.length} onClick={() => set({ custom: [] })}>
-                    消す
-                  </button>
-                </>
-              )}
+              <button
+                class="kv-chip"
+                onClick={() => goKey(par)}
+                aria-label={`同主調 ${keyLabel(par)} にする（主音が同じ）`}
+              >
+                同主調 {keyLabel(par)}
+              </button>
+              <span class="muted small">平行調は調号が、同主調は主音が同じ</span>
             </div>
-            {prog.length > 1 && (
-              <p class="muted small">
-                五度圏の矢印が、コードからコードへの動き。「5度下」（反時計回りに 1 つ）は、いちばん強く進む動きです。
-              </p>
-            )}
-          </>
-        )}
-      </section>
+          </section>
 
-      <KeyBoard s={s} chords={chords} onView={board => set({ board })} />
+          <nav class="kv-links" aria-label="このキーで続ける">
+            <a
+              class="chart-drill"
+              href={href({
+                name: "drill",
+                topicId: "diatonic",
+                only: JSON.stringify({ size: s.size, borrowDominant: s.borrow, keys: [keyId(s.key)] }),
+              })}
+            >
+              キー {keyLabel(s.key)} のコードをドリルで確かめる<span aria-hidden="true"> ›</span>
+            </a>
+            <a
+              class="chart-drill"
+              href={chartLink({ chartType: "scale", scale: scaleOfKey(s.key), root: pc(s.key.tonic) })}
+            >
+              {keyLabel(s.key)} のスケールをチャートで開く<span aria-hidden="true"> ›</span>
+            </a>
+          </nav>
 
-      <nav class="kv-links" aria-label="このキーで続ける">
-        <a
-          class="chart-drill"
-          href={href({
-            name: "drill",
-            topicId: "diatonic",
-            only: JSON.stringify({ size: s.size, borrowDominant: s.borrow, keys: [keyId(s.key)] }),
-          })}
-        >
-          キー {keyLabel(s.key)} のコードをドリルで確かめる<span aria-hidden="true"> ›</span>
-        </a>
-        <a
-          class="chart-drill"
-          href={chartLink({ chartType: "scale", scale: scaleOfKey(s.key), root: pc(s.key.tonic) })}
-        >
-          {keyLabel(s.key)} のスケールをチャートで開く<span aria-hidden="true"> ›</span>
-        </a>
-      </nav>
-
-      <KeyPrint borrow={s.borrow} />
+          <KeyPrint borrow={s.borrow} />
+        </div>
+      </div>
     </>
   );
 }

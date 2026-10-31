@@ -53,7 +53,12 @@ export function App() {
       )}
       <main
         class={
-          [route.name === "chart" && "wide", route.name === "home" && "home", tabOf(route) && "with-tabs"]
+          [
+            route.name === "chart" && "wide",
+            route.name === "home" && "home",
+            route.name === "key" && "key",
+            tabOf(route) && "with-tabs",
+          ]
             .filter(Boolean)
             .join(" ") || undefined
         }

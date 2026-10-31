@@ -4,7 +4,6 @@ import {
   DEFAULT_KEY_VIEW,
   changedNotes,
   chordsOf,
-  dimLabel,
   fromParams,
   funcOf,
   inFan,
@@ -66,12 +65,6 @@ describe("キーの画面の状態", () => {
     const s = { ...DEFAULT_KEY_VIEW, key: keyById("Am")!, borrow: true };
     const out = chordsOf(s).filter(c => !inFan(slotOf(s.key), placeOf(c)));
     expect(out.map(c => c.symbol)).toEqual(["E7", "G♯dim7"]);
-  });
-
-  it("内の輪の dim は、外のメジャーキーの綴りで書く", () => {
-    expect(dimLabel(0)).toBe("Bdim");
-    expect(dimLabel(6)).toBe("E♯dim");
-    expect(dimLabel(11)).toBe("Edim");
   });
 
   it("5 度上へ動くと 1 音だけ変わる", () => {

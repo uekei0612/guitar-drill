@@ -2273,7 +2273,8 @@ main.home .today {
 .kv-circle {
   display: block;
   width: 100%;
-  max-width: 400px;
+  /* スマホでは小さめにして、すぐ下の札と一緒に画面に入れる */
+  max-width: 320px;
   margin: var(--space-md) auto 0;
   touch-action: manipulation;
   user-select: none;
@@ -2304,7 +2305,15 @@ main.home .today {
     transition: none;
   }
 }
-.kv-cell circle {
+/* 色の意味は 1 色 1 つ：オレンジ（--accent）は主音と、今選んでいる・鳴っているものだけ。
+   メジャー・マイナー・dim は背景の濃さで分ける（文字にも m・dim が付くので、色だけに頼らない） */
+:root {
+  --kv-maj: color-mix(in srgb, var(--fg) 22%, var(--bg));
+  --kv-min: color-mix(in srgb, var(--fg) 6%, var(--bg));
+  --kv-dim: var(--bg);
+  --kv-mark: color-mix(in srgb, var(--fg) 55%, var(--bg));
+}
+.kv-cell .kv-dot {
   fill: transparent;
   stroke: none;
 }
@@ -2312,93 +2321,169 @@ main.home .today {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+/* マウスで指したとき：扇形の外（キーを変える）は薄い輪、扇形の中（コードを鳴らす）は札と同じく濃く */
+@media (hover: hover) and (pointer: fine) {
+  .kv-cell[role="button"]:not(.in):hover .kv-dot {
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+  .kv-cell.in[role="button"]:hover .kv-dot {
+    stroke-width: 2.5;
+  }
+}
 .kv-cell[role="button"]:focus-visible {
   outline: none;
 }
-.kv-cell[role="button"]:focus-visible circle {
+.kv-cell[role="button"]:focus-visible .kv-dot {
   stroke: var(--accent);
   stroke-width: 3;
 }
+/* 文字の大きさは viewBox（360）の単位。スマホ（幅 320px）でも 11px 前後より小さくならないように */
 .kv-cell--major text {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
 }
 .kv-cell--minor text {
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .kv-cell--dim text {
-  font-size: 9.5px;
+  font-size: 12px;
 }
-.kv-cell.in circle {
-  fill: var(--bg);
+.kv-cell.in .kv-dot {
+  fill: var(--kv-dim);
   stroke: var(--fg);
   stroke-width: 1.5;
+}
+.kv-cell--major.in .kv-dot {
+  fill: var(--kv-maj);
+}
+.kv-cell--minor.in .kv-dot {
+  fill: var(--kv-min);
 }
 .kv-circle .kv-cell.in text {
   fill: var(--fg);
   font-weight: 700;
 }
-.kv-cell.tonic circle {
+.kv-cell.tonic .kv-dot {
   fill: var(--accent);
   stroke: var(--accent);
 }
 .kv-circle .kv-cell.tonic text {
   fill: var(--on-accent);
 }
-.kv-cell.borrowed circle {
-  stroke: var(--accent);
+.kv-cell.borrowed .kv-dot {
   stroke-dasharray: 3 3;
 }
-.kv-cell.selected circle {
+/* 選んでいる印（札の外枠と同じ、すき間を空けたオレンジの輪） */
+.kv-sel-ring {
+  fill: none;
   stroke: var(--accent);
-  stroke-width: 3.5;
-}
-.kv-cell.tonic.selected circle {
-  stroke: var(--fg);
+  stroke-width: 3;
 }
 .kv-circle .kv-roman {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
 }
 .kv-cell--major .kv-roman {
-  font-size: 10px;
+  font-size: 12px;
 }
+/* 中心の文字は、内の輪の dim の丸（中心から 40）に届かない大きさに */
 .kv-circle .kv-center {
   fill: var(--fg);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
 }
 .kv-circle .kv-center-sub {
-  font-size: 11px;
+  font-size: 11.5px;
 }
-.kv-legend {
-  margin-top: var(--space-xs);
+/* 進行のそばに出す五度圏の写し（広い画面では左の五度圏が見えているので出さない） */
+.kv-circle.mini {
+  max-width: 240px;
+  margin-top: var(--space-md);
+}
+/* 選んだコード：構成音と指板を 1 つの枠に */
+.kv-focus.on {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.kv-focus.on .kv-detail {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.kv-focus.on .kv-board h2 {
+  margin-top: var(--space-md);
+}
+/* 広い画面：五度圏を左に止めて、右に札・選んだコードと指板・進行を並べる（押した結果が左に見えたまま） */
+@media (min-width: 960px) {
+  main.key {
+    max-width: 72rem;
+  }
+  .kv-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 26rem) minmax(0, 1fr);
+    column-gap: var(--space-2xl);
+    align-items: start;
+  }
+  .kv-side {
+    position: sticky;
+    top: var(--space-lg);
+  }
+  .kv-side .kv-circle {
+    max-width: 100%;
+  }
+  .kv-circle.mini {
+    display: none;
+  }
 }
 .kv-scale h2,
 .kv-chords h2 {
   font-size: var(--text-base);
   margin: var(--space-xl) 0 0;
 }
+/* 札は五度圏のすぐ下に（押した結果が真上の輪に出る） */
+.kv-chords h2 {
+  margin-top: var(--space-sm);
+}
 /* 前のキーから変わった音 */
 .tone-dot.changed {
-  outline: 2.5px solid var(--accent);
+  outline: 2.5px dashed var(--fg);
   outline-offset: 2px;
 }
 .kv-change {
   margin: var(--space-sm) 0 0;
 }
+.kv-scale-h {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-xl);
+}
+.kv-scale .kv-scale-h h2 {
+  margin: 0;
+}
+/* 関係調：キーを変えるボタン（ほかのページへのリンクと見分ける） */
 .kv-related {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: var(--space-xs);
-  margin: var(--space-xs) 0 0;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0 0;
 }
-.kv-related {
-  column-gap: var(--space-lg);
-}
-.kv-related > span {
-  white-space: nowrap;
+.kv-chip {
+  min-height: 40px;
+  padding: 0 var(--space-md);
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 /* 7 つの札。メジャー・マイナー・dim で色を分ける（参考の積み上げと同じ色） */
 .kv-cards {
@@ -2416,41 +2501,94 @@ main.home .today {
   padding: var(--space-sm) var(--space-2xs);
   border: 1.5px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--kv-min);
   color: var(--fg);
   font: inherit;
   cursor: pointer;
 }
-.kv-card-roman {
-  font-size: var(--text-base);
-  font-weight: 700;
-}
+/* 弾くときに見るのはコード名なので、名前を大きく、Ⅰ〜Ⅶ を小さく */
 .kv-card-name {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   text-align: center;
 }
-.kv-card--maj {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+.kv-card-roman {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--muted);
 }
-.kv-card--maj .kv-card-roman {
-  color: var(--accent);
+.kv-card--maj {
+  border-color: var(--kv-mark);
+  background: var(--kv-maj);
 }
 .kv-card--dim {
-  border-color: var(--ng);
-  background: color-mix(in srgb, var(--ng) 10%, var(--bg));
+  background: var(--kv-dim);
 }
 .kv-card--dim .kv-card-roman {
-  color: var(--ng);
+  color: var(--muted);
+}
+/* 主音（Ⅰ）はオレンジの枠 */
+.kv-card.tonic {
+  border-color: var(--accent);
+  border-width: 2.5px;
+}
+.kv-card.tonic .kv-card-roman {
+  color: var(--accent);
 }
 .kv-card.borrowed {
   border-style: dashed;
+  border-color: var(--fg);
 }
+/* 選んでいる印（五度圏の輪と同じ、すき間を空けたオレンジの外枠） */
 .kv-card[aria-pressed="true"] {
-  outline: 3px solid var(--fg);
-  outline-offset: 1px;
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+/* 色と形の見本 */
+.kv-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-md);
+  margin: var(--space-sm) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.kv-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.kv-sw {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  background: var(--kv-min);
+}
+.kv-sw.kv-card--maj {
+  border-color: var(--kv-mark);
+  background: var(--kv-maj);
+}
+.kv-sw.kv-card--dim {
+  background: var(--kv-dim);
+}
+.kv-sw.tonic {
+  border: 2.5px solid var(--accent);
+}
+.kv-sw.selected {
+  background: none;
+  outline: 2.5px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--line);
+  margin: 0 var(--space-2xs);
+}
+.kv-sw.borrowed {
+  border: 1.5px dashed var(--fg);
 }
 .kv-func {
   margin-top: auto;
@@ -2480,7 +2618,22 @@ main.home .today {
   margin: 0 0 var(--space-sm);
 }
 .kv-detail-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
   font-size: var(--text-lg);
+}
+.kv-replay {
+  width: 40px;
+  height: 40px;
+  margin-left: var(--space-sm);
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
 }
 .kv-tones {
   display: flex;
@@ -2518,6 +2671,10 @@ main.home .today {
   font-size: var(--text-base);
   margin: var(--space-xl) 0 0;
 }
+/* コードを選んだときのスケールの残りの音（指板の既定の薄さだと読めない） */
+.kv-board .fb-mark.dim {
+  opacity: 0.55;
+}
 .kv-board-fig {
   margin: var(--space-sm) 0 var(--space-xs);
 }
@@ -2530,12 +2687,12 @@ main.home .today {
 /* 進行：五度圏の矢印と、並んだ札 */
 .kv-arrows path {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--kv-mark);
   stroke-width: 2.5;
   stroke-linecap: round;
 }
 .kv-arrowhead {
-  fill: var(--accent);
+  fill: var(--kv-mark);
 }
 /* 鳴らしているあいだは、今のコードへ入る矢印だけ濃く */
 .kv-arrows.playing path {
@@ -2543,9 +2700,10 @@ main.home .today {
 }
 .kv-arrows.playing path.now {
   opacity: 1;
+  stroke: var(--accent);
   stroke-width: 4;
 }
-.kv-cell.playing circle {
+.kv-cell.playing .kv-dot {
   stroke: var(--accent);
   stroke-width: 5;
 }
@@ -2574,8 +2732,19 @@ main.home .today {
   padding: var(--space-xs) var(--space-sm);
   border: 1.5px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: var(--kv-min);
   transition: transform 0.15s ease;
+}
+.kv-step.kv-card--maj {
+  border-color: var(--kv-mark);
+  background: var(--kv-maj);
+}
+.kv-step.kv-card--dim {
+  background: var(--kv-dim);
+}
+.kv-step.tonic {
+  border-color: var(--accent);
+  border-width: 2.5px;
 }
 .kv-steps li.playing .kv-step {
   outline: 3px solid var(--accent);
@@ -2592,6 +2761,6 @@ main.home .today {
   content: " →";
 }
 .kv-motion.strong {
-  color: var(--accent);
+  color: var(--fg);
   font-weight: 700;
 }
