@@ -156,6 +156,19 @@ const onFan = (x: number, y: number, angle: number) => {
 
 /** これ以上動いたらドラッグ（px）。指の小さなぶれではコードを鳴らせるように */
 const DRAG_PX = 8;
+/** はじいたとみなす速さ（円周に沿って viewBox の単位/ms。どの輪をつかんでも指の速さで決まるように）と、
+    それを測る離す直前の長さ（ms）。はじいたら、回した角度が半分に満たなくても 1 つ回す */
+const FLICK_SPEED = 0.25;
+const FLICK_MS = 100;
+
+/** 離す直前に素早く動かしていたら、その向き（±1）。止めてから離したり、ゆっくりだったりしたら 0。r は指の半径 */
+function flick(trail: readonly { t: number; delta: number }[], delta: number, r: number) {
+  const now = performance.now();
+  const from = trail.find(p => p.t >= now - FLICK_MS);
+  if (!from) return 0;
+  const v = ((((delta - from.delta) * Math.PI) / 180) * r) / Math.max(now - from.t, 1);
+  return Math.abs(v) >= FLICK_SPEED ? Math.sign(v) : 0;
+}
 
 /** 扇形を 1 度でも回したか（回したら「回すとキーが変わる」の案内を出さない）。保存できなくても落ちない */
 const TURNED_KEY = `${STORAGE_KEY}:fan-turned`;
@@ -247,9 +260,13 @@ function KeyCircle({
         x: number;
         y: number;
         last: number;
+        /** 指の半径（viewBox） */
+        r: number;
         base: number;
         delta: number;
         moved: boolean;
+        /** 動かした跡（時刻と、そのときまでに回した角度）。離す直前の速さを測る */
+        trail: { t: number; delta: number }[];
       }
     | undefined
   >(undefined);
@@ -269,9 +286,13 @@ function KeyCircle({
       if (!g || e.pointerId !== g.id) return;
       const p = toLocal(e);
       if (!p) return;
-      const deg = polar(p.x, p.y).deg;
+      const { deg, r } = polar(p.x, p.y);
       g.delta += wrap(deg - g.last);
       g.last = deg;
+      g.r = r;
+      const t = performance.now();
+      g.trail.push({ t, delta: g.delta });
+      while (g.trail.length > 1 && g.trail[0]!.t < t - FLICK_MS) g.trail.shift();
       if (!g.moved && Math.hypot(e.clientX - g.x, e.clientY - g.y) > DRAG_PX) g.moved = true;
       if (g.moved) setTurn({ base: g.base, delta: g.delta });
     },
@@ -281,10 +302,10 @@ function KeyCircle({
       gesture.current = undefined;
       if (!g.moved) return;
       muteClickUntil.current = performance.now() + 500;
-      // 離した角度から、いちばん近いキーへ回して止める（動かした分が半分に満たなければ元のキーへ戻る）
+      // 離した角度から、いちばん近いキーへ回して止める（動かした分が半分に満たなければ元のキーへ戻る。はじいたときは 1 つ回す）
       fan.current = g.base + g.delta;
       setTurn(null);
-      const n = Math.round(g.delta / 30);
+      const n = Math.round(g.delta / 30) || flick(g.trail, g.delta, g.r);
       if (cancel || n === 0) return;
       onPick!(keyAt(given.key.mode, slotOf(given.key) + n));
       onTurned?.();
@@ -313,14 +334,17 @@ function KeyCircle({
     if (!e.isPrimary || e.button !== 0) return;
     const p = toLocal(e);
     if (!p || !onFan(p.x, p.y, fan.current)) return;
+    const { deg, r } = polar(p.x, p.y);
     gesture.current = {
       id: e.pointerId,
       x: e.clientX,
       y: e.clientY,
-      last: polar(p.x, p.y).deg,
+      last: deg,
+      r,
       base: fan.current,
       delta: 0,
       moved: false,
+      trail: [{ t: performance.now(), delta: 0 }],
     };
   };
   const onKeyDown = (e: KeyboardEvent) => {
@@ -760,7 +784,7 @@ export function KeyView({ query }: { query: string }) {
               saveTurned();
             }}
           />
-          {!turned && <p class="small muted kv-hint">扇形をつかんで回すとキーが変わる</p>}
+          {!turned && <p class="small muted kv-hint">扇形をつかんで回すか、軽くはじくとキーが変わる</p>}
           {change && prev && (
             <p class="small kv-change" role="status">
               {keyLabel(prev)} → {keyLabel(s.key)}：
@@ -850,7 +874,8 @@ export function KeyView({ query }: { query: string }) {
               )}
             </ul>
             <p class="muted small">
-              扇形の中と札はコードが鳴ります。キーは、扇形をつかんで回すか、扇形の外の文字を押すと変わります。
+              扇形の中と札はコードが鳴ります。キーは、扇形をつかんで回すか（軽くはじくと 1
+              つ回ります）、扇形の外の文字を押すと変わります。
             </p>
           </section>
 
