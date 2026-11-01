@@ -1,10 +1,16 @@
 // @vitest-environment happy-dom
 import { render } from "preact";
 import { act } from "preact/test-utils";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KeyView } from "./KeyView";
 
+/** 時計（はじいたかどうかを、動かした速さで見るため、テストの中で進める） */
+let clock = 0;
+beforeEach(() => {
+  vi.spyOn(performance, "now").mockImplementation(() => clock);
+});
 afterEach(() => {
+  vi.restoreAllMocks();
   document.body.innerHTML = "";
   localStorage.clear();
 });
@@ -32,16 +38,18 @@ const at = (deg: number, r: number) => {
 };
 const pointer = (type: string, p: { clientX: number; clientY: number }) =>
   new PointerEvent(type, { bubbles: true, pointerId: 1, isPrimary: true, button: 0, ...p });
-/** 図の上で、from 度から to 度まで、半径 r を通って動かす */
-async function drag(svg: SVGSVGElement, from: number, to: number, r = 146) {
+/** 図の上で、from 度から to 度まで、半径 r を通って ms ミリ秒かけて動かし、pause ミリ秒止めてから離す */
+async function drag(svg: SVGSVGElement, from: number, to: number, { r = 146, ms = 400, pause = 0 } = {}) {
   await act(() => {
     svg.dispatchEvent(pointer("pointerdown", at(from, r)));
   });
   const n = 10;
   for (let i = 1; i <= n; i++)
     await act(() => {
+      clock += ms / n;
       window.dispatchEvent(pointer("pointermove", at(from + ((to - from) * i) / n, r)));
     });
+  clock += pause;
   await act(() => {
     window.dispatchEvent(pointer("pointerup", at(to, r)));
   });
@@ -113,11 +121,32 @@ describe("キーの画面", () => {
     expect(el.querySelector(".kv-hint")).toBeNull();
     expect(localStorage.length).toBe(1);
     // 中の輪から反時計回りに 2.6 つ分 → 3 つ戻って B♭
-    await drag(svg, 30, 30 - 78, 100);
+    await drag(svg, 30, 30 - 78, { r: 100 });
     expect(center(el)).toBe("B♭");
     // 半分に満たなければ元のキーのまま
     await drag(svg, -60, -50);
     expect(center(el)).toBe("B♭");
+  });
+
+  it("扇形を軽くはじくと、半分に満たなくても 1 つ回る（ゆっくりや、止めてから離したら回らない）", async () => {
+    const el = await mount("key=C");
+    const svg = circleOf(el);
+    // 8 度を 20ms で（時計回り）
+    await drag(svg, 0, 8, { ms: 20 });
+    expect(center(el)).toBe("G");
+    // 反時計回りに 2 つ
+    await drag(svg, 30, 20, { ms: 30 });
+    await drag(svg, 0, -10, { ms: 30 });
+    expect(center(el)).toBe("F");
+    // 同じ 8 度でも、ゆっくりなら元のまま
+    await drag(svg, -30, -22, { ms: 400 });
+    expect(center(el)).toBe("F");
+    // 素早く動かしても、止めてから離したら元のまま
+    await drag(svg, -30, -22, { ms: 20, pause: 300 });
+    expect(center(el)).toBe("F");
+    // はじいた向きに 1 つだけ（半分を超えていたら、いつもどおり近いキーへ）
+    await drag(svg, -30, 10, { ms: 40 });
+    expect(center(el)).toBe("C");
   });
 
   it("回しているあいだは、行き先のキーのコードを扇形に出す", async () => {
