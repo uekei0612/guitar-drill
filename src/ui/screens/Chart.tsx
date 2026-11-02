@@ -33,6 +33,8 @@ import { exportSvgPng, shareUrl } from "../export-image";
 import { PdfPreview } from "../PdfPreview";
 import { outputPdf } from "../pdf-output";
 import { useMedia } from "../use-media";
+import { ReferenceSheet } from "../ReferenceSheet";
+import { chartRefs } from "../refGuide";
 import { href } from "../route";
 import { TuningOptions } from "./Settings";
 import { BOX_SCALES } from "../../topics/scale-boxes";
@@ -108,6 +110,8 @@ export function Chart({ query }: { query: string }) {
   const [preview, setPreview] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfMsg, setPdfMsg] = useState("");
+  /** 関係のある参考の一覧を開いているか */
+  const [refs, setRefs] = useState(false);
 
   // 状態を URL に書く（履歴は増やさない）
   useEffect(() => {
@@ -150,6 +154,9 @@ export function Chart({ query }: { query: string }) {
     <>
       <header class="bar">
         <h1 tabIndex={-1}>チャート</h1>
+        <button class="bar-link link-btn" onClick={() => setRefs(true)} aria-haspopup="dialog">
+          参考
+        </button>
         <button
           class="bar-link link-btn"
           onClick={() => playAscending(chart.intervals, s.root)}
@@ -522,6 +529,7 @@ export function Chart({ query }: { query: string }) {
           })()}
         </section>
       </details>
+      {refs && <ReferenceSheet groups={chartRefs(s, BOX_SCALES)} onClose={() => setRefs(false)} />}
     </>
   );
 }

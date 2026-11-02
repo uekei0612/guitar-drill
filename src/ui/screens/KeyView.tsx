@@ -59,6 +59,8 @@ import { Fretboard } from "../Fretboard";
 import { HScroll } from "../HScroll";
 import { PdfPreview } from "../PdfPreview";
 import { outputPdf } from "../pdf-output";
+import { ReferenceSheet } from "../ReferenceSheet";
+import { keyRefs } from "../refGuide";
 import { href } from "../route";
 import { STORAGE_KEY } from "../../store/store";
 
@@ -680,6 +682,8 @@ export function KeyView({ query }: { query: string }) {
   const [prev, setPrev] = useState<Key | null>(null);
   /** 扇形を回したことがあるか（無ければ回し方を案内する） */
   const [turned, setTurned] = useState(readTurned);
+  /** 関係のある参考の一覧を開いているか */
+  const [refs, setRefs] = useState(false);
 
   useEffect(() => {
     history.replaceState(null, "", href({ name: "key", query: toParams(s).toString() }));
@@ -743,6 +747,9 @@ export function KeyView({ query }: { query: string }) {
     <>
       <header class="bar">
         <h1 tabIndex={-1}>キー</h1>
+        <button class="bar-link link-btn" onClick={() => setRefs(true)} aria-haspopup="dialog">
+          参考
+        </button>
       </header>
 
       <div class="kv-layout">
@@ -1061,6 +1068,7 @@ export function KeyView({ query }: { query: string }) {
           <KeyPrint borrow={s.borrow} />
         </div>
       </div>
+      {refs && <ReferenceSheet groups={keyRefs(s)} onClose={() => setRefs(false)} />}
     </>
   );
 }

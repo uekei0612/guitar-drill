@@ -1734,6 +1734,55 @@ main.with-tabs {
   flex: 1;
   margin: 0;
 }
+.sheet-back {
+  text-decoration: none;
+  white-space: nowrap;
+}
+/* チャートとキーから開く参考の一覧：ホームの分野の行と同じ枠で、名前と何が載っているか */
+.ref-index h3 {
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.ref-index ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+.ref-index-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 56px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ref-index-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2xs);
+}
+.ref-index-title {
+  font-weight: 600;
+}
+.ref-index-note {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+.ref-index-go {
+  color: var(--accent);
+  font-size: var(--text-lg);
+}
 
 /* 今日の復習で、問題がどの分野のものか */
 .q-source {

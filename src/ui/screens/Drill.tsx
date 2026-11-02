@@ -6,7 +6,6 @@ import { addDay } from "../../drill/streak";
 import { type Session, answer, currentItem, isFinished, startSession, summarize } from "../../drill/session";
 import {
   type AnyTopic,
-  type Context,
   type Mark,
   type Question,
   type Response,
@@ -18,11 +17,11 @@ import { contextOf, scoped, store, useData } from "../../state";
 import type { Store } from "../../store/store";
 import type { Position } from "../../theory";
 import { Fretboard, posLabel } from "../Fretboard";
+import { ReferenceSheet } from "../ReferenceSheet";
 import { HSCROLL_BAR_HEIGHT, HScroll } from "../HScroll";
 import { MAX_HORIZONTAL_FRETS, chooseOrientation, layout } from "../fretboard-layout";
 import { stringCount } from "../../theory";
 import { ChartLink } from "../ChartLink";
-import { LessonBoard } from "../LessonFigures";
 import { playSound } from "../../chart/audio";
 import { href } from "../route";
 import { useMedia } from "../use-media";
@@ -74,39 +73,6 @@ function ScrollX({
     </HScroll>
   ) : (
     <>{children}</>
-  );
-}
-
-/** 参考を、ドリルの上に重ねて開く（ページを移るとセッションが消えるので）。閉じるとドリルの続きに戻る */
-function ReferenceSheet({ topic, ctx, onClose }: { topic: AnyTopic; ctx: Context<unknown>; onClose: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    d?.showModal?.();
-    return () => d?.close?.();
-  }, []);
-  const Ref = topic.reference!;
-  return (
-    <dialog
-      ref={ref}
-      class="sheet"
-      aria-labelledby="sheet-h"
-      onClose={onClose}
-      // 外側（暗くした背景）を押しても閉じる
-      onClick={e => e.target === ref.current && ref.current?.close()}
-    >
-      <div class="sheet-inner">
-        <div class="sheet-head">
-          <h2 id="sheet-h">{topic.title}の参考</h2>
-          <button class="btn" onClick={() => ref.current?.close()}>
-            閉じる
-          </button>
-        </div>
-        <LessonBoard.Provider value={{ tuning: ctx.common.tuning, lefty: ctx.common.lefty }}>
-          <Ref ctx={ctx} />
-        </LessonBoard.Provider>
-      </div>
-    </dialog>
   );
 }
 
