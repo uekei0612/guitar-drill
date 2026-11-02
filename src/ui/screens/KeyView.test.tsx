@@ -217,6 +217,32 @@ describe("キーの画面", () => {
     expect(center(el)).toBe("F");
   });
 
+  it("見出しの「参考」から、関係のある参考を一覧で開き、選んで読み、閉じると元の表示のまま", async () => {
+    const el = await mount("key=G&prog=251");
+    const btn = [...el.querySelectorAll<HTMLButtonElement>(".bar button")].find(b => b.textContent === "参考")!;
+    await act(() => btn.click());
+    const sheet = el.querySelector<HTMLDialogElement>("dialog.sheet")!;
+    expect(sheet.querySelector("h2")!.textContent).toBe("参考");
+    const first = sheet.querySelector(".ref-index")!;
+    expect(first.querySelector("h3")!.textContent).toBe("今の表示に関係するもの");
+    const titles = [...first.querySelectorAll(".ref-index-title")].map(t => t.textContent);
+    expect(titles).toEqual(["ダイアトニックコード", "五度圏と調号", "定番の進行"]);
+    // 選ぶと同じシートで読める。「一覧」で戻れる
+    await act(() => first.querySelectorAll<HTMLButtonElement>(".ref-index-row")[2]!.click());
+    expect(sheet.querySelector("h2")!.textContent).toBe("定番の進行の参考");
+    expect(sheet.querySelector(".ref-index")).toBeNull();
+    await act(() => sheet.querySelector<HTMLButtonElement>(".sheet-back")!.click());
+    expect(sheet.querySelector("h2")!.textContent).toBe("参考");
+    // 閉じても、キーと進行はそのまま
+    await act(() => {
+      sheet.close();
+      sheet.dispatchEvent(new Event("close"));
+    });
+    expect(el.querySelector("dialog.sheet")).toBeNull();
+    expect(center(el)).toBe("G");
+    expect(location.hash).toContain("prog=251");
+  });
+
   it("札を押すと、そのコードの構成音と機能が出る", async () => {
     const el = await mount("key=C&size=4");
     await act(() => cards(el)[4]!.click());
