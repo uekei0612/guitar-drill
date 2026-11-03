@@ -1,19 +1,42 @@
 /* 参考の本文：ローコードの押さえ方 */
 import { openChordById } from ".";
-import { Pitfalls, Points, Section, Tip, Tips } from "../../ui/Lesson";
+import { Pitfalls, Points, Section, Terms, Tip, Tips } from "../../ui/Lesson";
 import { Fig, Figs, PressSpot } from "../../ui/LessonFigures";
 import { ChordFig } from "../chord-shapes/figures";
 import type { LabelMode } from "../chord-shapes/shape";
 
 export function Intro() {
   return (
-    <Points>
-      <li>ローコードは、開放弦を使ってナット近く（1〜3 フレット）で押さえるコード</li>
-      <li>
-        まず基本の 8 つ：<strong>C A G E D</strong> と <strong>Am Em Dm</strong>
-      </li>
-      <li>形は「似たもの同士の違い」で覚えると速い（メジャーとマイナーは 1 フレットの違い）</li>
-    </Points>
+    <>
+      <Points>
+        <li>コードは、3 つ以上の音を同時に鳴らした和音。伴奏の土台になる</li>
+        <li>
+          ローコードは、開放弦（押さえない弦）も鳴らして、ヘッド側（1〜3 フレット）で押さえる、いちばん入りやすいコード
+        </li>
+        <li>
+          まず基本の 8 つ：<strong>C A G E D</strong> と <strong>Am Em Dm</strong>
+        </li>
+        <li>形は、似たもの同士の違いで覚えると速い（たとえばメジャーとマイナーは、指 1 本を 1 フレットずらすだけ）</li>
+      </Points>
+      <Terms
+        items={[
+          ["コード", "いくつかの音を同時に鳴らした和音。C、Am のような名前で呼ぶ"],
+          ["ルート", "コードの名前になる、いちばん元の音。C のコードなら C の音"],
+          [
+            "3 度・5 度",
+            "ルートから数えて 3 つ目・5 つ目の音（C のコードなら E と G）。ルート・3 度・5 度の 3 音でコードができる",
+          ],
+          [
+            "メジャー・マイナー",
+            "明るい響きのコード（C）と暗い響きのコード（Cm、Am のように m が付く）。違いは 3 度の音の高さだけ",
+          ],
+          ["7th（セブンス）", "3 音に 4 つ目の音を足して、少し大人っぽい響きにしたコード（C7、E7 など）"],
+          ["ナット", "指板のヘッド側の端にある、弦を支える白い仕切り。0 フレットの位置"],
+          ["×（ミュート）", "× の弦は鳴らさない（弾かない、または指で触れて止める）"],
+          ["指の呼び方", "図では 人=人差し指、中=中指、薬=薬指、小=小指"],
+        ]}
+      />
+    </>
   );
 }
 

@@ -2,22 +2,35 @@
 import { useContext } from "preact/hooks";
 import type { Mark } from "../../drill/topic";
 import { fmt, openMidis, stringCount } from "../../theory";
-import { Pitfalls, Points, Section, StandardOnly, Tip, Tips } from "../../ui/Lesson";
+import { Pitfalls, Points, Section, StandardOnly, Terms, Tip, Tips } from "../../ui/Lesson";
 import { Board, Fig, Figs, LessonBoard, SomeStrings, StringOrder, Steps, stringRun } from "../../ui/LessonFigures";
 
 export function Intro({ standard }: { standard: boolean }) {
   return (
-    <Points>
-      <li>弦は細い順に 1 弦〜6 弦と数える。いちばん太い（音の低い）弦が 6 弦</li>
-      {standard ? (
-        <li>
-          レギュラーチューニングは 6 弦から <strong>E A D G B E</strong>（ミ ラ レ ソ シ ミ）
-        </li>
-      ) : (
-        <li>今の設定のチューニングの開放弦は、下の図と表のとおり</li>
-      )}
-      <li>開放弦の音名は、指板のすべての音を数える出発点になる</li>
-    </Points>
+    <>
+      <Points>
+        <li>弦は、いちばん細い弦が 1 弦、いちばん太い弦が 6 弦。太い弦ほど低い音が出る</li>
+        {standard ? (
+          <li>
+            ふつうの合わせ方（レギュラーチューニング）では、6 弦から <strong>E A D G B E</strong>（ミ ラ レ ソ シ ミ）
+          </li>
+        ) : (
+          <li>今の設定のチューニングの開放弦は、下の図と表のとおり</li>
+        )}
+        <li>どこも押さえずに鳴らした音（開放弦）の名前が分かれば、そこから数えて指板のどの音も分かる</li>
+      </Points>
+      <Terms
+        items={[
+          ["開放弦", "どこも押さえずに鳴らした弦"],
+          ["チューニング", "弦の音の高さを合わせること。またその合わせ方（弦ごとの音の組み合わせ）"],
+          ["レギュラーチューニング", "いちばんふつうの合わせ方。6 弦から E A D G B E"],
+          ["音名", "音の名前。ド=C、レ=D、ミ=E、ファ=F、ソ=G、ラ=A、シ=B"],
+          ["半音・フレット", "1 フレット押さえるごとに、半音（いちばん小さい一歩）ずつ高くなる"],
+          ["オクターブ", "同じ名前で高さだけ違う音。1 弦と 6 弦はどちらも E で、2 オクターブ離れている"],
+          ["TAB 譜", "ギター用の楽譜。6 本の線が弦を表し、数字がフレットを表す"],
+        ]}
+      />
+    </>
   );
 }
 

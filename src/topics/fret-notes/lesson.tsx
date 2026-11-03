@@ -3,19 +3,35 @@ import { useContext } from "preact/hooks";
 import type { Mark } from "../../drill/topic";
 import { stringCount } from "../../theory";
 import { HScroll } from "../../ui/HScroll";
-import { Pitfalls, Points, Section, StandardOnly, Tip, Tips } from "../../ui/Lesson";
+import { Pitfalls, Points, Section, StandardOnly, Terms, Tip, Tips } from "../../ui/Lesson";
 import { Board, Fig, Figs, Keys, LessonBoard, SomeStrings, nameAt, stringRun } from "../../ui/LessonFigures";
 
 export function Intro() {
   return (
-    <Points>
-      <li>1 フレット進むと半音 1 つ上がる。12 フレットで 1 オクターブ上の同じ音名に戻る</li>
-      <li>
-        自然音は <strong>C D E F G A B</strong>。隣どうしは全音（2 フレット）で、<strong>E–F と B–C だけが半音</strong>
-        （隣のフレット）
-      </li>
-      <li>まず 6 弦と 5 弦を覚える（コードやスケールのルートを探す基準になる）</li>
-    </Points>
+    <>
+      <Points>
+        <li>
+          ドレミの代わりに、<strong>C D E F G A B</strong> という英語の名前（音名）で音を呼ぶことが多い
+        </li>
+        <li>1 フレット進むごとに、音が 1 段（半音）高くなる。12 フレットで同じ名前の音に戻る</li>
+        <li>
+          C D E F G A B の隣どうしは 2 フレット離れているが、<strong>E–F と B–C だけは 1 フレット</strong>
+        </li>
+        <li>まず 6 弦と 5 弦を覚える（コードやスケールの出発点を探す基準になる）</li>
+      </Points>
+      <Terms
+        items={[
+          ["音名", "音の名前。ド=C、レ=D、ミ=E、ファ=F、ソ=G、ラ=A、シ=B（ピアノの白い鍵盤の音）"],
+          ["自然音", "♯（シャープ）も ♭（フラット）も付かない、C D E F G A B の 7 つの音"],
+          ["フレット", "指板に打ってある金属の仕切り。仕切りで区切られたマスも「○フレット」と数える"],
+          ["半音", "音の高さの、いちばん小さい一歩。ギターでは隣のフレットとの差（1 フレット）"],
+          ["全音", "半音 2 つ分。ギターでは 2 フレット先"],
+          ["♯・♭", "♯ は半音上げる、♭ は半音下げる記号。F♯ は F の 1 フレット上、B♭ は B の 1 フレット下"],
+          ["オクターブ", "同じ名前で、高さだけ違う音。ギターではフレットを 12 進めた音（8 つ上のドに当たる）"],
+          ["開放弦", "どこも押さえずに鳴らした弦（0 フレット）"],
+        ]}
+      />
+    </>
   );
 }
 

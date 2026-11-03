@@ -1,7 +1,7 @@
 /* 参考の本文：ハイコードの押さえ方 */
 import { barreShape, formOf } from ".";
 import { STANDARD, note } from "../../theory";
-import { Pitfalls, Points, Section, Tip, Tips } from "../../ui/Lesson";
+import { Pitfalls, Points, Section, Terms, Tip, Tips } from "../../ui/Lesson";
 import { Fig, Figs, PressSpot } from "../../ui/LessonFigures";
 import { ChordFig } from "../chord-shapes/figures";
 import type { LabelMode } from "../chord-shapes/shape";
@@ -10,13 +10,33 @@ import { Landmarks } from "../fret-notes/lesson";
 
 export function Intro() {
   return (
-    <Points>
-      <li>ハイコードは、ローコードの E・A の形を人差し指のバレー（セーハ）でずらしたもの</li>
-      <li>
-        <strong>6 弦ルート＝E 型、5 弦ルート＝A 型</strong>。ルートの弦の音名がコードの名前になる
-      </li>
-      <li>形は 2 つ、ずらす場所は「ルートの弦の何フレットか」で決まる</li>
-    </Points>
+    <>
+      <Points>
+        <li>
+          ハイコードは、ローコードの E と A
+          の形を、人差し指で全部の弦を押さえながら、ネック（指板）の上のほうへずらしたもの
+        </li>
+        <li>
+          <strong>6 弦がルートなら E 型、5 弦がルートなら A 型</strong>。ルートの弦の音名が、そのままコードの名前になる
+        </li>
+        <li>覚える形は 2 つだけ。どのコードになるかは「ルートの弦の何フレットか」で決まる</li>
+      </Points>
+      <Terms
+        items={[
+          [
+            "ハイコード",
+            "指板の上のほう（ボディ側）まで使って押さえるコード。人差し指のバレーで、1 つの形をずらして作る",
+          ],
+          ["バレー（セーハ）", "人差し指を伸ばして、1 つのフレットの何本かの弦をまとめて押さえること"],
+          ["ローコード", "開放弦を使ってヘッド側で押さえるコード（C、Am など）。ハイコードの元の形"],
+          ["ルート", "コードの名前になる、いちばん元の音。いちばん低く鳴る弦の音"],
+          ["E 型・A 型", "元になるローコード（E、A）の押さえ方の形。ずらしてもこの形は変わらない"],
+          ["ナット", "指板のヘッド側の端にある白い仕切り。ローコードでは開放弦の代わりに、バレーがナットの役をする"],
+          ["3 度・♭3・7th", "3 度はコードの明暗を決める音で、♭3 にするとマイナー。7th は 4 つ目の音を足した響き"],
+          ["ミュート（消音）", "鳴らしたくない弦に、指で軽く触れて音を止めること"],
+        ]}
+      />
+    </>
   );
 }
 
