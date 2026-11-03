@@ -13,6 +13,23 @@ export function Points({ children }: { children: ComponentChildren }) {
   );
 }
 
+/** 初めて出てくる言葉の意味。要点のすぐ下に置いて、読み始める前に押さえてもらう（開いたままだと長いので折りたたみ） */
+export function Terms({ items }: { items: readonly (readonly [term: string, meaning: string])[] }) {
+  return (
+    <details class="lesson-terms" open>
+      <summary>言葉の意味</summary>
+      <dl>
+        {items.map(([term, meaning]) => (
+          <div key={term}>
+            <dt>{term}</dt>
+            <dd>{meaning}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  );
+}
+
 /** 本文の節（仕組み・練習のしかた など） */
 export function Section({ title, children }: { title: string; children: ComponentChildren }) {
   return (
