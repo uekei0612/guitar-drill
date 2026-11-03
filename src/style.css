@@ -1072,6 +1072,33 @@ input[type="url"] {
 .lesson-pitfalls li + li {
   margin-top: var(--space-xs);
 }
+/* 言葉の意味（初心者の参考）。要点の下に、折りたためる一覧で */
+.lesson-terms {
+  margin: calc(-1 * var(--space-sm)) 0 var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.lesson-terms summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.lesson-terms dl {
+  margin: var(--space-sm) 0 0;
+}
+.lesson-terms dl > div + div {
+  margin-top: var(--space-sm);
+}
+.lesson-terms dt {
+  font-weight: 700;
+}
+.lesson-terms dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
 .lesson-sec {
   margin-top: var(--space-xl);
 }

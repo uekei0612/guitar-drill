@@ -3,19 +3,35 @@ import { useContext } from "preact/hooks";
 import type { Mark } from "../../drill/topic";
 import { stringCount } from "../../theory";
 import { HScroll } from "../../ui/HScroll";
-import { Pitfalls, Points, Section, StandardOnly, Tip, Tips } from "../../ui/Lesson";
+import { Pitfalls, Points, Section, StandardOnly, Terms, Tip, Tips } from "../../ui/Lesson";
 import { Board, Fig, Figs, Keys, LessonBoard, SomeStrings, nameAt, stringRun } from "../../ui/LessonFigures";
 
 export function Intro() {
   return (
-    <Points>
-      <li>1 フレット進むと半音 1 つ上がる。12 フレットで 1 オクターブ上の同じ音名に戻る</li>
-      <li>
-        自然音は <strong>C D E F G A B</strong>。隣どうしは全音（2 フレット）で、<strong>E–F と B–C だけが半音</strong>
-        （隣のフレット）
-      </li>
-      <li>まず 6 弦と 5 弦を覚える（コードやスケールのルートを探す基準になる）</li>
-    </Points>
+    <>
+      <Points>
+        <li>
+          ドレミの代わりに、<strong>C D E F G A B</strong> という英語の名前（音名）で音を呼ぶことが多い
+        </li>
+        <li>1 フレット進むごとに、音が 1 段（半音）高くなる。12 フレットで同じ名前の音に戻る</li>
+        <li>
+          C D E F G A B の隣どうしは 2 フレット離れているが、<strong>E–F と B–C だけは 1 フレット</strong>
+        </li>
+        <li>まず 6 弦と 5 弦を覚える（コードやスケールの出発点を探す基準になる）</li>
+      </Points>
+      <Terms
+        items={[
+          ["音名", "音の名前。ド=C、レ=D、ミ=E、ファ=F、ソ=G、ラ=A、シ=B（ピアノの白い鍵盤の音）"],
+          ["自然音", "♯（シャープ）も ♭（フラット）も付かない、C D E F G A B の 7 つの音"],
+          ["フレット", "指板に打ってある金属の仕切り。仕切りで区切られたマスも「○フレット」と数える"],
+          ["半音", "音の高さの、いちばん小さい一歩。ギターでは隣のフレットとの差（1 フレット）"],
+          ["全音", "半音 2 つ分。ギターでは 2 フレット先"],
+          ["♯・♭", "♯ は半音上げる、♭ は半音下げる記号。F♯ は F の 1 フレット上、B♭ は B の 1 フレット下"],
+          ["オクターブ", "同じ名前で、高さだけ違う音。ギターではフレットを 12 進めた音（8 つ上のドに当たる）"],
+          ["開放弦", "どこも押さえずに鳴らした弦（0 フレット）"],
+        ]}
+      />
+    </>
   );
 }
 
@@ -88,13 +104,13 @@ export function Body({ standard }: { standard: boolean }) {
       {standard ? (
         <Tips>
           <Tip title="目印のフレットから数える">
-            6 弦は 0=E・3=G・5=A・7=B・8=C・10=D・12=E。5 弦は
-            0=A・3=C・5=D・7=E・8=F・10=G・12=A。指板の点（ポジションマーク）のある 3・5・7・9・12
+            数字はフレットの番号（0 は開放弦）。6 弦は 0=E・3=G・5=A・7=B・8=C・10=D・12=E。5 弦は
+            0=A・3=C・5=D・7=E・8=F・10=G・12=A。指板の表や横にある丸い印（ポジションマーク）のある 3・5・7・9・12
             フレットを足場にして、そこから 1〜2 フレット数える。
             <Landmarks />
           </Tip>
           <Tip title="6 弦と 1 弦は同じ">
-            1 弦は 6 弦と同じ並び（2 オクターブ上）。6 弦を覚えれば 1 弦も分かる。
+            1 弦は 6 弦と同じ並び（名前は同じで、高さが 2 オクターブ違う）。6 弦を覚えれば 1 弦も分かる。
             <Fig caption="上（1 弦）と下（6 弦）が同じ並び">
               <Board
                 range={{ minFret: 0, maxFret: 5 }}
@@ -104,8 +120,9 @@ export function Body({ standard }: { standard: boolean }) {
             </Fig>
           </Tip>
           <Tip title="オクターブの形で 2 弦先へ飛ぶ">
-            同じ音名の 1 オクターブ上は、<strong>2 本細い弦の 2 フレット先</strong>（6 弦 → 4 弦、5 弦 → 3 弦）。3 弦と
-            2 弦の間で並びが 1 つずれるので、<strong>4 弦 → 2 弦と 3 弦 → 1 弦は 3 フレット先</strong>。
+            同じ名前で高さが 1 段上の音（1 オクターブ上）は、<strong>2 本細い弦の 2 フレット先</strong>（6 弦 → 4 弦、5
+            弦 → 3 弦）。3 弦と 2 弦の間で並びが 1 つずれるので、
+            <strong>4 弦 → 2 弦と 3 弦 → 1 弦は 3 フレット先</strong>。
             <Fig caption="G（オレンジ）：6 弦 3 → 4 弦 5（2 フレット先）→ 2 弦 8（3 フレット先）。C も同じ形で 5 弦 3 → 3 弦 5 → 1 弦 8">
               <Board
                 range={{ minFret: 3, maxFret: 8 }}

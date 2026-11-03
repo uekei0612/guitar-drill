@@ -13,12 +13,12 @@ export interface RefGroup {
 }
 
 const NOTE: Readonly<Record<string, string>> = {
-  "fret-notes": "12 フレットまでの自然音の位置と、覚え方",
+  "fret-notes": "ドレミ（C D E…）がどのフレットか。用語の説明つき",
   intervals: "ルートから見た度数の形（ルートが動いても形は同じ）",
   "scale-boxes": "スケールを 5 つの箱に分けた押さえ方（CAGED）",
   modes: "7 つのモードの度数と、メジャー・マイナーとの違い（特性音）",
   "dominant-scales": "ドミナント 7th の上で弾くスケールと、使いどころ",
-  triads: "メジャー・マイナー・dim・aug・sus の構成音",
+  triads: "コードの中身の 3 つの音。メジャーとマイナーの違い",
   sevenths: "M7・7・m7・m7♭5・dim7・6 などの構成音",
   tensions: "コードごとに使えるテンション（9・11・13）",
   voicings: "シェル・ドロップ 2・ドロップ 3 の押さえ方の型",
